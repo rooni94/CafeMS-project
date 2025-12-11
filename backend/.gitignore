@@ -1,0 +1,27 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environment variables
+.env
+.env.prod
+.env.*
+*.env
+
+# Django database
+db.sqlite3
+
+# Django migrations (optional if you want to track)
+*/migrations/*.pyc
+*/migrations/*.py
+*/migrations/__pycache__/
+
+# Static files
+/staticfiles/
+/media/
+
+# VSCode / IDE settings
+.vscode/
+.idea/

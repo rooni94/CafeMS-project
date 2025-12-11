@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --store-primary: #f59e0b;
+  --store-secondary: #4c1d95;
+  --store-accent: #0f172a;
+  --store-background: #f8fafc;
+  --store-text: #111827;
+}
+
+body {
+  font-family: "Zain", system-ui, sans-serif;
+  background-color: var(--store-background);
+  color: var(--store-text);
+}
