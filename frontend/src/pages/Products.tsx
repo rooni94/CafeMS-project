@@ -31,7 +31,7 @@ export default function Products() {
   }, []);
 
   if (loading) {
-    return <div className="p-4">جاري تحميل المنتجات...</div>;
+    return <div className="p-4">جاري تحميل الأطباق...</div>;
   }
 
   if (error) {
@@ -39,7 +39,7 @@ export default function Products() {
   }
 
   if (!products.length) {
-    return <div className="p-4">لا توجد منتجات متاحة حالياً.</div>;
+    return <div className="p-4">لا توجد أطباق متاحة حالياً.</div>;
   }
 
   return (

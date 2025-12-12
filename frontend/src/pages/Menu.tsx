@@ -132,8 +132,8 @@ const Menu: React.FC = () => {
           </h1>
           <p className="text-sm text-gray-600 max-w-2xl mx-auto">
             نوفر لك أصنافًا منوعة من القهوة والمشروبات والطعام الجاهز. اضغط على
-            أي تصنيف للاطلاع على المنتجات المرتبطة به أو اعرض كل المنتجات مرة
-            واحدة.
+            أي تصنيف للاطلاع على الأصناف المرتبطة به أو استعرض جميع الأطباق
+            دفعة واحدة.
           </p>
         </section>
 
@@ -192,14 +192,14 @@ const Menu: React.FC = () => {
         <section ref={productsSectionRef} className="space-y-2 text-right">
           <h2 className="text-xl font-semibold">
             {selectedCategory
-              ? `منتجات ${selectedCategory.name}`
-              : "كل منتجاتنا"}
+              ? `أطباق ${selectedCategory.name}`
+              : "كل أطباقنا"}
           </h2>
           <p className="text-xs text-gray-500">
             {selectedCategory
               ? selectedCategory.description ||
                 "اكتشف تفاصيل هذا التصنيف واضف ما يعجبك إلى السلة."
-              : "ابدأ من هنا لاختيار منتجك المفضل."}
+              : "ابدأ من هنا لاختيار طبقك المفضل."}
           </p>
 
           {error && (
@@ -210,11 +210,11 @@ const Menu: React.FC = () => {
 
           {loading ? (
             <p className="text-xs text-gray-500 text-center">
-              جارٍ تحميل المنتجات...
+              جارٍ تحميل الأطباق...
             </p>
           ) : visibleProducts.length === 0 ? (
             <p className="text-sm text-gray-500 text-center">
-              لا توجد منتجات في هذا التصنيف حاليًا.
+              لا توجد أطباق في هذا التصنيف حاليًا.
             </p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

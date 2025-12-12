@@ -180,7 +180,7 @@ const Home: React.FC = () => {
     settings?.about_title?.trim() || "رسالتنا في CafeMS Demo";
   const missionTagline =
     settings?.about_subtitle?.trim() ||
-    "نمزج بين الوصفات الأصلية وأنظمة الإدارة الحديثة لنصنع لحظة ممتعة لكل ضيف.";
+    "نمزج بين الوصفات الأصلية ولمسات الطهاة المعاصرة لنصنع لحظة ممتعة لكل ضيف.";
   const missionParagraphs =
     settings?.about_description?.trim()
       ? settings.about_description
@@ -189,7 +189,7 @@ const Home: React.FC = () => {
           .filter((paragraph) => paragraph.length > 0)
       : [
           "رسالتنا بسيطة: نجهز وجبات ومشروبات طازجة تمنح عملاءنا لحظة استراحة حقيقية وسط إيقاع اليوم السريع. نعتني بأدق التفاصيل بدءاً من تنسيق الطاولة وحتى اختيار المكونات لنضمن تجربة ضيافة محلية دافئة.",
-          "نحرص أيضاً على توظيف أنظمة الإدارة الذكية لمتابعة الطلبات، المخزون، وملاحظات العملاء حتى يبقى الفريق متفرغاً للابتسامة والضيافة. كل تحديث نقوم به في المنصة يهدف إلى جعل رحلتك داخل المتجر أو عبر الطلبات الرقمية أكثر سلاسة.",
+          "نراجع آراء ضيوفنا يومياً ونضبط وصفاتنا وخدمة التقديم لتبقى التجربة سهلة ودافئة سواء زرتنا في الموقع أو عبر الطلبات الرقمية. كل تفصيلة نضيفها هدفها أن تبقى رحلتك مع CafeMS Demo ألذ وأسهل.",
         ];
   const summaryText =
     Array.isArray(settings?.about_highlights) && settings?.about_highlights?.length
@@ -400,7 +400,7 @@ const Home: React.FC = () => {
           </div>
         </section>
 
-        {/* المنتجات */}
+        {/* الأصناف */}
         {(showAllProducts || activeCategory !== null) && (
         <section
           id="products"
@@ -408,14 +408,14 @@ const Home: React.FC = () => {
           className="space-y-4"
         >
           {loading ? (
-            <p className="text-xs text-gray-500">جاري تحميل المنتجات...</p>
+            <p className="text-xs text-gray-500">جاري تحميل الأصناف...</p>
           ) : loadError ? (
             <div className="text-sm text-red-500 bg-white/70 border border-red-100 rounded-2xl px-4 py-3">
               {loadError}
             </div>
           ) : visibleProducts.length === 0 ? (
             <p className="text-sm text-gray-500">
-              لا توجد منتجات بهذا التصنيف حالياً.
+              لا توجد أصناف بهذا التصنيف حالياً.
             </p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

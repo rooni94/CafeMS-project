@@ -106,7 +106,7 @@ const DashboardCategories: React.FC = () => {
       loadCategories();
     } catch (err) {
       console.error(err);
-      setError("تعذر حذف الصنف، قد يكون مرتبطاً بمنتجات.");
+      setError("تعذر حذف الصنف، قد يكون مرتبطاً بأطباق.");
     }
   };
 

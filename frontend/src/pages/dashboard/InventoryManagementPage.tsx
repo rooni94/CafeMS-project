@@ -149,7 +149,7 @@ const InventoryManagementPage: React.FC = () => {
 
       <div className="grid md:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl border border-amber-100 shadow p-4">
-          <p className="text-xs text-gray-500">إجمالي المنتجات المتتبعة</p>
+          <p className="text-xs text-gray-500">إجمالي الأصناف المتتبعة</p>
           <p className="text-2xl font-bold text-amber-700">{items.length}</p>
         </div>
         <div className="bg-white rounded-2xl border border-amber-100 shadow p-4">
@@ -167,7 +167,7 @@ const InventoryManagementPage: React.FC = () => {
       <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-4">
         <div className="bg-white rounded-3xl shadow border border-amber-100 p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold">قائمة المنتجات</h3>
+            <h3 className="text-sm font-semibold">قائمة الأطباق</h3>
             <span className="text-[11px] text-gray-500">
               {loading ? "جاري التحميل..." : `${items.length} عنصر`}
             </span>

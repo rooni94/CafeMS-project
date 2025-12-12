@@ -323,13 +323,13 @@ const CashierPage: React.FC = () => {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <input
               className="w-full md:w-1/2 border rounded-full px-4 py-2 text-sm bg-amber-50/40"
-              placeholder="ابحث عن منتج..."
+              placeholder="ابحث عن طبق..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
             <div className="flex flex-wrap gap-2 text-[11px]">
               <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800">
-                منتجات متاحة: {products.length}
+                أطباق متاحة: {products.length}
               </span>
               <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700">
                 أصناف منخفضة المخزون: {lowStockProducts.length}
@@ -340,12 +340,12 @@ const CashierPage: React.FC = () => {
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {loadingProducts && (
               <div className="col-span-full text-center text-sm text-gray-500">
-                جاري تحميل المنتجات...
+                جاري تحميل الأطباق...
               </div>
             )}
             {!loadingProducts && filteredProducts.length === 0 && (
               <div className="col-span-full text-center text-sm text-gray-500">
-                لا توجد منتجات مطابقة لبحثك حالياً.
+                لا توجد أطباق مطابقة لبحثك حالياً.
               </div>
             )}
             {filteredProducts.map((product) => {
@@ -479,7 +479,7 @@ const CashierPage: React.FC = () => {
             <h2 className="text-sm font-semibold">تفاصيل الطلب</h2>
             {orderItems.length === 0 ? (
               <p className="text-xs text-gray-500">
-                لم يتم اختيار أي منتجات بعد.
+                لم يتم اختيار أي أطباق بعد.
               </p>
             ) : (
               <div className="space-y-2">

@@ -146,7 +146,7 @@ const DashboardRolePermissions: React.FC = () => {
     { key: "can_access_cashier", label: "شاشة الكاشير" },
     { key: "can_manage_tables", label: "إدارة الطاولات" },
     { key: "can_manage_inventory", label: "إدارة المخزون" },
-    { key: "can_manage_products", label: "إدارة المنتجات" },
+    { key: "can_manage_products", label: "إدارة الأطباق" },
     { key: "can_manage_categories", label: "إدارة التصنيفات" },
     { key: "can_manage_subcategories", label: "إدارة التصنيفات الفرعية" },
     { key: "can_view_activity_log", label: "عرض سجل النشاط" },

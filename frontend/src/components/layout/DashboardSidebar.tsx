@@ -76,7 +76,7 @@ export const DashboardSidebar: React.FC<SidebarProps> = ({
               {isManager
                 ? "مرحباً، لديك صلاحيات كاملة لإدارة المتجر بما في ذلك المستخدمين."
                 : perms?.role === "supervisor"
-                ? "مرحباً، لديك صلاحيات إدارة الطلبات والمنتجات والمحادثات حسب ما يحدده المدير."
+                ? "مرحباً، لديك صلاحيات إدارة الطلبات والأطباق والمحادثات حسب ما يحدده المدير."
                 : perms?.role === "staff"
                 ? "مرحباً، يمكنك إدارة الطلبات والمهام الموكلة لك حسب صلاحياتك."
                 : ""}
@@ -168,7 +168,7 @@ export const DashboardSidebar: React.FC<SidebarProps> = ({
               }`
             }
           >
-            إدارة المنتجات
+            إدارة الأطباق
           </NavLink>
         )}
 
@@ -331,4 +331,3 @@ export const DashboardSidebar: React.FC<SidebarProps> = ({
     </aside>
   );
 };
-

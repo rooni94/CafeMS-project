@@ -43,7 +43,7 @@ const DashboardProducts: React.FC = () => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [creatingCategory, setCreatingCategory] = useState(false);
 
-  // تحديد المنتجات
+  // تحديد الأطباق
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkCategoryId, setBulkCategoryId] = useState<number | "">("");
@@ -75,7 +75,7 @@ const DashboardProducts: React.FC = () => {
       })
       .catch((error: any) => {
         console.error(error);
-        setErr("تعذر تحميل المنتجات أو الفئات.");
+        setErr("تعذر تحميل الأطباق أو الفئات.");
       })
       .finally(() => setLoading(false));
   };
@@ -169,7 +169,7 @@ const DashboardProducts: React.FC = () => {
     }
   };
 
-  // منطق التحديد / تحديد الكل للمنتجات
+  // منطق التحديد / تحديد الكل للأطباق
   const allProductsSelected =
     products.length > 0 && selectedProductIds.length === products.length;
 
@@ -187,11 +187,11 @@ const DashboardProducts: React.FC = () => {
     );
   };
 
-  // عمليات جماعية على المنتجات
+  // عمليات جماعية على الأطباق
   const handleBulkDeleteProducts = async () => {
     if (!selectedProductIds.length) return;
     const ok = window.confirm(
-      `سيتم حذف ${selectedProductIds.length} منتج/منتجات، هل أنت متأكد؟`
+      `سيتم حذف ${selectedProductIds.length} طبق/أطباق، هل أنت متأكد؟`
     );
     if (!ok) return;
 
@@ -203,7 +203,7 @@ const DashboardProducts: React.FC = () => {
       fetchData();
     } catch (error: any) {
       console.error(error);
-      alert("تعذر تنفيذ الحذف الجماعي للمنتجات.");
+      alert("تعذر تنفيذ الحذف الجماعي للأطباق.");
     } finally {
       setBulkLoading(false);
     }
@@ -223,7 +223,7 @@ const DashboardProducts: React.FC = () => {
       fetchData();
     } catch (error: any) {
       console.error(error);
-      alert("تعذر تحديث تصنيف المنتجات المحددة.");
+      alert("تعذر تحديث تصنيف الأطباق المحددة.");
     } finally {
       setBulkLoading(false);
     }
@@ -261,18 +261,18 @@ const DashboardProducts: React.FC = () => {
       fetchData();
     } catch (error: any) {
       console.error(error);
-      alert("تعذر تعديل أسعار المنتجات المحددة.");
+      alert("تعذر تعديل أسعار الأطباق المحددة.");
     } finally {
       setBulkLoading(false);
     }
   };
 
-  if (loading) return <div>جاري تحميل المنتجات...</div>;
+  if (loading) return <div>جاري تحميل الأطباق...</div>;
   if (err) return <div className="text-sm text-red-500">{err}</div>;
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">إدارة المنتجات</h2>
+      <h2 className="text-xl font-semibold">إدارة الأطباق</h2>
 
       {/* إدارة الفئات: إضافة تصنيف جديد */}
       <div className="bg-white rounded-xl shadow p-4 space-y-3 text-sm">
@@ -418,11 +418,11 @@ const DashboardProducts: React.FC = () => {
         </form>
       </div>
 
-      {/* شريط العمليات الجماعية للمنتجات المحددة */}
+      {/* شريط العمليات الجماعية للأطباق المحددة */}
       {selectedProductIds.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs flex flex-wrap items-center gap-3">
           <span className="font-semibold">
-            تم تحديد {selectedProductIds.length} منتج/منتجات
+            تم تحديد {selectedProductIds.length} طبق/أطباق
           </span>
 
           {/* تغيير التصنيف جماعياً */}
@@ -497,12 +497,12 @@ const DashboardProducts: React.FC = () => {
             disabled={bulkLoading}
             className="px-3 py-1 rounded-full border border-red-400 text-red-600 hover:bg-red-50 disabled:opacity-60 ml-auto"
           >
-            حذف المنتجات المحددة
+            حذف الأطباق المحددة
           </button>
         </div>
       )}
 
-      {/* جدول المنتجات */}
+      {/* جدول الأطباق */}
       <div className="bg-white rounded-xl shadow overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
