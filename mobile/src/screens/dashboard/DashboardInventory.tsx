@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, TextInput, Alert } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
+import DashboardShell from "./components/DashboardShell";
 import StatBadge from "./components/StatBadge";
 
 type InventorySummary = {
@@ -72,8 +72,7 @@ const DashboardInventory: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="إدارة المخزون" subtitle="متابعة الكميات، تنبيهات النقص، وتحديث المخزون.">
         <Card>
           <Text style={styles.title}>المخزون</Text>
           <View style={styles.statsRow}>
@@ -139,8 +138,7 @@ const DashboardInventory: React.FC = () => {
             </View>
           )}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

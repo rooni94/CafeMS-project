@@ -1,10 +1,10 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
+import DashboardShell from "./components/DashboardShell";
 
 type UserLog = {
   id: number;
@@ -42,8 +42,7 @@ const DashboardLogs: React.FC = () => {
   });
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="سجل النشاط" subtitle="سجلات المستخدمين والدعم لمتابعة العمليات.">
         <Card>
           <Text style={styles.title}>سجل النشاط</Text>
           <Text style={styles.helper}>نشاط المستخدمين والدعم لمتابعة العمليات الحساسة.</Text>
@@ -86,8 +85,7 @@ const DashboardLogs: React.FC = () => {
             <Text style={styles.helper}>لا يوجد نشاط للدعم.</Text>
           )}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

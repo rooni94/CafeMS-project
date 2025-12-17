@@ -2,10 +2,10 @@ import React, { useState, useMemo } from "react";
 import { Text, StyleSheet, ScrollView, View, TextInput, Alert, Image } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
+import DashboardShell from "./components/DashboardShell";
 
 type Category = {
   id: number;
@@ -145,8 +145,7 @@ const DashboardCategories: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="إدارة التصنيفات" subtitle="إضافة وتحديث تصنيفات المنتجات مع الصور.">
         <Card>
           <Text style={styles.title}>الأصناف والأصناف الفرعية</Text>
           <Text style={styles.helper}>إدارة التصنيفات والصور، مع ربط التصنيف الفرعي بالرئيسي.</Text>
@@ -217,8 +216,7 @@ const DashboardCategories: React.FC = () => {
             </View>
           ))}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

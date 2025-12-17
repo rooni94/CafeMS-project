@@ -2,10 +2,10 @@ import React, { useState } from "react";
 import { Text, StyleSheet, ScrollView, View, TextInput, Alert, Switch, Image } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
+import DashboardShell from "./components/DashboardShell";
 
 type ProductRow = {
   id: number;
@@ -214,8 +214,7 @@ const DashboardProducts: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="إدارة المنتجات" subtitle="إضافة منتجات، صور، وتفعيل/تعطيل مع إدارة الإضافات.">
         <Card>
           <Text style={styles.title}>المنتجات</Text>
           <Text style={styles.helper}>إدارة المنتجات مع التحكم في التوفر والصور.</Text>
@@ -334,8 +333,7 @@ const DashboardProducts: React.FC = () => {
               </View>
             ))}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

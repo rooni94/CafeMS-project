@@ -1,10 +1,10 @@
 import React from "react";
-import { Text, StyleSheet, ScrollView, View } from "react-native";
+import { Text, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
+import DashboardShell from "./components/DashboardShell";
 
 type ActivityRow = {
   id: number;
@@ -25,8 +25,7 @@ const DashboardActivity: React.FC = () => {
   });
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="لوحة النشاط" subtitle="آخر العمليات والأحداث في النظام.">
         <Card>
           <Text style={styles.title}>سجل نشاط الطلبات</Text>
           <Text style={styles.helper}>أحدث العمليات التي تمت على الطلبات.</Text>
@@ -52,8 +51,7 @@ const DashboardActivity: React.FC = () => {
             <Text style={styles.helper}>لا يوجد نشاط حتى الآن.</Text>
           )}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 
