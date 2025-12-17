@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../../services/api";
+import CurrencyAmount from "../../components/common/CurrencyAmount";
 
 type Product = {
   id: number;
@@ -363,7 +364,7 @@ const CashierPage: React.FC = () => {
               >
                 <div className="text-sm font-semibold">{product.name}</div>
                 <div className="text-xs text-gray-500">
-                  السعر: {formatCurrency(priceValue)} ر.س
+                  السعر: <CurrencyAmount value={parseNumber(priceValue)} />
                 </div>
                 {Number.isFinite(stockValue) && (
                   <div
@@ -491,7 +492,7 @@ const CashierPage: React.FC = () => {
                     <div>
                       <p className="text-sm font-semibold">{item.name}</p>
                       <p className="text-[11px] text-gray-500">
-                        {item.price.toFixed(2)} ر.س
+                        <CurrencyAmount value={item.price} />
                       </p>
                     </div>
                     <div className="flex items-center gap-1">
@@ -521,7 +522,9 @@ const CashierPage: React.FC = () => {
             <div className="border-t pt-3 space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span>المجموع</span>
-                <span className="font-semibold">{subtotal.toFixed(2)} ر.س</span>
+                <span className="font-semibold">
+                  <CurrencyAmount value={subtotal} />
+                </span>
               </div>
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between text-xs text-gray-500">
@@ -567,7 +570,9 @@ const CashierPage: React.FC = () => {
               </div>
               <div className="flex items-center justify-between font-bold text-amber-700">
                 <span>الإجمالي</span>
-                <span>{total.toFixed(2)} ر.س</span>
+                <span>
+                  <CurrencyAmount value={total} />
+                </span>
               </div>
               <textarea
                 className="w-full border rounded-2xl px-3 py-2 text-xs bg-amber-50/40"

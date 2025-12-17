@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
+import SaudiRiyalSymbol from "../../components/common/SaudiRiyalSymbol";
 import {
   ResponsiveContainer,
   BarChart,
@@ -209,14 +210,14 @@ const HRDashboardPage: React.FC = () => {
             <span className="font-bold">
               {(stats.payroll_paid_total_net ?? 0).toLocaleString()}
             </span>{" "}
-            ر.س
+            <SaudiRiyalSymbol className="inline-block w-[1em] h-[1em] align-[-2px] text-gray-500" />
           </div>
           <div className="text-[11px] text-gray-500 mt-1">
             إجمالي الخصومات:{" "}
             <span className="font-bold">
               {(stats.payroll_paid_total_deductions ?? 0).toLocaleString()}
             </span>{" "}
-            ر.س
+            <SaudiRiyalSymbol className="inline-block w-[1em] h-[1em] align-[-2px] text-gray-500" />
           </div>
         </div>
       </div>

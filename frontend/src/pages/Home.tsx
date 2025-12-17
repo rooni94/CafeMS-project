@@ -1,11 +1,13 @@
 // src/pages/Home.tsx
 import React, { useEffect, useState, useMemo, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { api } from "../services/api";
 import Hero from "../components/Hero";
 import { useCart } from "../context/CartContext";
 import { useStoreSettings } from "../context/StoreSettingsContext";
+import ProductAddonModal, { ProductAddon } from "../components/product/ProductAddonModal";
+import CurrencyAmount from "../components/common/CurrencyAmount";
 
 type Category = {
   id: number;
@@ -21,6 +23,7 @@ type Product = {
   image?: string;
   description?: string;
   category?: number | { id: number; name: string } | null;
+  addons?: ProductAddon[];
 };
 
 const CATEGORY_FALLBACKS = ["/Hero1.jpg", "/Hero2.jpg", "/Hero3.jpg"];
@@ -40,7 +43,7 @@ const SOCIAL_PLATFORMS = [
 ];
 
 const CONTACT_INFO_FALLBACK = {
-  address: "طريق الملك عبد الله، حي الفيصلية، عرعر 73312",
+  address: "Demo cafe address",
   hours: "يومياً من 8 صباحاً حتى 12 منتصف الليل",
   phone: "+10000000000",
   email: "contact@example.invalid",
@@ -130,6 +133,7 @@ const getContactChannelIcon = (key: string): React.ReactNode => {
 };
 
 const Home: React.FC = () => {
+  const navigate = useNavigate();
   const { addItem } = useCart();
   const { settings } = useStoreSettings();
 
@@ -139,6 +143,7 @@ const Home: React.FC = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [showAllProducts, setShowAllProducts] = useState(false);
+  const [addonProduct, setAddonProduct] = useState<Product | null>(null);
   const productsSectionRef = useRef<HTMLElement | null>(null);
   const [pendingScrollToProducts, setPendingScrollToProducts] =
     useState(false);
@@ -331,6 +336,35 @@ const Home: React.FC = () => {
     requestProductsScroll();
   };
 
+  const handleAddRequest = (product: Product) => {
+    if (product.addons && product.addons.length > 0) {
+      setAddonProduct(product);
+      return;
+    }
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image,
+    });
+  };
+
+  const handleConfirmAddons = (addons: ProductAddon[]) => {
+    if (!addonProduct) return;
+    const addonsTotal = addons.reduce(
+      (sum, addon) => sum + (Number(addon.price_delta) || 0),
+      0
+    );
+    addItem({
+      id: addonProduct.id,
+      name: addonProduct.name,
+      price: Number(addonProduct.price || 0) + addonsTotal,
+      image: addonProduct.image,
+      addons,
+    });
+    setAddonProduct(null);
+  };
+
   return (
     <div className="max-w-full min-h-screen bg-gradient-to-b from-amber-50 to-orange-50 text-gray-900">
       {/* HERO SECTION */}
@@ -427,6 +461,14 @@ const Home: React.FC = () => {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.3, delay: index * 0.04 }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/product/${p.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      navigate(`/product/${p.id}`);
+                    }
+                  }}
                 >
                   <div className="aspect-[4/3] bg-amber-50 overflow-hidden flex items-center justify-center">
                     {p.image ? (
@@ -448,23 +490,21 @@ const Home: React.FC = () => {
                       {p.description || "صنف من قائمة CafeMS Demo."}
                     </p>
 
-                    <div className="mt-auto flex items-center justify-between">
+                    <div className="mt-auto flex items-center justify-between gap-2">
                       <span className="font-bold text-sm text-amber-700">
-                        {p.price} ر.س
+                        <CurrencyAmount value={p.price} />
                       </span>
-                      <button
-                        onClick={() =>
-                          addItem({
-                            id: p.id,
-                            name: p.name,
-                            price: p.price,
-                            image: p.image,
-                          })
-                        }
-                        className="text-[11px] px-2 py-1 rounded-full bg-amber-500 text-white hover:bg-amber-600"
-                      >
-                        أضف للسلة
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddRequest(p);
+                          }}
+                          className="text-[11px] px-2 py-1 rounded-full bg-amber-500 text-white hover:bg-amber-600"
+                        >
+                          أضف للسلة
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -720,7 +760,13 @@ const Home: React.FC = () => {
           </motion.section>
         </section>
       </main>
-
+      {addonProduct && (
+        <ProductAddonModal
+          product={addonProduct}
+          onClose={() => setAddonProduct(null)}
+          onConfirm={handleConfirmAddons}
+        />
+      )}
 
     </div>
   );

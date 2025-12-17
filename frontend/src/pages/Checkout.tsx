@@ -4,6 +4,7 @@ import { useCart } from "../context/CartContext";
 import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { TrashIcon } from "@heroicons/react/16/solid";
+import CurrencyAmount from "../components/common/CurrencyAmount";
 
 type SavedAddress = {
   id: number;
@@ -179,6 +180,7 @@ const Checkout: React.FC = () => {
         items: items.map((i) => ({
           product_id: i.id,
           quantity: i.quantity,
+          addon_ids: i.addons?.map((addon) => addon.id) || [],
         })),
       };
 
@@ -231,7 +233,7 @@ const Checkout: React.FC = () => {
 
             return (
               <div
-                key={item.id}
+                key={item.key}
                 className="flex items-center justify_between gap-3 border-b pb-2 last:border-b-0 last:pb-0"
               >
                 <div className="flex items-center gap-2">
@@ -248,17 +250,22 @@ const Checkout: React.FC = () => {
                   )}
                   <div className="text-right">
                     <div className="text-sm font-semibold">{item.name}</div>
+                    {item.addons && item.addons.length > 0 && (
+                      <div className="text-[11px] text-gray-500 line-clamp-1">
+                        + {item.addons.map((addon) => addon.name).join("? ")}
+                      </div>
+                    )}
                     <div className="text-[11px] text-gray-500">
-                      الكمية: {qty} × {price.toFixed(2)} ر.س
+                      الكمية: {qty} × <CurrencyAmount value={price} />
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <div className="text-sm font-bold text-amber-700">
-                    {lineTotal.toFixed(2)} ر.س
+                    <CurrencyAmount value={lineTotal} />
                   </div>
                   <TrashIcon
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => removeItem(item.key)}
                     className="h-6 w-6 rounded-full bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition cursor-pointer"
                   />
                 </div>
@@ -270,7 +277,7 @@ const Checkout: React.FC = () => {
         <div className="mt-3 border-t pt-2 flex items-center justify-between">
           <span className="text-sm font-semibold">الإجمالي</span>
           <span className="text-lg font-bold text-amber-700">
-            {Number(total || 0).toFixed(2)} ر.س
+            <CurrencyAmount value={Number(total || 0)} />
           </span>
         </div>
       </div>

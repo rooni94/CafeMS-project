@@ -1,11 +1,12 @@
 # backend/apps/orders/serializers.py
 from decimal import Decimal, ROUND_HALF_UP
 from rest_framework import serializers
-from apps.products.models import Product
+from apps.products.models import Product, ProductAddon
 from apps.products.serializers import ProductSerializer
 from .models import (
     Order,
     OrderItem,
+    OrderItemAddon,
     OrderActivityLog,
     Table,
     InventoryAdjustment,
@@ -28,6 +29,15 @@ class TableSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
+class OrderItemAddonSerializer(serializers.ModelSerializer):
+    addon_id = serializers.IntegerField(source="addon.id", read_only=True)
+
+    class Meta:
+        model = OrderItemAddon
+        fields = ["id", "addon_id", "name", "price_delta"]
+        read_only_fields = ["id", "addon_id", "name", "price_delta"]
+
+
 class OrderItemSerializer(serializers.ModelSerializer):
     # product_id للكتابة، product للعرض
     product_id = serializers.PrimaryKeyRelatedField(
@@ -36,10 +46,18 @@ class OrderItemSerializer(serializers.ModelSerializer):
         write_only=True,
     )
     product = ProductSerializer(read_only=True)
+    addon_ids = serializers.PrimaryKeyRelatedField(
+        queryset=ProductAddon.objects.all(),
+        source="addons",
+        many=True,
+        write_only=True,
+        required=False,
+    )
+    addons = OrderItemAddonSerializer(many=True, read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = ["id", "product", "product_id", "quantity", "price"]
+        fields = ["id", "product", "product_id", "quantity", "price", "addon_ids", "addons"]
         read_only_fields = ["id", "product", "price"]
 
 
@@ -138,14 +156,36 @@ class OrderSerializer(serializers.ModelSerializer):
         for item_data in items_data:
             product = item_data["product"]
             quantity = item_data.get("quantity", 1)
-            price = product.price  # السعر وقت الطلب
+            addons = item_data.get("addons", [])
+            invalid_addons = [
+                addon
+                for addon in addons
+                if addon.product_id != product.id or not addon.is_active
+            ]
+            if invalid_addons:
+                raise serializers.ValidationError(
+                    {"items": "Invalid addons for product."}
+                )
 
-            OrderItem.objects.create(
+            addons_total = sum(
+                (addon.price_delta for addon in addons), Decimal("0.00")
+            )
+            price = (product.price + addons_total).quantize(Decimal("0.01"))
+
+            order_item = OrderItem.objects.create(
                 order=order,
                 product=product,
                 quantity=quantity,
                 price=price,
             )
+
+            for addon in addons:
+                OrderItemAddon.objects.create(
+                    order_item=order_item,
+                    addon=addon,
+                    name=addon.name,
+                    price_delta=addon.price_delta,
+                )
 
             subtotal += (price * quantity).quantize(Decimal("0.01"))
 

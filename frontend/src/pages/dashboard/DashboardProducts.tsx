@@ -1,6 +1,7 @@
 // src/pages/dashboard/DashboardProducts.tsx
 import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
+import CurrencyAmount from "../../components/common/CurrencyAmount";
 
 type DashboardProduct = {
   id: number;
@@ -14,6 +15,14 @@ type DashboardProduct = {
     id: number;
     name: string;
   };
+};
+
+type ProductAddonRow = {
+  id: number;
+  name: string;
+  price_delta: number;
+  is_active?: boolean;
+  sort_order?: number;
 };
 
 type Category = {
@@ -38,6 +47,12 @@ const DashboardProducts: React.FC = () => {
   const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [addons, setAddons] = useState<ProductAddonRow[]>([]);
+  const [addonName, setAddonName] = useState("");
+  const [addonPrice, setAddonPrice] = useState<number>(0);
+  const [addonEditingId, setAddonEditingId] = useState<number | null>(null);
+  const [addonsLoading, setAddonsLoading] = useState(false);
+  const [addonsSaving, setAddonsSaving] = useState(false);
 
   // إدارة الفئات (إضافة تصنيف جديد)
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -62,6 +77,10 @@ const DashboardProducts: React.FC = () => {
     setCategoryId("");
     setDescription("");
     setImageFile(null);
+    setAddons([]);
+    setAddonName("");
+    setAddonPrice(0);
+    setAddonEditingId(null);
   };
 
   const fetchData = () => {
@@ -80,6 +99,75 @@ const DashboardProducts: React.FC = () => {
       .finally(() => setLoading(false));
   };
 
+  const resetAddonForm = () => {
+    setAddonName("");
+    setAddonPrice(0);
+    setAddonEditingId(null);
+  };
+
+  const loadAddons = async (productId: number) => {
+    setAddonsLoading(true);
+    try {
+      const res = await api.get(`products/addons/?product=${productId}`);
+      const data = res.data?.results || res.data || [];
+      setAddons(data);
+    } catch (error: any) {
+      console.error(error);
+      setAddons([]);
+    } finally {
+      setAddonsLoading(false);
+    }
+  };
+
+  const handleSaveAddon = async () => {
+    if (!editingId) return;
+    if (!addonName.trim()) {
+      alert("الرجاء إدخال اسم الإضافة.");
+      return;
+    }
+    setAddonsSaving(true);
+    try {
+      if (addonEditingId) {
+        await api.patch(`products/addons/${addonEditingId}/`, {
+          name: addonName.trim(),
+          price_delta: addonPrice,
+        });
+      } else {
+        await api.post("products/addons/", {
+          product_id: editingId,
+          name: addonName.trim(),
+          price_delta: addonPrice,
+        });
+      }
+      await loadAddons(editingId);
+      resetAddonForm();
+    } catch (error: any) {
+      console.error(error);
+      alert("تعذر حفظ الإضافة.");
+    } finally {
+      setAddonsSaving(false);
+    }
+  };
+
+  const handleEditAddon = (addon: ProductAddonRow) => {
+    setAddonEditingId(addon.id);
+    setAddonName(addon.name);
+    setAddonPrice(Number(addon.price_delta) || 0);
+  };
+
+  const handleDeleteAddon = async (addonId: number) => {
+    if (!editingId) return;
+    const ok = window.confirm("هل أنت متأكد من حذف هذه الإضافة؟");
+    if (!ok) return;
+    try {
+      await api.delete(`products/addons/${addonId}/`);
+      await loadAddons(editingId);
+    } catch (error: any) {
+      console.error(error);
+      alert("تعذر حذف الإضافة.");
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -94,6 +182,8 @@ const DashboardProducts: React.FC = () => {
     setCategoryId(p.category?.id ?? "");
     setDescription(p.description ?? "");
     setImageFile(null);
+    resetAddonForm();
+    loadAddons(p.id);
   };
 
   const handleDelete = async (id: number) => {
@@ -392,6 +482,86 @@ const DashboardProducts: React.FC = () => {
               onChange={(e) => setAvailable(e.target.checked)}
             />
           </div>
+          {formMode === "edit" && editingId && (
+            <div className="col-span-1 md:col-span-2 bg-amber-50 border border-amber-100 rounded-xl p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold">إضافات المنتج</h4>
+                {addonsLoading && (
+                  <span className="text-[11px] text-gray-500">
+                    جاري تحميل إضافات...
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  className="border rounded-lg px-3 py-2 text-sm flex-1 min-w-[180px]"
+                  placeholder="اسم الإضافة"
+                  value={addonName}
+                  onChange={(e) => setAddonName(e.target.value)}
+                />
+                <input
+                  type="number"
+                  step="0.01"
+                  className="border rounded-lg px-3 py-2 text-sm w-28"
+                  placeholder="السعر"
+                  value={addonPrice}
+                  onChange={(e) => setAddonPrice(Number(e.target.value) || 0)}
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveAddon}
+                  disabled={addonsSaving}
+                  className="px-3 py-2 rounded-full bg-amber-500 text-white text-xs hover:bg-amber-600 disabled:opacity-60"
+                >
+                  {addonEditingId ? "تحديث" : "إضافة"}
+                </button>
+                {addonEditingId && (
+                  <button
+                    type="button"
+                    onClick={resetAddonForm}
+                    className="px-3 py-2 rounded-full border text-xs"
+                  >
+                    إلغاء
+                  </button>
+                )}
+              </div>
+              {addons.length === 0 ? (
+                <p className="text-[11px] text-gray-500">لا توجد إضافات بعد.</p>
+              ) : (
+                <div className="space-y-2">
+                  {addons.map((addon) => (
+                    <div
+                      key={addon.id}
+                      className="flex items-center justify-between bg-white rounded-lg border border-amber-100 px-3 py-2 text-xs"
+                    >
+                      <div className="text-right">
+                        <div className="font-semibold">{addon.name}</div>
+                        <div className="text-amber-700">
+                          +<CurrencyAmount value={Number(addon.price_delta || 0)} />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditAddon(addon)}
+                          className="px-2 py-1 rounded-full border border-amber-400 text-amber-700"
+                        >
+                          تعديل
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAddon(addon.id)}
+                          className="px-2 py-1 rounded-full border border-red-400 text-red-600"
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="col-span-1 md:col-span-2 flex gap-2 justify-end mt-2">
             {formMode === "edit" && (

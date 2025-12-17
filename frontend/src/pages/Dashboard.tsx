@@ -40,13 +40,6 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-  if (loading) {
-    return (
-      <div className="p-4 text-center text-sm text-gray-500">
-        OªO¶O²US O¦O-U.USU, O¶U,O'U^U+U? O¦O¦O"O1 O¶U,O_OrU^U,...
-      </div>
-    );
-  }
 
     if (!user) {
       nav("/login");
@@ -105,6 +98,15 @@ const Dashboard: React.FC = () => {
       })
       .finally(() => setPermLoading(false));
   }, [user, loading, nav]);
+
+  if (loading) {
+    return (
+      <div className="p-4 text-center text-sm text-gray-500">
+        جاري التحقق من الجلسة، يرجى الانتظار...
+      </div>
+    );
+  }
+
 
   if (!user) {
     return <div>يجب تسجيل الدخول للوصول إلى لوحة التحكم.</div>;

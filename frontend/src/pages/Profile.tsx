@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
 import LoyaltyQRCode from "../components/LoyaltyQRCode";
 import { useStoreSettings } from "../context/StoreSettingsContext";
+import SaudiRiyalSymbol from "../components/common/SaudiRiyalSymbol";
 
 // أنواع العناوين
 type Address = {
@@ -663,7 +664,8 @@ const Profile: React.FC = () => {
           <h3 className="font-semibold text-sm">برنامج الولاء</h3>
           {loyalty && (
             <span className="text-xs text-gray-500">
-              تكسب {loyalty.settings.earn_rate} نقطة لكل ١ ر.س
+              تكسب {loyalty.settings.earn_rate} نقطة لكل ١{" "}
+              <SaudiRiyalSymbol className="inline-block w-3 h-3 align-[-2px]" />
             </span>
           )}
         </div>

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { api } from "../services/api";
 import { useCart } from "../context/CartContext";
+import ProductAddonModal, { ProductAddon } from "../components/product/ProductAddonModal";
+import CurrencyAmount from "../components/common/CurrencyAmount";
 
 type Category = {
   id: number;
@@ -18,11 +20,13 @@ type Product = {
   image?: string | null;
   description?: string;
   category?: number | { id: number };
+  addons?: ProductAddon[];
 };
 
 const CATEGORY_FALLBACKS = ["/Hero1.jpg", "/Hero2.jpg", "/Hero3.jpg"];
 
 const Menu: React.FC = () => {
+  const navigate = useNavigate();
   const { addItem } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -30,6 +34,7 @@ const Menu: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [addonProduct, setAddonProduct] = useState<Product | null>(null);
 
   const [activeCategory, setActiveCategory] = useState<number | null>(() => {
     const param = searchParams.get("category");
@@ -119,7 +124,43 @@ const Menu: React.FC = () => {
 
   const formatPrice = (value: number | string) => {
     const numeric = typeof value === "number" ? value : Number(value);
-    return Number.isFinite(numeric) ? `${numeric.toFixed(2)} ر.س` : "—";
+    return Number.isFinite(numeric) ? <CurrencyAmount value={numeric} /> : "—";
+  };
+
+  const handleAddRequest = (product: Product) => {
+    if (product.addons && product.addons.length > 0) {
+      setAddonProduct(product);
+      return;
+    }
+    addItem({
+      id: product.id,
+      name: product.name,
+      price:
+        typeof product.price === "number"
+          ? product.price
+          : Number(product.price) || 0,
+      image: product.image || undefined,
+    });
+  };
+
+  const handleConfirmAddons = (addons: ProductAddon[]) => {
+    if (!addonProduct) return;
+    const basePrice =
+      typeof addonProduct.price === "number"
+        ? addonProduct.price
+        : Number(addonProduct.price) || 0;
+    const addonsTotal = addons.reduce(
+      (sum, addon) => sum + (Number(addon.price_delta) || 0),
+      0
+    );
+    addItem({
+      id: addonProduct.id,
+      name: addonProduct.name,
+      price: basePrice + addonsTotal,
+      image: addonProduct.image || undefined,
+      addons,
+    });
+    setAddonProduct(null);
   };
 
   return (
@@ -224,7 +265,15 @@ const Menu: React.FC = () => {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.03 }}
-                  className="bg-white rounded-2xl border border-amber-100 shadow-sm flex flex-col"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/product/${product.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      navigate(`/product/${product.id}`);
+                    }
+                  }}
+                  className="bg-white rounded-2xl border border-amber-100 shadow-sm flex flex-col cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-300"
                 >
                   <div className="h-36 overflow-hidden rounded-t-2xl bg-amber-50">
                     {product.image ? (
@@ -245,26 +294,21 @@ const Menu: React.FC = () => {
                       {product.description ||
                         "وجبة مختارة من قائمتنا اليومية."}
                     </p>
-                    <div className="mt-auto flex items-center justify-between">
+                    <div className="mt-auto flex items-center justify-between gap-2">
                       <span className="text-sm font-bold text-amber-700">
                         {formatPrice(product.price)}
                       </span>
-                      <button
-                        onClick={() =>
-                          addItem({
-                            id: product.id,
-                            name: product.name,
-                            price:
-                              typeof product.price === "number"
-                                ? product.price
-                                : Number(product.price) || 0,
-                            image: product.image || undefined,
-                          })
-                        }
-                        className="text-[11px] px-3 py-1.5 rounded-full bg-amber-500 text-white hover:bg-amber-600"
-                      >
-                        أضف للسلة
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddRequest(product);
+                          }}
+                          className="text-[11px] px-3 py-1.5 rounded-full bg-amber-500 text-white hover:bg-amber-600"
+                        >
+                          أضف للسلة
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
@@ -273,6 +317,13 @@ const Menu: React.FC = () => {
           )}
         </section>
       </div>
+      {addonProduct && (
+        <ProductAddonModal
+          product={addonProduct}
+          onClose={() => setAddonProduct(null)}
+          onConfirm={handleConfirmAddons}
+        />
+      )}
     </div>
   );
 };

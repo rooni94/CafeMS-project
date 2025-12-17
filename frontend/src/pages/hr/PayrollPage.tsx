@@ -1,6 +1,7 @@
 // src/pages/hr/PayrollPage.tsx
 import React, { useEffect, useState } from "react";
 import { api } from "../../services/api";
+import CurrencyAmount from "../../components/common/CurrencyAmount";
 
 type EmployeeOption = {
   id: number;
@@ -360,7 +361,7 @@ const PayrollPage: React.FC = () => {
                 إجمالي صافي الرواتب
               </div>
               <div className="text-sm font-bold">
-                {formatMoney(summary.total_net)} ر.س
+                <CurrencyAmount value={toNumber(summary.total_net)} />
               </div>
             </div>
             <div className="p-2 rounded-lg bg-blue-50">
@@ -368,7 +369,7 @@ const PayrollPage: React.FC = () => {
                 إجمالي البدلات/الإضافي
               </div>
               <div className="text-sm font-bold">
-                {formatMoney(summary.total_overtime)} ر.س
+                <CurrencyAmount value={toNumber(summary.total_overtime)} />
               </div>
             </div>
             <div className="p-2 rounded-lg bg-red-50">
@@ -376,7 +377,7 @@ const PayrollPage: React.FC = () => {
                 إجمالي الخصومات
               </div>
               <div className="text-sm font-bold">
-                {formatMoney(summary.total_deductions)} ر.س
+                <CurrencyAmount value={toNumber(summary.total_deductions)} />
               </div>
             </div>
           </div>

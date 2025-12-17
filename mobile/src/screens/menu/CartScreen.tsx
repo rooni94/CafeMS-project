@@ -1,0 +1,231 @@
+﻿import React from "react";
+import { View, Text, StyleSheet, Image, Pressable, FlatList } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import Screen from "../../components/Screen";
+import EmptyState from "../../components/EmptyState";
+import { useCart } from "../../context/CartContext";
+import { goToTab } from "../../navigation/helpers";
+import { useTheme } from "../../theme";
+import { Card, Button } from "../../components/ui";
+import CurrencyAmount from "../../components/CurrencyAmount";
+
+const CartScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
+  const { items, totalPrice, updateQuantity, removeItem, clearCart } = useCart();
+  const theme = useTheme();
+
+  if (items.length === 0) {
+    return (
+      <Screen scrollable={false}>
+        <EmptyState
+          title="السلة فارغة"
+          description="أضف اختياراتك من القائمة لنجهزها لك فوراً."
+        >
+          <Button title="استكشف القائمة" onPress={() => goToTab(navigation, "Menu")} />
+        </EmptyState>
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen scrollable={false}>
+      <View style={{ flex: 1, gap: 12 }}>
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.key}
+          contentContainerStyle={{ paddingBottom: 12, gap: 12 }}
+          renderItem={({ item }) => {
+            const lineTotal = item.price * item.quantity;
+            return (
+              <Card style={styles.cartItem}>
+                {item.image ? (
+                  <Image source={{ uri: item.image }} style={styles.cartImage} />
+                ) : (
+                  <View style={[styles.cartImage, styles.cartImageFallback]}>
+                    <Text style={styles.fallbackText}>لا توجد صورة</Text>
+                  </View>
+                )}
+                <View style={{ flex: 1, gap: 4, alignItems: "flex-end" }}>
+                  <Text style={styles.cartName}>{item.name}</Text>
+                  {item.addons && item.addons.length > 0 ? (
+                    <Text style={styles.cartAddons}>+ {item.addons.map((addon) => addon.name).join("? ")}</Text>
+                  ) : null}
+                  <View style={styles.cartPriceRow}>
+                    <CurrencyAmount value={item.price} color={theme.palette.accent} symbolSize={12} textStyle={styles.cartPrice} />
+                    <Text style={styles.cartPriceLabel}>لكل وحدة</Text>
+                  </View>
+                  <CurrencyAmount value={lineTotal} color={theme.palette.accent} symbolSize={14} textStyle={styles.cartLineTotal} />
+                  <View style={styles.quantityControls}>
+                    <Pressable onPress={() => updateQuantity(item.key, Math.max(1, item.quantity - 1))} style={styles.qtyButton}>
+                      <Text style={styles.qtyText}>-</Text>
+                    </Pressable>
+                    <Text style={styles.qtyValue}>{item.quantity}</Text>
+                    <Pressable onPress={() => updateQuantity(item.key, item.quantity + 1)} style={styles.qtyButton}>
+                      <Text style={styles.qtyText}>+</Text>
+                    </Pressable>
+                  </View>
+                </View>
+                <Pressable onPress={() => removeItem(item.key)} style={styles.removeButton}>
+                  <Text style={styles.removeText}>إزالة</Text>
+                </Pressable>
+              </Card>
+            );
+          }}
+        />
+
+        <Card style={styles.summaryCard}>
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>الإجمالي</Text>
+            <CurrencyAmount value={totalPrice} color={theme.palette.accent} symbolSize={16} textStyle={styles.summaryValue} />
+          </View>
+          <View style={styles.actionsRow}>
+            <Pressable onPress={clearCart} style={styles.secondaryButton}>
+              <Text style={styles.secondaryText}>تفريغ السلة</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => navigation.navigate("Checkout")}
+              style={[styles.primaryButton, { backgroundColor: theme.palette.accent }]}
+            >
+              <Text style={styles.primaryText}>إتمام الطلب</Text>
+            </Pressable>
+          </View>
+        </Card>
+      </View>
+    </Screen>
+  );
+};
+
+const styles = StyleSheet.create({
+  cartItem: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10,
+    padding: 12,
+  },
+  cartImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 16,
+  },
+  cartImageFallback: {
+    backgroundColor: "#f1f5f9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  fallbackText: {
+    color: "#94a3b8",
+    fontSize: 12,
+  },
+  cartName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    textAlign: "right",
+  },
+  cartPrice: {
+    fontSize: 13,
+    color: "#6b7280",
+    textAlign: "right",
+  },
+  cartPriceRow: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 6,
+  },
+  cartPriceLabel: {
+    fontSize: 13,
+    color: "#6b7280",
+    textAlign: "right",
+  },
+  cartAddons: {
+    fontSize: 12,
+    color: "#6b7280",
+    textAlign: "right",
+  },
+  cartLineTotal: {
+    fontSize: 14,
+    color: "#F59E0B",
+    fontWeight: "700",
+    textAlign: "right",
+  },
+  quantityControls: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 6,
+  },
+  qtyButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qtyText: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#111827",
+  },
+  qtyValue: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  removeButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  removeText: {
+    color: "#b91c1c",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  summaryCard: {
+    gap: 10,
+  },
+  summaryRow: {
+    flexDirection: "row-reverse",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  summaryLabel: {
+    fontSize: 15,
+    color: "#334155",
+    fontWeight: "700",
+  },
+  summaryValue: {
+    fontSize: 18,
+    color: "#111827",
+    fontWeight: "800",
+  },
+  actionsRow: {
+    flexDirection: "row-reverse",
+    gap: 10,
+  },
+  secondaryButton: {
+    flex: 1,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  secondaryText: {
+    color: "#111827",
+    fontWeight: "700",
+  },
+  primaryButton: {
+    flex: 1,
+    borderRadius: 14,
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  primaryText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 15,
+  },
+});
+
+export default CartScreen;

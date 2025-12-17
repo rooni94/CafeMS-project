@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../../services/api";
+import CurrencyAmount from "../../components/common/CurrencyAmount";
 import {
   ResponsiveContainer,
   BarChart,
@@ -172,7 +173,7 @@ const HRPerformancePage: React.FC = () => {
             <div className="bg-white rounded-2xl shadow border border-amber-50 p-4">
               <p className="text-xs text-gray-500">إجمالي العوائد</p>
               <p className="text-2xl font-semibold mt-1">
-                {data.totals.total_revenue.toFixed(2)} ر.س
+                <CurrencyAmount value={data.totals.total_revenue} />
               </p>
             </div>
             <div className="bg-white rounded-2xl shadow border border-amber-50 p-4">
@@ -182,7 +183,7 @@ const HRPerformancePage: React.FC = () => {
                   <p className="text-sm font-semibold">{topPerformer.name}</p>
                   <p className="text-xs text-gray-500">
                     {topPerformer.total_orders} طلب •{" "}
-                    {topPerformer.total_revenue.toFixed(2)} ر.س
+                    <CurrencyAmount value={topPerformer.total_revenue} />
                   </p>
                 </div>
               ) : (
@@ -243,10 +244,10 @@ const HRPerformancePage: React.FC = () => {
                         <td className="px-3 py-2">{emp.total_orders}</td>
                         <td className="px-3 py-2">{emp.completed_orders}</td>
                         <td className="px-3 py-2">
-                          {emp.total_revenue.toFixed(2)} ر.س
+                          <CurrencyAmount value={emp.total_revenue} />
                         </td>
                         <td className="px-3 py-2">
-                          {emp.avg_order.toFixed(2)} ر.س
+                          <CurrencyAmount value={emp.avg_order} />
                         </td>
                       </tr>
                     ))}

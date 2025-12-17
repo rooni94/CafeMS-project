@@ -3,6 +3,7 @@ import React, { useMemo } from "react";
 import { useCart } from "../context/CartContext";
 import { Card } from "../components/ui/Card";
 import { Link } from "react-router-dom";
+import CurrencyAmount from "../components/common/CurrencyAmount";
 
 // نعرّف نوع مرن، عشان لو شكل العنصر في الـ Context مختلف ما ننكسر
 type CartItemLike = {
@@ -12,6 +13,8 @@ type CartItemLike = {
   price?: number;
   image?: string;
   quantity?: number;
+  addons?: { name?: string }[];
+  key?: string;
   product?: {
     id?: number;
     name?: string;
@@ -26,12 +29,13 @@ const Cart: React.FC = () => {
   const normalizedItems = useMemo(() => {
     // نحاول نخلي كل عنصر بنفس الشكل قدر الإمكان
     return (items as CartItemLike[]).map((item, index) => {
-      const name = item?.name || item?.product?.name || `منتج #${index + 1}`;
+      const name = item?.name || item?.product?.name || `U.U+O?O? #${index + 1}`;
       const price = item?.price ?? item?.product?.price ?? 0;
       const image = item?.image || item?.product?.image;
       const quantity = item?.quantity ?? 1;
+      const addons = Array.isArray(item?.addons) ? item.addons : [];
 
-      return { name, price, image, quantity };
+      return { name, price, image, quantity, addons, key: item?.key };
     });
   }, [items]);
 
@@ -67,7 +71,7 @@ const Cart: React.FC = () => {
         <div className="space-y-3">
           {normalizedItems.map((item, idx) => (
             <div
-              key={idx}
+              key={item.key || idx}
               className="flex items-center justify-between gap-3 border-b pb-2 last:border-b-0 last:pb-0"
             >
               <div className="flex items-center gap-2">
@@ -84,13 +88,18 @@ const Cart: React.FC = () => {
                 )}
                 <div className="text-right">
                   <div className="text-sm font-semibold">{item.name}</div>
+                  {item.addons && item.addons.length > 0 && (
+                    <div className="text-[11px] text-gray-500 line-clamp-1">
+                      + {item.addons.map((addon) => addon.name || "").join("? ")}
+                    </div>
+                  )}
                   <div className="text-[11px] text-gray-500">
-                    الكمية: {item.quantity ?? 1} × {item.price?.toFixed(2) ?? 0} ر.س
+                    الكمية: {item.quantity ?? 1} × <CurrencyAmount value={item.price ?? 0} />
                   </div>
                 </div>
               </div>
               <div className="text-sm font-bold text-amber-700">
-                {((item.price || 0) * (item.quantity || 1)).toFixed(2)} ر.س
+                <CurrencyAmount value={(item.price || 0) * (item.quantity || 1)} />
               </div>
             </div>
           ))}
@@ -99,7 +108,7 @@ const Cart: React.FC = () => {
         <div className="mt-4 border-t pt-3 flex items-center justify-between">
           <span className="text-sm font-semibold">الإجمالي</span>
           <span className="text-lg font-bold text-amber-700">
-            {total.toFixed(2)} ر.س
+            <CurrencyAmount value={total} />
           </span>
         </div>
 

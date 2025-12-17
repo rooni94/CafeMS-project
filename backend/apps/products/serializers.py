@@ -1,7 +1,13 @@
 from django.utils.text import slugify
 from rest_framework import serializers
 
-from .models import Category, Product, SubCategory
+from .models import Category, Product, SubCategory, ProductAddon
+
+
+class ProductSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ["id", "name"]
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -72,6 +78,16 @@ class ProductSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    addons = serializers.SerializerMethodField()
+
+    def get_addons(self, obj):
+        addons_qs = obj.addons.all()
+        request = self.context.get("request")
+        if request and request.user and request.user.is_authenticated:
+            role = getattr(request.user, "role", "")
+            if role in ("manager", "supervisor", "staff"):
+                return ProductAddonSerializer(addons_qs, many=True).data
+        return ProductAddonSerializer(addons_qs.filter(is_active=True), many=True).data
 
     class Meta:
         model = Product
@@ -89,4 +105,26 @@ class ProductSerializer(serializers.ModelSerializer):
             "category_id",
             "subcategory",
             "subcategory_id",
+            "addons",
+        ]
+
+
+class ProductAddonSerializer(serializers.ModelSerializer):
+    product = ProductSummarySerializer(read_only=True)
+    product_id = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(),
+        source="product",
+        write_only=True,
+    )
+
+    class Meta:
+        model = ProductAddon
+        fields = [
+            "id",
+            "name",
+            "price_delta",
+            "is_active",
+            "sort_order",
+            "product",
+            "product_id",
         ]

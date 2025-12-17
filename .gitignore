@@ -7,6 +7,10 @@ __pycache__/
 backend/db.sqlite3
 backend/media/
 backend/staticfiles/
+# Data & backups
+*.csv
+*_backup.sqlite3
+db_old_backup.sqlite3
 
 # Env files
 .env

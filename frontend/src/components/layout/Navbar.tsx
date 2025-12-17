@@ -6,6 +6,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useStoreSettings } from "../../context/StoreSettingsContext";
 import { api } from "../../services/api";
 import type { FC } from "react";
+import CurrencyAmount from "../common/CurrencyAmount";
 
 const isExternalLink = (url: string) => /^https?:\/\//i.test(url || "");
 
@@ -174,24 +175,29 @@ export const Navbar: React.FC = () => {
                     const lineTotal = Number(item.price || 0) * item.quantity;
                     return (
                       <div
-                        key={item.id}
+                        key={item.key}
                         className="flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-amber-50"
                       >
                         <div className="flex flex-col items-start flex-1">
                           <span className="text-xs font-medium line-clamp-1">
                             {item.name}
                           </span>
+                          {item.addons && item.addons.length > 0 && (
+                            <span className="text-[11px] text-gray-500 line-clamp-1">
+                              + {item.addons.map((addon) => addon.name).join("، ")}
+                            </span>
+                          )}
                           <span className="text-[11px] text-gray-500">
                             الكمية: {item.quantity}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold text-amber-700">
-                            {lineTotal.toFixed(2)} ر.س
+                            <CurrencyAmount value={lineTotal} />
                           </span>
                           <button
                             type="button"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeItem(item.key)}
                             className="text-[12px] text-red-500 hover:text-red-600"
                             title="حذف هذا المنتج"
                           >
@@ -217,7 +223,7 @@ export const Navbar: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">الإجمالي</span>
                     <span className="font-bold text-amber-700">
-                      {Number(total).toFixed(2)} ر.س
+                      <CurrencyAmount value={total} />
                     </span>
                   </div>
                   <button

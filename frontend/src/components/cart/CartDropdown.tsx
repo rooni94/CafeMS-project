@@ -2,6 +2,7 @@
 import React, { useMemo } from "react";
 import { useCart } from "../../context/CartContext";
 import { Link } from "react-router-dom";
+import CurrencyAmount from "../common/CurrencyAmount";
 
 type CartItemLike = {
   id?: number;
@@ -10,6 +11,8 @@ type CartItemLike = {
   price?: number;
   image?: string;
   quantity?: number;
+  addons?: { name?: string }[];
+  key?: string;
   product?: {
     id?: number;
     name?: string;
@@ -27,12 +30,13 @@ export const CartDropdown: React.FC<CartDropdownProps> = ({ onClose }) => {
 
   const normalizedItems = useMemo(() => {
     return (items as CartItemLike[]).map((item, index) => {
-      const name = item?.name || item?.product?.name || `منتج #${index + 1}`;
+      const name = item?.name || item?.product?.name || `U.U+O?O? #${index + 1}`;
       const price = item?.price ?? item?.product?.price ?? 0;
       const image = item?.image || item?.product?.image;
       const quantity = item?.quantity ?? 1;
+      const addons = Array.isArray(item?.addons) ? item.addons : [];
 
-      return { name, price, image, quantity };
+      return { name, price, image, quantity, addons };
     });
   }, [items]);
 
@@ -80,13 +84,18 @@ export const CartDropdown: React.FC<CartDropdownProps> = ({ onClose }) => {
                   <div className="text-xs font-semibold line-clamp-1">
                     {item.name}
                   </div>
+                  {item.addons && item.addons.length > 0 && (
+                    <div className="text-[11px] text-gray-500 line-clamp-1">
+                      + {item.addons.map((addon) => addon.name || "").join("? ")}
+                    </div>
+                  )}
                   <div className="text-[11px] text-gray-500">
                     الكمية: {item.quantity ?? 1}
                   </div>
                 </div>
               </div>
               <div className="text-[11px] font-bold text-amber-700">
-                {((item.price || 0) * (item.quantity || 1)).toFixed(2)} ر.س
+                <CurrencyAmount value={(item.price || 0) * (item.quantity || 1)} />
               </div>
             </div>
           ))
@@ -97,7 +106,7 @@ export const CartDropdown: React.FC<CartDropdownProps> = ({ onClose }) => {
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold">الإجمالي</span>
           <span className="font-bold text-amber-700">
-            {total.toFixed(2)} ر.س
+            <CurrencyAmount value={total} />
           </span>
         </div>
         <div className="flex justify-end">

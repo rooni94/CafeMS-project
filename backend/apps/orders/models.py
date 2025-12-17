@@ -1,7 +1,7 @@
 # backend/apps/orders/models.py
 from django.db import models
 from django.conf import settings
-from apps.products.models import Product
+from apps.products.models import Product, ProductAddon
 
 
 class Table(models.Model):
@@ -167,6 +167,25 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"
+
+
+class OrderItemAddon(models.Model):
+    order_item = models.ForeignKey(
+        OrderItem,
+        related_name="addons",
+        on_delete=models.CASCADE,
+    )
+    addon = models.ForeignKey(
+        ProductAddon,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    name = models.CharField(max_length=120)
+    price_delta = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"{self.name} (+{self.price_delta})"
 
 
 class OrderActivityLog(models.Model):

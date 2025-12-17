@@ -17,6 +17,13 @@ export interface Category {
   slug: string;
 }
 
+export interface ProductAddon {
+  id: number;
+  name: string;
+  price_delta: number;
+  is_active?: boolean;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -26,6 +33,7 @@ export interface Product {
   available: boolean;
   image?: string;
   category?: Category;
+  addons?: ProductAddon[];
 }
 
 export interface CartItem {

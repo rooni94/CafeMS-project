@@ -1,12 +1,20 @@
 // src/context/CartContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 
+export type CartAddon = {
+  id: number;
+  name: string;
+  price_delta: number;
+};
+
 export type CartItem = {
+  key: string;
   id: number;
   name: string;
   price: number;
   quantity: number;
   image?: string;
+  addons?: CartAddon[];
 };
 
 type CartContextValue = {
@@ -15,14 +23,14 @@ type CartContextValue = {
   totalPrice: number;
   total: number; // alias للمتوافقية مع الكود القديم
   addItem: (
-    item: { id: number; name: string; price: number; image?: string },
+    item: { id: number; name: string; price: number; image?: string; addons?: CartAddon[] },
     quantity?: number
   ) => void;
   addToCart: (
-    item: { id: number; name: string; price: number; image?: string },
+    item: { id: number; name: string; price: number; image?: string; addons?: CartAddon[] },
     quantity?: number
   ) => void;
-  removeItem: (id: number) => void;
+  removeItem: (key: string) => void;
   clearCart: () => void;
 };
 
@@ -33,6 +41,33 @@ const STORAGE_KEY = "cafe_cart";
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const buildCartKey = (id: number, addons?: CartAddon[]) => {
+    const addonIds = (addons || [])
+      .map((addon) => Number(addon.id))
+      .filter((addonId) => Number.isFinite(addonId))
+      .sort((a, b) => a - b);
+    return `${id}:${addonIds.join(",")}`;
+  };
+
+  const normalizeAddons = (value: any): CartAddon[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((addon) => {
+        const id = Number(addon?.id);
+        if (!Number.isFinite(id)) return null;
+        const price =
+          typeof addon?.price_delta === "number"
+            ? addon.price_delta
+            : Number(addon?.price_delta || 0) || 0;
+        return {
+          id,
+          name: addon?.name || "",
+          price_delta: price,
+        } as CartAddon;
+      })
+      .filter(Boolean) as CartAddon[];
+  };
+
   const [items, setItems] = useState<CartItem[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -43,7 +78,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       // ✅ تنظيف/تطبيع البيانات القديمة
       return raw
         .map((r) => {
-          const id = Number(r.id);
+          const id = Number(r.id || r.productId || r.product?.id);
           if (!id) return null;
 
           const price =
@@ -56,12 +91,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
               ? r.quantity
               : Number(r.quantity || 1) || 1;
 
+          const addons = normalizeAddons(r.addons);
+          const key =
+            typeof r.key === "string" && r.key
+              ? r.key
+              : buildCartKey(id, addons);
+
           return {
+            key,
             id,
             name: r.name || r.product?.name || `منتج #${id}`,
             price,
             quantity,
             image: r.image || r.product?.image,
+            addons,
           } as CartItem;
         })
         .filter(Boolean) as CartItem[];
@@ -75,16 +118,19 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [items]);
 
   const addItem = (
-    item: { id: number; name: string; price: number; image?: string },
+    item: { id: number; name: string; price: number; image?: string; addons?: CartAddon[] },
     quantity: number = 1
   ) => {
     if (!item || !item.id) return;
 
+    const addons = normalizeAddons(item.addons);
+    const key = buildCartKey(item.id, addons);
+
     setItems((prev) => {
-      const existing = prev.find((p) => p.id === item.id);
+      const existing = prev.find((p) => p.key === key);
       if (existing) {
         return prev.map((p) =>
-          p.id === item.id
+          p.key === key
             ? { ...p, quantity: p.quantity + quantity }
             : p
         );
@@ -92,25 +138,27 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       return [
         ...prev,
         {
+          key,
           id: item.id,
           name: item.name,
           price: item.price,
           image: item.image,
           quantity,
+          addons,
         },
       ];
     });
   };
 
   const addToCart = (
-    item: { id: number; name: string; price: number; image?: string },
+    item: { id: number; name: string; price: number; image?: string; addons?: CartAddon[] },
     quantity: number = 1
   ) => {
     addItem(item, quantity);
   };
 
-  const removeItem = (id: number) => {
-    setItems((prev) => prev.filter((p) => p.id !== id));
+  const removeItem = (key: string) => {
+    setItems((prev) => prev.filter((p) => p.key !== key));
   };
 
   const clearCart = () => setItems([]);
