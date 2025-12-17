@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Text, StyleSheet, ScrollView, TextInput, Alert, View } from "react-native";
-import Screen from "../../components/Screen";
+import { Text, StyleSheet, TextInput, Alert, View } from "react-native";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import DashboardShell from "./components/DashboardShell";
 
 type StoreSettings = {
   store_name?: string;
@@ -66,8 +66,7 @@ const DashboardSettings: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="إعدادات المتجر" subtitle="تحديث بيانات المتجر التي تظهر للعميل على الواجهة.">
         <Card>
           <Text style={styles.title}>إعدادات المتجر</Text>
           <Text style={styles.helper}>تعديل بيانات المتجر والتواصل والنصوص الظاهرة في الواجهة.</Text>
@@ -99,8 +98,7 @@ const DashboardSettings: React.FC = () => {
             </View>
           </Card>
         )}
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 
