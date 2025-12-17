@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Alert } from "react-native";
+import { View, Text, StyleSheet, Alert } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
 import StatBadge from "./components/StatBadge";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import DashboardShell from "./components/DashboardShell";
 
 type DashboardStats = {
   total_orders: number;
@@ -72,8 +72,7 @@ const DashboardOrders: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="إدارة الطلبات" subtitle="فلترة سريعة وتحديث حالة الطلبات من لوحة واحدة.">
         <Card>
           <Text style={styles.title}>إحصائيات الطلبات</Text>
           <View style={styles.statsRow}>
@@ -138,8 +137,7 @@ const DashboardOrders: React.FC = () => {
             </View>
           ))}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

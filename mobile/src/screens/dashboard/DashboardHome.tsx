@@ -1,13 +1,13 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import DashboardShell from "./components/DashboardShell";
 
 type OrderStats = {
   total_orders?: number;
@@ -65,12 +65,11 @@ const DashboardHome: React.FC = () => {
   const showHR = false;
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 24 }}>
-        <Card>
-          <Text style={styles.headline}>لوحة تحكم المتجر</Text>
-          <Text style={styles.helper}>نظرة سريعة على الطلبات، المخزون، والدعم مع وصول سريع للصفحات الإدارية.</Text>
-        </Card>
+    <DashboardShell
+      title="لوحة تحكم المتجر"
+      subtitle="نظرة سريعة على الطلبات، المخزون، والدعم مع وصول سريع للصفحات الإدارية."
+      contentContainerStyle={{ gap: 14, paddingBottom: 24 }}
+    >
 
         {showOrders && (
           <Card style={{ gap: 10 }}>
@@ -143,8 +142,7 @@ const DashboardHome: React.FC = () => {
             </View>
           </Card>
         )}
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 
