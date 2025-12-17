@@ -48,6 +48,10 @@ INSTALLED_APPS = [
     "django_extensions",
 ]
 
+if DEBUG:
+    INSTALLED_APPS += [
+        "django_extensions",
+    ]
 AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
