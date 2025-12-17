@@ -16,6 +16,8 @@ import FloatingCart from "../../components/FloatingCart";
 import { useTheme } from "../../theme";
 import ProductAddonsModal from "../../components/ProductAddonsModal";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import ProductGridCard from "../../components/ProductGridCard";
+import { Card } from "../../components/ui";
 
 type MenuCategory = {
   id: number;
@@ -167,53 +169,42 @@ const MenuScreen: React.FC = () => {
           </View>
         )}
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-          <Pressable onPress={() => setActiveCategory(null)} style={styles.categoryPill}>
-            <Text style={[styles.categoryText, activeCategory == null && styles.categoryTextActive]}>الكل</Text>
-          </Pressable>
-          {decoratedCategories.map((cat) => {
-            const isActive = activeCategory === cat.id;
-            return (
-              <Pressable key={cat.id} onPress={() => setActiveCategory(cat.id)} style={styles.categoryPill}>
-                <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>{cat.name}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <Card style={styles.sectionCard}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+            <Pressable onPress={() => setActiveCategory(null)} style={styles.categoryPill}>
+              <Text style={[styles.categoryText, activeCategory == null && styles.categoryTextActive]}>الكل</Text>
+            </Pressable>
+            {decoratedCategories.map((cat) => {
+              const isActive = activeCategory === cat.id;
+              return (
+                <Pressable key={cat.id} onPress={() => setActiveCategory(cat.id)} style={styles.categoryPill}>
+                  <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>{cat.name}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Card>
 
         {filteredProducts.length === 0 ? (
           <EmptyState title={copy.menu.emptyTitle} description={copy.menu.emptyDescription} />
         ) : (
-          <View style={styles.grid}>
-            {filteredProducts.map((product) => (
-              <Pressable
-                key={product.id}
-                onPress={() =>
-                  navigation.navigate("ProductDetails", {
-                    productId: product.id,
-                  })
-                }
-                style={({ pressed }) => [styles.card, pressed && { opacity: 0.96 }]}
-              >
-                <View style={styles.imageWrap}>
-                  {product.image ? (
-                    <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
-                  ) : (
-                    <View style={styles.imageFallback}>
-                      <Text style={styles.imageFallbackText}>لا توجد صورة</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.productName} numberOfLines={1}>
-                  {product.name}
-                </Text>
-                <CurrencyAmount value={product.price} color={theme.palette.success} symbolSize={14} textStyle={styles.price} />
-                <Pressable style={styles.addBtn} onPress={() => handleAddRequest(product)}>
-                  <Ionicons name="add" size={18} color="#fff" />
-                </Pressable>
-              </Pressable>
-            ))}
-          </View>
+          <Card style={styles.sectionCard}>
+            <View style={styles.grid}>
+              {filteredProducts.map((product) => (
+                <ProductGridCard
+                  key={product.id}
+                  product={product}
+                  onPress={() =>
+                    navigation.navigate("ProductDetails", {
+                      productId: product.id,
+                    })
+                  }
+                  onAdd={() => handleAddRequest(product)}
+                  priceColor={theme.palette.success}
+                />
+              ))}
+            </View>
+          </Card>
         )}
       </ScrollView>
       <ProductAddonsModal
@@ -267,8 +258,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     categoryRow: {
       flexDirection: "row-reverse",
       gap: 16,
-      paddingHorizontal: 12,
-      paddingBottom: 10,
+      paddingHorizontal: 6,
     },
     categoryPill: {
       paddingVertical: 6,
@@ -285,70 +275,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
-      paddingHorizontal: 12,
       gap: 14,
     },
-    card: {
-      width: "48%",
-      backgroundColor: theme.palette.surface,
-      borderRadius: 24,
+    sectionCard: {
       padding: 12,
-      alignItems: "center",
-      position: "relative",
-      shadowColor: "#000",
-      shadowOpacity: 0.05,
-      shadowRadius: 6,
-      shadowOffset: { width: 0, height: 4 },
-      borderWidth: 1,
+      borderRadius: 22,
       borderColor: theme.palette.border,
-    },
-    imageWrap: {
-      width: "100%",
-      height: 120,
-      alignItems: "center",
-      justifyContent: "center",
-      marginBottom: 8,
-    },
-    image: {
-      width: "85%",
-      height: "100%",
-    },
-    imageFallback: {
-      width: "100%",
-      height: "100%",
-      borderRadius: 18,
-      backgroundColor: theme.palette.surfaceAlt,
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    imageFallbackText: {
-      fontSize: 12,
-      color: theme.palette.muted,
-    },
-    productName: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: theme.palette.text,
-      textAlign: "right",
-      alignSelf: "flex-end",
-    },
-    price: {
-      fontSize: 14,
-      fontWeight: "800",
-      color: theme.palette.success,
-      alignSelf: "flex-end",
-      marginTop: 4,
-    },
-    addBtn: {
-      position: "absolute",
-      left: 10,
-      bottom: 10,
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: theme.palette.accent,
-      alignItems: "center",
-      justifyContent: "center",
+      backgroundColor: theme.palette.surface,
     },
   });
 

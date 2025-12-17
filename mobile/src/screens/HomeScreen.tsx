@@ -14,7 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import Screen from "../components/Screen";
 import { Button, Card } from "../components/ui";
-import DishCard from "../components/DishCard";
+import ProductGridCard from "../components/ProductGridCard";
 import { api } from "../services/api";
 import { Category, Product, ProductAddon } from "../types";
 import { useStoreSettings } from "../context/StoreSettingsContext";
@@ -366,16 +366,16 @@ const HomeScreen: React.FC = () => {
           ) : (
             <View style={styles.productGrid}>
               {visibleProducts.map((product) => (
-                <DishCard
+                <ProductGridCard
                   key={product.id}
                   product={product}
-                  style={styles.dishCard}
                   onPress={() =>
                     goToStack(navigation, "ProductDetails", {
                       productId: product.id,
                     })
                   }
                   onAdd={() => handleAddRequest(product)}
+                  priceColor={theme.palette.success}
                 />
               ))}
             </View>
@@ -650,9 +650,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
     marginBottom: 12,
-  },
-  dishCard: {
-    width: "48%",
   },
   helperText: {
     fontSize: 13,

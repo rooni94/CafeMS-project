@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import { api } from "../services/api";
 import Hero from "../components/Hero";
 import { useCart } from "../context/CartContext";
@@ -500,9 +501,11 @@ const Home: React.FC = () => {
                             e.stopPropagation();
                             handleAddRequest(p);
                           }}
-                          className="text-[11px] px-2 py-1 rounded-full bg-amber-500 text-white hover:bg-amber-600"
+                          aria-label="إضافة إلى السلة"
+                          title="إضافة إلى السلة"
+                          className="w-8 h-8 rounded-full bg-amber-500 text-white hover:bg-amber-600 flex items-center justify-center"
                         >
-                          أضف للسلة
+                          <PlusIcon className="w-4 h-4" />
                         </button>
                       </div>
                     </div>

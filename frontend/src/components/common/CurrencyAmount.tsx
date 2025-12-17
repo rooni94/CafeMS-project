@@ -23,15 +23,16 @@ const CurrencyAmount: React.FC<Props> = ({
 
   return (
     <span
+      dir="ltr"
       className={[
-        "inline-flex flex-row-reverse items-center gap-1 whitespace-nowrap",
+        "inline-flex items-center gap-1 whitespace-nowrap",
         className,
       ]
         .filter(Boolean)
         .join(" ")}
     >
-      <span className={amountClassName}>{numeric.toFixed(precision)}</span>
       <SaudiRiyalSymbol className={symbolClassName || "w-[1em] h-[1em]"} />
+      <span className={amountClassName}>{numeric.toFixed(precision)}</span>
     </span>
   );
 };

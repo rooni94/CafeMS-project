@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import { api } from "../services/api";
 import { useCart } from "../context/CartContext";
 import ProductAddonModal, { ProductAddon } from "../components/product/ProductAddonModal";
@@ -304,9 +305,11 @@ const Menu: React.FC = () => {
                             e.stopPropagation();
                             handleAddRequest(product);
                           }}
-                          className="text-[11px] px-3 py-1.5 rounded-full bg-amber-500 text-white hover:bg-amber-600"
+                          aria-label="إضافة إلى السلة"
+                          title="إضافة إلى السلة"
+                          className="w-8 h-8 rounded-full bg-amber-500 text-white hover:bg-amber-600 flex items-center justify-center"
                         >
-                          أضف للسلة
+                          <PlusIcon className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
