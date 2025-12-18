@@ -22,7 +22,7 @@ backend/.env.*
 # Virtual env
 venv/
 backend/venv/
-
+dist.zip
 # Node / frontend
 node_modules/
 dist/

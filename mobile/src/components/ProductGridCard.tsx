@@ -65,7 +65,7 @@ const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, pric
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     card: {
-      width: "48%",
+      width: "47%",
       backgroundColor: theme.palette.surface,
       borderRadius: 24,
       padding: 12,
@@ -129,4 +129,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default ProductGridCard;
-

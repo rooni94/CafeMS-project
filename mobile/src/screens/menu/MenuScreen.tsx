@@ -275,7 +275,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
-      gap: 14,
+      gap: 12,
     },
     sectionCard: {
       padding: 12,
