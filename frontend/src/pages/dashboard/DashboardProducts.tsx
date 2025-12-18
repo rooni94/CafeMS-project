@@ -108,7 +108,7 @@ const DashboardProducts: React.FC = () => {
   const loadAddons = async (productId: number) => {
     setAddonsLoading(true);
     try {
-      const res = await api.get(`products/addons/?product=${productId}`);
+      const res = await api.get(`products/items/${productId}/addons/`);
       const data = res.data?.results || res.data || [];
       setAddons(data);
     } catch (error: any) {
@@ -128,13 +128,12 @@ const DashboardProducts: React.FC = () => {
     setAddonsSaving(true);
     try {
       if (addonEditingId) {
-        await api.patch(`products/addons/${addonEditingId}/`, {
+        await api.patch(`products/items/${editingId}/addons/${addonEditingId}/`, {
           name: addonName.trim(),
           price_delta: addonPrice,
         });
       } else {
-        await api.post("products/addons/", {
-          product_id: editingId,
+        await api.post(`products/items/${editingId}/addons/`, {
           name: addonName.trim(),
           price_delta: addonPrice,
         });
@@ -160,7 +159,7 @@ const DashboardProducts: React.FC = () => {
     const ok = window.confirm("هل أنت متأكد من حذف هذه الإضافة؟");
     if (!ok) return;
     try {
-      await api.delete(`products/addons/${addonId}/`);
+      await api.delete(`products/items/${editingId}/addons/${addonId}/`);
       await loadAddons(editingId);
     } catch (error: any) {
       console.error(error);

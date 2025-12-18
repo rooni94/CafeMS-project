@@ -64,6 +64,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "cafe_backend.urls"
 
+# إذا كان Django خلف Reverse Proxy (مثل Nginx) مع HTTPS termination
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
