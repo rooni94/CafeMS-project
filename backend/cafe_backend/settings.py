@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     "apps.hr.apps.HrConfig",
     "apps.store.apps.StoreConfig",
     "apps.loyalty.apps.LoyaltyConfig",
-    "django_extensions",
 ]
 
 
