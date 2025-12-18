@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
+from rest_framework.parsers import JSONParser
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,7 +21,7 @@ def _addons_queryset_for_request(product: Product, request):
 
 
 class ProductAddonsView(APIView):
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:
@@ -45,7 +46,7 @@ class ProductAddonsView(APIView):
 
 
 class ProductAddonDetailView(APIView):
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_permissions(self):
         if self.request.method in permissions.SAFE_METHODS:

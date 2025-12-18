@@ -1,7 +1,7 @@
 # backend/apps/products/views.py
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 
 from apps.accounts.permissions import CanManageProducts, CanManageCategories, CanManageSubCategories
@@ -12,7 +12,7 @@ from .serializers import ProductSerializer, CategorySerializer, SubCategorySeria
 class ProductViewSet(viewsets.ModelViewSet):
   queryset = Product.objects.all().select_related("category", "subcategory").prefetch_related("addons")
   serializer_class = ProductSerializer
-  parser_classes = [MultiPartParser, FormParser]
+  parser_classes = [JSONParser, MultiPartParser, FormParser]
 
   def get_permissions(self):
       # قراءة المنتجات متاحة للجميع (واجهة القائمة)
@@ -21,7 +21,7 @@ class ProductViewSet(viewsets.ModelViewSet):
       # إنشاء/تعديل/حذف تحتاج صلاحية can_manage_products
       return [CanManageProducts()]
 
-  @action(detail=True, methods=["get", "post"], url_path="addons", parser_classes=[MultiPartParser, FormParser])
+  @action(detail=True, methods=["get", "post"], url_path="addons", parser_classes=[JSONParser, MultiPartParser, FormParser])
   def addons(self, request, pk=None):
       product = self.get_object()
 
@@ -45,7 +45,7 @@ class ProductViewSet(viewsets.ModelViewSet):
       detail=True,
       methods=["patch", "delete"],
       url_path=r"addons/(?P<addon_id>[^/.]+)",
-      parser_classes=[MultiPartParser, FormParser],
+      parser_classes=[JSONParser, MultiPartParser, FormParser],
   )
   def addon_detail(self, request, pk=None, addon_id=None):
       product = self.get_object()
