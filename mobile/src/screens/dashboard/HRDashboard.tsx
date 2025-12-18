@@ -1,11 +1,11 @@
 import React from "react";
-import { Text, StyleSheet, ScrollView, View } from "react-native";
+import { Text, StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
 import HRStatBadge from "./components/HRStatBadge";
+import DashboardShell from "./components/DashboardShell";
 
 type HRStats = {
   employees?: number;
@@ -24,8 +24,7 @@ const HRDashboard: React.FC = () => {
   });
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="لوحة الموارد البشرية" subtitle="مؤشرات سريعة وروابط للصفحات الإدارية.">
         <Card>
           <Text style={styles.title}>لوحة الموارد البشرية</Text>
           <Text style={styles.helper}>نظرة سريعة على الموظفين والإجازات والتنبيهات.</Text>
@@ -51,8 +50,7 @@ const HRDashboard: React.FC = () => {
           <Text style={styles.sectionTitle}>ملاحظات</Text>
           <Text style={styles.helper}>يمكن توصيل هذه الأزرار بشاشات HR التفصيلية (الحضور، العقود، التنبيهات) فور تجهيزها في الواجهة.</Text>
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

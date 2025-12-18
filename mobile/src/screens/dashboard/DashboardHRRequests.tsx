@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, Alert } from "react-native";
+import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
+import DashboardShell from "./components/DashboardShell";
 
 type LeaveRow = {
   id: number;
@@ -129,8 +129,7 @@ const DashboardHRRequests: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="طلبات الموارد البشرية" subtitle="مراجعة طلبات الإجازات وكشوف الرواتب.">
         <Card>
           <Text style={styles.title}>طلباتي وحقوقي الوظيفية</Text>
           <Text style={styles.helper}>الحضور اليومي، طلبات الإجازة، تقارير الغياب، الرواتب، طلبات الزيادة، والتنبيهات.</Text>
@@ -215,8 +214,7 @@ const DashboardHRRequests: React.FC = () => {
             <Text style={styles.helper}>لا توجد تنبيهات.</Text>
           )}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

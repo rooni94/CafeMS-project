@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, Alert } from "react-native";
+import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import DashboardShell from "./components/DashboardShell";
 
 type POSOrder = {
   id: number;
@@ -50,8 +50,7 @@ const DashboardPOS: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="نقطة البيع" subtitle="إنشاء طلبات سريعة ومتابعة طلبات الصالة.">
         <Card>
           <Text style={styles.title}>كاشير POS</Text>
           <Text style={styles.helper}>إنشاء طلبات سريعة وربطها بالطاولات.</Text>
@@ -116,8 +115,7 @@ const DashboardPOS: React.FC = () => {
             <Text style={styles.helper}>لا توجد طلبات حالياً.</Text>
           )}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

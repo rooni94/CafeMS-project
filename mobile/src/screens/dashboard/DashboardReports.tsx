@@ -1,11 +1,11 @@
 import React from "react";
-import { Text, StyleSheet, ScrollView } from "react-native";
+import { Text, StyleSheet } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
 import StatBadge from "./components/StatBadge";
+import DashboardShell from "./components/DashboardShell";
 
 type OrderStats = {
   total_orders?: number;
@@ -40,8 +40,7 @@ const DashboardReports: React.FC = () => {
   });
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="التقارير" subtitle="ملخصات الطلبات والإيرادات ومؤشرات الموارد البشرية.">
         <Card>
           <Text style={styles.title}>تقارير سريعة</Text>
           <Text style={styles.helper}>أرقام موجزة للطلبات والموارد البشرية.</Text>
@@ -61,8 +60,7 @@ const DashboardReports: React.FC = () => {
           <StatBadge label="إجازات نشطة" value={hrStats?.active_leaves ?? "-"} color="#f59e0b" />
           <StatBadge label="تنبيهات" value={hrStats?.alerts ?? "-"} color="#ef4444" />
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

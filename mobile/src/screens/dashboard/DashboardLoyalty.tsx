@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, Alert } from "react-native";
+import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import DashboardShell from "./components/DashboardShell";
 
 type LoyaltyProfile = {
   points?: number;
@@ -78,8 +78,7 @@ const DashboardLoyalty: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="برنامج الولاء" subtitle="إعدادات الولاء، النقاط، والرصيد النقدي.">
         <Card>
           <Text style={styles.title}>برنامج الولاء</Text>
           <Text style={styles.helper}>رصيد النقاط، الرصيد النقدي، والمستوى الحالي.</Text>
@@ -139,8 +138,7 @@ const DashboardLoyalty: React.FC = () => {
             </View>
           )}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

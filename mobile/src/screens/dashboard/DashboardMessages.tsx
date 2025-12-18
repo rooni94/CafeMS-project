@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Text, StyleSheet, ScrollView, View, TextInput, Alert, Pressable } from "react-native";
+import { Text, StyleSheet, View, TextInput, Alert, Pressable } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
+import DashboardShell from "./components/DashboardShell";
 
 type ContactMessage = {
   id: number;
@@ -43,8 +43,7 @@ const DashboardMessages: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="رسائل العملاء" subtitle="استعراض رسائل التواصل وتحديد المقروء منها.">
         <Card>
           <Text style={styles.title}>الرسائل والاستفسارات</Text>
           <Text style={styles.helper}>عرض رسائل التواصل والرد عليها وإدارتها.</Text>
@@ -106,8 +105,7 @@ const DashboardMessages: React.FC = () => {
           />
           <Button title="إرسال الرد" onPress={sendReply} />
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 

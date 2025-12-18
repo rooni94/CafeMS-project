@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Text, StyleSheet, ScrollView, View, TextInput, Alert } from "react-native";
+import { Text, StyleSheet, View, TextInput, Alert } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Screen from "../../components/Screen";
 import { Card, Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
 import { User } from "../../types";
+import DashboardShell from "./components/DashboardShell";
 
 const roles: ("customer" | "staff" | "supervisor" | "manager")[] = ["customer", "staff", "supervisor", "manager"];
 
@@ -82,8 +82,7 @@ const DashboardUsers: React.FC = () => {
   };
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 24 }}>
+    <DashboardShell title="المستخدمون" subtitle="إضافة مستخدمين وتعديل الأدوار وكلمات المرور.">
         <Card>
           <Text style={styles.title}>إدارة المستخدمين</Text>
           <Text style={styles.helper}>إنشاء وتعديل وحذف المستخدمين مع تحديد الدور (عميل، موظف، مشرف، مدير).</Text>
@@ -139,8 +138,7 @@ const DashboardUsers: React.FC = () => {
             <Text style={styles.helper}>لا يوجد مستخدمون.</Text>
           )}
         </Card>
-      </ScrollView>
-    </Screen>
+    </DashboardShell>
   );
 };
 
