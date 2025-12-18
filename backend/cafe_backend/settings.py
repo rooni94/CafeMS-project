@@ -22,8 +22,6 @@ ALLOWED_HOSTS = env.list(
     "ALLOWED_HOSTS",
     default=["127.0.0.1", "localhost"],
 )
-if DEBUG:
-    INSTALLED_APPS += ["django_extensions"]
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
