@@ -194,6 +194,7 @@ const MenuScreen: React.FC = () => {
                 <ProductGridCard
                   key={product.id}
                   product={product}
+                  style={styles.productCard}
                   onPress={() =>
                     navigation.navigate("ProductDetails", {
                       productId: product.id,
@@ -275,7 +276,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
-      gap: 12,
+      width: "100%",
+      alignSelf: "stretch",
+    },
+    productCard: {
+      width: "48%",
+      marginBottom: 12,
     },
     sectionCard: {
       padding: 12,

@@ -167,10 +167,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
+    width: "100%",
+    alignSelf: "stretch",
   },
   productCard: {
     width: "48%",
+    marginBottom: 12,
   },
 });
 
