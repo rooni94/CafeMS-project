@@ -2,7 +2,8 @@
 import axios from "axios";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api/",
+  // Default to same-origin `/api/` so production doesn't accidentally point to localhost.
+  baseURL: import.meta.env.VITE_API_URL || "/api/",
 });
 
 // لإضافة التوكن تلقائياً إن وجد

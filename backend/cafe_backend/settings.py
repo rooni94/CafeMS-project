@@ -6,12 +6,26 @@ import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-env = environ.Env(
-    DEBUG=(bool, False),
-)
+env = environ.Env(DEBUG=(bool, False))
 
-# نقرأ ملف .env
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+# تحميل ملف البيئة (local vs production)
+env_file = env.str("ENV_FILE", default="").strip()
+env_name = env.str("DJANGO_ENV", default="local").strip().lower()
+
+if env_file:
+    candidate_paths = [env_file]
+elif env_name in ("prod", "production"):
+    candidate_paths = [
+        os.path.join(BASE_DIR, ".env.prod"),
+        os.path.join(BASE_DIR, ".env.production"),
+    ]
+else:
+    candidate_paths = [os.path.join(BASE_DIR, ".env")]
+
+for path in candidate_paths:
+    if path and os.path.exists(path):
+        environ.Env.read_env(path)
+        break
 
 # ================== الإعدادات الأساسية ==================
 SECRET_KEY = env("SECRET_KEY")

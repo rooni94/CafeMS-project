@@ -86,7 +86,16 @@ const DashboardProducts: React.FC = () => {
   const loadAddons = async (productId: number) => {
     setAddonsLoading(true);
     try {
-      const res = await api.get(`products/items/${productId}/addons/`);
+      let res;
+      try {
+        res = await api.get(`products/items/${productId}/addons/`);
+      } catch (err: any) {
+        if (err?.response?.status === 404) {
+          res = await api.get(`products/addons/?product=${productId}`);
+        } else {
+          throw err;
+        }
+      }
       const data = res.data?.results || res.data || [];
       setAddons(data);
     } catch (error) {
@@ -110,9 +119,25 @@ const DashboardProducts: React.FC = () => {
         price_delta: Number(addonPrice) || 0,
       };
       if (addonEditingId) {
-        await api.patch(`products/items/${editingId}/addons/${addonEditingId}/`, payload);
+        try {
+          await api.patch(`products/items/${editingId}/addons/${addonEditingId}/`, payload);
+        } catch (err: any) {
+          if (err?.response?.status === 404) {
+            await api.patch(`products/addons/${addonEditingId}/`, payload);
+          } else {
+            throw err;
+          }
+        }
       } else {
-        await api.post(`products/items/${editingId}/addons/`, payload);
+        try {
+          await api.post(`products/items/${editingId}/addons/`, payload);
+        } catch (err: any) {
+          if (err?.response?.status === 404) {
+            await api.post("products/addons/", { product_id: editingId, ...payload });
+          } else {
+            throw err;
+          }
+        }
       }
       await loadAddons(editingId);
       resetAddonForm();
@@ -138,7 +163,15 @@ const DashboardProducts: React.FC = () => {
         style: "destructive",
         onPress: async () => {
           try {
-            await api.delete(`products/items/${editingId}/addons/${addonId}/`);
+            try {
+              await api.delete(`products/items/${editingId}/addons/${addonId}/`);
+            } catch (err: any) {
+              if (err?.response?.status === 404) {
+                await api.delete(`products/addons/${addonId}/`);
+              } else {
+                throw err;
+              }
+            }
             await loadAddons(editingId);
           } catch {
             Alert.alert("خطأ", "تعذر حذف الإضافة.");
