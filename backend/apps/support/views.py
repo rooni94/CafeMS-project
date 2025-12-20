@@ -394,6 +394,7 @@ class GuestVerifyCodeView(APIView):
                 guest_name=obj.name,
                 guest_email=obj.email,
                 is_guest=True,
+                guest_token=get_random_string(48),
             )
             # رسالة ترحيبية
             SupportMessage.objects.create(
@@ -406,7 +407,118 @@ class GuestVerifyCodeView(APIView):
             )
 
         data = ConversationSerializer(conv).data
-        return Response({"conversation": data}, status=status.HTTP_200_OK)
+        return Response(
+            {"conversation": data, "guest_token": conv.guest_token},
+            status=status.HTTP_200_OK,
+        )
+
+
+class GuestConversationMessagesView(APIView):
+    """
+    GET  /api/support/guest-conversations/<id>/messages/
+    POST /api/support/guest-conversations/<id>/messages/
+      header: X-Guest-Token: <token>
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def _get_guest_token(self, request) -> str:
+        return (request.headers.get("X-Guest-Token") or "").strip()
+
+    def _get_conversation(self, pk: int, guest_token: str) -> Conversation:
+        return Conversation.objects.get(
+            pk=pk,
+            is_guest=True,
+            guest_token=guest_token,
+            is_deleted=False,
+        )
+
+    def get(self, request, pk, *args, **kwargs):
+        guest_token = self._get_guest_token(request)
+        if not guest_token:
+            return Response(
+                {"detail": "Guest token required."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        try:
+            conv = self._get_conversation(pk, guest_token)
+        except Conversation.DoesNotExist:
+            return Response(
+                {"detail": "Unauthorized or conversation not found."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        msgs = conv.messages.all()
+        conv.messages.filter(is_read_by_customer=False).update(
+            is_read_by_customer=True
+        )
+        return Response(SupportMessageSerializer(msgs, many=True).data)
+
+    def post(self, request, pk, *args, **kwargs):
+        guest_token = self._get_guest_token(request)
+        if not guest_token:
+            return Response(
+                {"detail": "Guest token required."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        try:
+            conv = self._get_conversation(pk, guest_token)
+        except Conversation.DoesNotExist:
+            return Response(
+                {"detail": "Unauthorized or conversation not found."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        content = (request.data.get("content") or "").strip()
+        if not content:
+            return Response(
+                {"detail": "Message content is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        msg = SupportMessage.objects.create(
+            conversation=conv,
+            sender=None,
+            sender_type="guest",
+            content=content,
+            is_read_by_customer=True,
+            is_read_by_support=False,
+        )
+        conv.last_message_at = timezone.now()
+        conv.save(update_fields=["last_message_at"])
+
+        auto_text: str | None = None
+        if should_handover_to_human(content):
+            if not conv.bot_disabled:
+                conv.bot_disabled = True
+                conv.save(update_fields=["bot_disabled"])
+                auto_text = "تم تحويل المحادثة للدعم البشري وسيتم الرد قريباً."
+        elif not conv.bot_disabled:
+            auto_text = generate_bot_reply(None, content)
+
+        auto_reply_data = None
+        if auto_text:
+            auto_reply = SupportMessage.objects.create(
+                conversation=conv,
+                sender=None,
+                sender_type="bot",
+                content=auto_text,
+                is_read_by_customer=True,
+                is_read_by_support=False,
+            )
+            conv.last_message_at = timezone.now()
+            conv.save(update_fields=["last_message_at"])
+            auto_reply_data = SupportMessageSerializer(auto_reply).data
+
+        return Response(
+            {
+                "guest_message": SupportMessageSerializer(msg).data,
+                "bot_reply": auto_reply_data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class DeleteConversationView(APIView):

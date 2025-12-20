@@ -82,9 +82,26 @@ const DashboardSupportChat: React.FC = () => {
   const connectWebSocket = (convId: number) => {
     if (!accessToken) return;
 
+    const apiUrl = import.meta.env.VITE_API_URL || "/api/";
     const loc = window.location;
-    const wsScheme = loc.protocol === "https:" ? "wss" : "ws";
-    const wsUrl = `${wsScheme}://${loc.hostname}:8000/ws/support/${convId}/?token=${accessToken}`;
+
+    let wsBase = "";
+    try {
+      if (typeof apiUrl === "string" && /^https?:\\/\\//i.test(apiUrl)) {
+        const url = new URL(apiUrl);
+        const wsScheme = url.protocol === "https:" ? "wss" : "ws";
+        wsBase = `${wsScheme}://${url.host}`;
+      }
+    } catch {
+      // ignore
+    }
+
+    if (!wsBase) {
+      const wsScheme = loc.protocol === "https:" ? "wss" : "ws";
+      wsBase = `${wsScheme}://${loc.host}`;
+    }
+
+    const wsUrl = `${wsBase}/ws/support/${convId}/?token=${encodeURIComponent(accessToken)}`;
 
     if (wsRef.current) {
       wsRef.current.close();

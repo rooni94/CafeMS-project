@@ -16,15 +16,27 @@ type GuestProfile = {
   name: string;
   email: string;
   conversation_id?: number;
+  guest_token?: string;
 };
 
 const GUEST_STORAGE_KEY = "cafe_support_guest";
 
 const getWsBaseUrl = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || "/api/";
+
+  try {
+    if (typeof apiUrl === "string" && /^https?:\\/\\//i.test(apiUrl)) {
+      const url = new URL(apiUrl);
+      const wsScheme = url.protocol === "https:" ? "wss" : "ws";
+      return `${wsScheme}://${url.host}`;
+    }
+  } catch {
+    // ignore
+  }
+
   const loc = window.location;
   const wsScheme = loc.protocol === "https:" ? "wss" : "ws";
-  const backendPort = "8000"; // تأكد أنه نفس منفذ الباكند عندك
-  return `${wsScheme}://${loc.hostname}:${backendPort}`;
+  return `${wsScheme}://${loc.host}`;
 };
 
 const SupportChatWidget: React.FC = () => {
@@ -43,6 +55,7 @@ const SupportChatWidget: React.FC = () => {
   const isGuest = !user;
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestToken, setGuestToken] = useState<string | null>(null);
 
   const [guestStep, setGuestStep] = useState<"form" | "code" | "chat">("form");
   const [guestRequestId, setGuestRequestId] = useState<number | null>(null);
@@ -62,9 +75,13 @@ const SupportChatWidget: React.FC = () => {
         const data = JSON.parse(raw) as GuestProfile;
         if (data.name) setGuestName(data.name);
         if (data.email) setGuestEmail(data.email);
-        if (data.conversation_id) {
+        if (data.conversation_id && data.guest_token) {
           setConversationId(data.conversation_id);
+          setGuestToken(data.guest_token);
           setGuestStep("chat");
+        } else if (data.conversation_id && !data.guest_token) {
+          // بيانات قديمة (قبل إضافة guest_token) — اطلب تحقق جديد
+          localStorage.removeItem(GUEST_STORAGE_KEY);
         }
       }
     } catch (e) {
@@ -147,7 +164,12 @@ const SupportChatWidget: React.FC = () => {
 
       const conv = res.data.conversation;
       const convId = conv.id as number;
+      const token = (res.data.guest_token as string | undefined) || null;
+      if (!token) {
+        throw new Error("Missing guest_token");
+      }
       setConversationId(convId);
+      setGuestToken(token);
       setGuestStep("chat");
 
       // نخزن البيانات كاملة
@@ -155,12 +177,14 @@ const SupportChatWidget: React.FC = () => {
         name: guestName.trim(),
         email: guestEmail.trim(),
         conversation_id: convId,
+        guest_token: token,
       };
       localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(toStore));
 
       // تحميل أي رسائل ترحيب/بوت
       const msgRes = await api.get<SupportMessage[]>(
-        `support/conversations/${convId}/messages/`
+        `support/guest-conversations/${convId}/messages/`,
+        { headers: { "X-Guest-Token": token } }
       );
       setMessages(msgRes.data);
     } catch (err: any) {
@@ -175,11 +199,12 @@ const SupportChatWidget: React.FC = () => {
   };
 
   // ====== ضيف – في حال عندنا conversation_id مباشر (من localStorage) ======
-  const initForGuestIfHasConversation = async (convId: number) => {
+  const initForGuestIfHasConversation = async (convId: number, token: string) => {
     setLoading(true);
     try {
       const msgRes = await api.get<SupportMessage[]>(
-        `support/conversations/${convId}/messages/`
+        `support/guest-conversations/${convId}/messages/`,
+        { headers: { "X-Guest-Token": token } }
       );
       setMessages(msgRes.data);
     } catch (err) {
@@ -190,9 +215,13 @@ const SupportChatWidget: React.FC = () => {
   };
 
   // 2) فتح WebSocket
-const connectWebSocket = (convId: number) => {
+ const connectWebSocket = (convId: number) => {
   const base = getWsBaseUrl();
-  const qs = accessToken ? `?token=${accessToken}` : "?guest=1";
+  const qs = accessToken
+    ? `?token=${encodeURIComponent(accessToken)}`
+    : guestToken
+    ? `?guest=1&guest_token=${encodeURIComponent(guestToken)}`
+    : "?guest=1";
   const wsUrl = `${base}/ws/support/${convId}/${qs}`;
 
   setConnecting(true);
@@ -241,10 +270,11 @@ const connectWebSocket = (convId: number) => {
         const raw = localStorage.getItem(GUEST_STORAGE_KEY);
         if (raw) {
           const stored = JSON.parse(raw) as GuestProfile;
-          if (stored.conversation_id) {
+          if (stored.conversation_id && stored.guest_token) {
             setGuestStep("chat");
             setConversationId(stored.conversation_id);
-            initForGuestIfHasConversation(stored.conversation_id);
+            setGuestToken(stored.guest_token);
+            initForGuestIfHasConversation(stored.conversation_id, stored.guest_token);
             return;
           }
         }
@@ -266,7 +296,7 @@ const connectWebSocket = (convId: number) => {
     return () => {
       if (wsRef.current) wsRef.current.close();
     };
-  }, [conversationId, open, accessToken]);
+  }, [conversationId, open, accessToken, guestToken]);
 
   // Scroll لآخر رسالة
   useEffect(() => {
@@ -301,16 +331,19 @@ const connectWebSocket = (convId: number) => {
       setMessages((prev) => [...prev, customerMsg, botReply]);
       setInput("");
     } else if (isGuest && conversationId) {
-      // ضيف: نرسل الرسالة عن طريق endpoint خاص بالدعم لاحقاً
-      // حالياً سنكتفي بإضافتها محلياً كرسالة ضيف حتى تضبط الـ WebSocket
-      const fakeMsg: SupportMessage = {
-        id: Date.now(),
-        conversation: conversationId,
-        sender_type: "guest",
-        content: text,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, fakeMsg]);
+      if (!guestToken) {
+        throw new Error("Missing guestToken");
+      }
+
+      const res = await api.post(
+        `support/guest-conversations/${conversationId}/messages/`,
+        { content: text },
+        { headers: { "X-Guest-Token": guestToken } }
+      );
+
+      const guestMsg = res.data.guest_message as SupportMessage;
+      const botReply = res.data.bot_reply as SupportMessage | null;
+      setMessages((prev) => [...prev, guestMsg, ...(botReply ? [botReply] : [])]);
       setInput("");
     } else {
       alert("الرجاء إكمال خطوات التحقق قبل إرسال الرسائل.");
@@ -345,6 +378,7 @@ const connectWebSocket = (convId: number) => {
     if (isGuest) {
       // حذف بيانات الضيف كي يبدأ من جديد
       localStorage.removeItem(GUEST_STORAGE_KEY);
+      setGuestToken(null);
       setGuestStep("form");
     }
   };

@@ -21,6 +21,7 @@ type GuestProfile = {
   name: string;
   email: string;
   conversation_id?: number;
+  guest_token?: string;
 };
 
 const GUEST_STORAGE_KEY = "cafe_support_guest";
@@ -50,6 +51,7 @@ const SupportChatFloating: React.FC = () => {
 
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
+  const [guestToken, setGuestToken] = useState<string | null>(null);
   const [guestStep, setGuestStep] = useState<"form" | "code" | "chat">("form");
   const [guestRequestId, setGuestRequestId] = useState<number | null>(null);
   const [guestCode, setGuestCode] = useState("");
@@ -70,8 +72,9 @@ const SupportChatFloating: React.FC = () => {
       const data = JSON.parse(raw) as GuestProfile;
       if (data.name) setGuestName(data.name);
       if (data.email) setGuestEmail(data.email);
-      if (data.conversation_id) {
+      if (data.conversation_id && data.guest_token) {
         setConversationId(data.conversation_id);
+        setGuestToken(data.guest_token);
         setGuestStep("chat");
       }
     } catch {
@@ -95,10 +98,13 @@ const SupportChatFloating: React.FC = () => {
     }
   };
 
-  const initForGuestIfHasConversation = async (convId: number) => {
+  const initForGuestIfHasConversation = async (convId: number, token: string) => {
     setLoading(true);
     try {
-      const msgRes = await api.get<SupportMessage[]>(`support/conversations/${convId}/messages/`);
+      const msgRes = await api.get<SupportMessage[]>(
+        `support/guest-conversations/${convId}/messages/`,
+        { headers: { "X-Guest-Token": token } }
+      );
       setMessages(msgRes.data || []);
     } catch {
       // ignore
@@ -109,7 +115,11 @@ const SupportChatFloating: React.FC = () => {
 
   const connectWebSocket = (convId: number) => {
     if (!wsBase) return;
-    const qs = accessToken ? `?token=${accessToken}` : "?guest=1";
+    const qs = accessToken
+      ? `?token=${encodeURIComponent(accessToken)}`
+      : guestToken
+      ? `?guest=1&guest_token=${encodeURIComponent(guestToken)}`
+      : "?guest=1";
     const wsUrl = `${wsBase}/ws/support/${convId}/${qs}`;
     setConnecting(true);
     const ws = new WebSocket(wsUrl);
@@ -152,10 +162,11 @@ const SupportChatFloating: React.FC = () => {
         .then((raw) => {
           if (raw) {
             const stored = JSON.parse(raw) as GuestProfile;
-            if (stored.conversation_id) {
+            if (stored.conversation_id && stored.guest_token) {
               setGuestStep("chat");
               setConversationId(stored.conversation_id);
-              initForGuestIfHasConversation(stored.conversation_id);
+              setGuestToken(stored.guest_token);
+              initForGuestIfHasConversation(stored.conversation_id, stored.guest_token);
               return;
             }
           }
@@ -171,7 +182,7 @@ const SupportChatFloating: React.FC = () => {
     return () => {
       if (wsRef.current) wsRef.current.close();
     };
-  }, [conversationId, open, accessToken, wsBase]);
+  }, [conversationId, open, accessToken, wsBase, guestToken]);
 
   useEffect(() => {
     if (!open) return;
@@ -249,11 +260,17 @@ const SupportChatFloating: React.FC = () => {
       });
       const conv = res.data.conversation;
       const convId = conv.id as number;
+      const token = (res.data.guest_token as string | undefined) || null;
+      if (!token) throw new Error("Missing guest_token");
       setConversationId(convId);
+      setGuestToken(token);
       setGuestStep("chat");
-      const toStore: GuestProfile = { name: guestName.trim(), email: guestEmail.trim(), conversation_id: convId };
+      const toStore: GuestProfile = { name: guestName.trim(), email: guestEmail.trim(), conversation_id: convId, guest_token: token };
       await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(toStore));
-      const msgRes = await api.get<SupportMessage[]>(`support/conversations/${convId}/messages/`);
+      const msgRes = await api.get<SupportMessage[]>(
+        `support/guest-conversations/${convId}/messages/`,
+        { headers: { "X-Guest-Token": token } }
+      );
       setMessages(msgRes.data || []);
     } catch (err: any) {
       setGuestError(err?.response?.data?.detail || "رمز غير صحيح، حاول مرة أخرى.");
@@ -280,14 +297,17 @@ const SupportChatFloating: React.FC = () => {
         setMessages((prev) => [...prev, customerMsg, botReply]);
         setInput("");
       } else if (isGuest && conversationId) {
-        const fakeMsg: SupportMessage = {
-          id: Date.now(),
-          conversation: conversationId,
-          sender_type: "guest",
-          content: text,
-          created_at: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, fakeMsg]);
+        if (!guestToken) throw new Error("Missing guestToken");
+
+        const res = await api.post(
+          `support/guest-conversations/${conversationId}/messages/`,
+          { content: text },
+          { headers: { "X-Guest-Token": guestToken } }
+        );
+
+        const guestMsg = res.data.guest_message as SupportMessage;
+        const botReply = res.data.bot_reply as SupportMessage | null;
+        setMessages((prev) => [...prev, guestMsg, ...(botReply ? [botReply] : [])]);
         setInput("");
       }
     } catch {
@@ -312,6 +332,7 @@ const SupportChatFloating: React.FC = () => {
     setInput("");
     if (isGuest) {
       await AsyncStorage.removeItem(GUEST_STORAGE_KEY);
+      setGuestToken(null);
       setGuestStep("form");
     }
   };

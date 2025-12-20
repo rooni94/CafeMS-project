@@ -1,3 +1,4 @@
+import secrets
 from urllib.parse import parse_qs
 
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -5,6 +6,7 @@ from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
+from apps.accounts.models import RolePermission
 from .models import Conversation, SupportMessage, SupportStaffActivity
 from .serializers import SupportMessageSerializer
 from .bot import generate_bot_reply, should_handover_to_human
@@ -24,14 +26,26 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
         )
         self.group_name = f"support_{self.conversation_id}"
 
-        # نحاول تحديد الضيف من query string (إضافة على الميدل وير)
         qs = parse_qs(self.scope.get("query_string", b"").decode())
-        if "guest" in qs:
-            self.scope["is_guest"] = True
+        is_guest = "guest" in qs
+        guest_token = (qs.get("guest_token") or [None])[0]
+        self.scope["is_guest"] = is_guest
+        self.scope["guest_token"] = guest_token
 
-        # تأكد أن المحادثة موجودة وغير محذوفة
-        exists = await self.conversation_exists()
-        if not exists:
+        user = self.scope.get("user")
+        is_authenticated = bool(
+            user
+            and not isinstance(user, AnonymousUser)
+            and getattr(user, "is_authenticated", False)
+        )
+
+        allowed = await self.can_join_conversation(
+            user=user,
+            is_authenticated=is_authenticated,
+            is_guest=is_guest,
+            guest_token=guest_token,
+        )
+        if not allowed:
             await self.close()
             return
 
@@ -39,10 +53,36 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
         await self.accept()
 
     @database_sync_to_async
-    def conversation_exists(self) -> bool:
-        return Conversation.objects.filter(
-            pk=self.conversation_id, is_deleted=False
-        ).exists()
+    def can_join_conversation(
+        self, user, is_authenticated: bool, is_guest: bool, guest_token: str | None
+    ) -> bool:
+        try:
+            conv = Conversation.objects.get(pk=self.conversation_id, is_deleted=False)
+        except Conversation.DoesNotExist:
+            return False
+
+        if is_guest:
+            if not conv.is_guest:
+                return False
+            if not conv.guest_token or not guest_token:
+                return False
+            return secrets.compare_digest(conv.guest_token, guest_token)
+
+        if not is_authenticated:
+            return False
+
+        role = getattr(user, "role", None)
+        if role == "manager":
+            return True
+
+        if role and RolePermission.objects.filter(
+            role=role, can_manage_support=True
+        ).exists():
+            return True
+
+        return bool(
+            conv.customer_id and conv.customer_id == user.id and not conv.is_guest
+        )
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
@@ -76,8 +116,9 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
         )
 
         # 2) رد البوت فقط لو المرسل عميل/ضيف و البوت غير معطل
-        if sender_type in ("customer", "guest") and is_authenticated:
-            bot_data = await self.create_bot_message(text, user)
+        if sender_type in ("customer", "guest"):
+            bot_user = user if (sender_type == "customer" and is_authenticated) else None
+            bot_data = await self.create_bot_message(text, bot_user)
             if bot_data:
                 await self.channel_layer.group_send(
                     self.group_name,
@@ -159,9 +200,6 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def create_bot_message(self, text: str, user):
-        if not user or not getattr(user, "is_authenticated", False):
-            return None
-
         conv = Conversation.objects.get(pk=self.conversation_id)
 
         # لو المحادثة محذوفة، لا نرد

@@ -9,6 +9,7 @@ from .views import (
     MarkConversationReadView,
     GuestRequestCodeView,
     GuestVerifyCodeView,
+    GuestConversationMessagesView,
     DeleteConversationView,      
     MyCloseConversationView, 
     SupportStaffActivityListView,
@@ -34,4 +35,9 @@ urlpatterns = [
 
     path("guest-request-code/", GuestRequestCodeView.as_view(), name="guest-request-code"),
     path("guest-verify-code/", GuestVerifyCodeView.as_view(), name="guest-verify-code"),
+    path(
+        "guest-conversations/<int:pk>/messages/",
+        GuestConversationMessagesView.as_view(),
+        name="guest-conversation-messages",
+    ),
 ]

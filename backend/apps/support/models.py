@@ -28,6 +28,7 @@ class Conversation(models.Model):
     is_guest = models.BooleanField(default=False)
     guest_name = models.CharField(max_length=100, null=True, blank=True)
     guest_email = models.EmailField(null=True, blank=True)
+    guest_token = models.CharField(max_length=64, null=True, blank=True, db_index=True)
 
     assigned_to = models.ForeignKey(
         User,
