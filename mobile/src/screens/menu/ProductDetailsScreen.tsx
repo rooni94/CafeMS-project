@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
+
 import Screen from "../../components/Screen";
 import LoadingState from "../../components/LoadingState";
 import EmptyState from "../../components/EmptyState";
@@ -12,6 +13,9 @@ import { Product } from "../../types";
 import { useTheme } from "../../theme";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import { Button } from "../../components/ui";
+import { normalizeArabicText } from "../../utils/text";
+import { copy } from "../../config/copy";
 
 const ProductDetailsScreen: React.FC = () => {
   const route = useRoute<RouteProp<AppStackParamList, "ProductDetails">>();
@@ -28,33 +32,37 @@ const ProductDetailsScreen: React.FC = () => {
     },
   });
 
-  const addons = product?.addons || [];
+  const safeProduct = useMemo(() => {
+    if (!product) return null;
+    return {
+      ...product,
+      name: normalizeArabicText(product.name),
+      description: product.description ? normalizeArabicText(product.description) : undefined,
+    };
+  }, [product]);
+
+  const addons = safeProduct?.addons || [];
   const selectedAddons = useMemo(
     () => addons.filter((addon) => selectedIds.includes(addon.id)),
     [addons, selectedIds]
   );
 
-  const basePrice = Number(product?.price || 0) || 0;
-  const addonsTotal = selectedAddons.reduce(
-    (sum, addon) => sum + (Number(addon.price_delta) || 0),
-    0
-  );
+  const basePrice = Number(safeProduct?.price || 0) || 0;
+  const addonsTotal = selectedAddons.reduce((sum, addon) => sum + (Number(addon.price_delta) || 0), 0);
   const unitTotal = basePrice + addonsTotal;
   const total = unitTotal * quantity;
 
   const toggleAddon = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]
-    );
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]));
   };
 
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!safeProduct) return;
     addItem({
-      id: product.id,
-      name: product.name,
+      id: safeProduct.id,
+      name: safeProduct.name,
       price: unitTotal,
-      image: product.image,
+      image: safeProduct.image,
       quantity,
       addons: selectedAddons,
     });
@@ -65,18 +73,15 @@ const ProductDetailsScreen: React.FC = () => {
   if (isLoading) {
     return (
       <Screen scrollable={false}>
-        <LoadingState message="جاري تحميل المنتج..." />
+        <LoadingState message={copy.messages.loading} />
       </Screen>
     );
   }
 
-  if (isError || !product) {
+  if (isError || !safeProduct) {
     return (
       <Screen>
-        <EmptyState
-          title="تعذر تحميل المنتج"
-          description="يرجى المحاولة مرة أخرى لاحقاً."
-        />
+        <EmptyState title="تعذر تحميل المنتج" description="حدث خطأ أثناء تحميل تفاصيل المنتج. حاول مرة أخرى." />
       </Screen>
     );
   }
@@ -84,41 +89,31 @@ const ProductDetailsScreen: React.FC = () => {
   return (
     <Screen contentContainerStyle={styles.container}>
       <View style={styles.card}>
-        {product.image ? (
-          <Image source={{ uri: product.image }} style={styles.image} />
+        {safeProduct.image ? (
+          <Image source={{ uri: safeProduct.image }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imageFallback]}>
-            <Text style={styles.imageFallbackText}>صورة المنتج</Text>
+            <Text style={styles.imageFallbackText}>لا توجد صورة</Text>
           </View>
         )}
 
         <View style={styles.details}>
-          <Text style={styles.title}>{product.name}</Text>
-          {product.description ? (
-            <Text style={styles.description}>{product.description}</Text>
-          ) : null}
+          <Text style={styles.title}>{safeProduct.name}</Text>
+          {safeProduct.description ? <Text style={styles.description}>{safeProduct.description}</Text> : null}
+
           <View style={styles.metaRow}>
-            <Text style={styles.badge}>
-              {product.available ? "متاح" : "غير متاح"}
-            </Text>
+            <Text style={styles.badge}>{safeProduct.available ? "متاح" : "غير متاح"}</Text>
             <View style={styles.basePriceRow}>
-              <Text style={styles.basePriceLabel}>السعر الأساسي:</Text>
-              <CurrencyAmount
-                value={basePrice}
-                color={theme.palette.accent}
-                symbolSize={12}
-                textStyle={styles.basePriceValue}
-              />
+              <Text style={styles.basePriceLabel}>السعر:</Text>
+              <CurrencyAmount value={basePrice} color={theme.palette.accent} symbolSize={12} textStyle={styles.basePriceValue} />
             </View>
           </View>
         </View>
       </View>
 
-      <View style={styles.section}>
-        {addons.length > 0 ? <Text style={styles.sectionTitle}>إضافات</Text> : null}
-        {addons.length === 0 ? (
-          <Text style={styles.helperText}>لا توجد إضافات لهذا المنتج.</Text>
-        ) : (
+      {addons.length > 0 ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>إضافات</Text>
           <View style={styles.addonList}>
             {addons.map((addon) => {
               const checked = selectedIds.includes(addon.id);
@@ -138,35 +133,25 @@ const ProductDetailsScreen: React.FC = () => {
                         checked && { backgroundColor: theme.palette.accent, borderColor: theme.palette.accent },
                       ]}
                     >
-                      {checked ? (
-                        <Ionicons name="checkmark" size={14} color="#fff" />
-                      ) : null}
+                      {checked ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
                     </View>
                     <Text style={styles.addonName}>{addon.name}</Text>
                   </View>
                   <View style={styles.addonPriceRow}>
                     <Text style={styles.addonPrice}>+</Text>
-                    <CurrencyAmount
-                      value={Number(addon.price_delta || 0)}
-                      color={theme.palette.accent}
-                      symbolSize={12}
-                      textStyle={styles.addonPrice}
-                    />
+                    <CurrencyAmount value={Number(addon.price_delta || 0)} color={theme.palette.accent} symbolSize={12} textStyle={styles.addonPrice} />
                   </View>
                 </Pressable>
               );
             })}
           </View>
-        )}
-      </View>
+        </View>
+      ) : null}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>الكمية</Text>
         <View style={styles.quantityRow}>
-          <Pressable
-            onPress={() => setQuantity((q) => Math.max(1, q - 1))}
-            style={styles.qtyButton}
-          >
+          <Pressable onPress={() => setQuantity((q) => Math.max(1, q - 1))} style={styles.qtyButton}>
             <Text style={styles.qtyButtonText}>-</Text>
           </Pressable>
           <Text style={styles.qtyValue}>{quantity}</Text>
@@ -177,26 +162,24 @@ const ProductDetailsScreen: React.FC = () => {
       </View>
 
       <View style={styles.summary}>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>إجمالي إضافات</Text>
-          <CurrencyAmount value={addonsTotal} symbolSize={12} color={theme.palette.text} textStyle={styles.summaryValue} />
-        </View>
+        {addons.length > 0 ? (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>إجمالي الإضافات</Text>
+            <CurrencyAmount value={addonsTotal} symbolSize={12} color={theme.palette.text} textStyle={styles.summaryValue} />
+          </View>
+        ) : null}
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>الإجمالي</Text>
           <CurrencyAmount value={total} symbolSize={14} color={theme.palette.accent} textStyle={styles.summaryTotal} />
         </View>
       </View>
 
-      <Pressable
+      <Button
+        title="إضافة إلى السلة"
         onPress={handleAddToCart}
-        disabled={!product.available}
-        style={[
-          styles.addToCart,
-          !product.available && { opacity: 0.6 },
-        ]}
-      >
-        <Text style={styles.addToCartText}>أضف إلى السلة</Text>
-      </Pressable>
+        disabled={!safeProduct.available}
+        style={styles.addToCart}
+      />
     </Screen>
   );
 };
@@ -206,7 +189,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     container: {
       paddingHorizontal: 12,
       paddingVertical: 16,
-      gap: 16,
+      gap: 12,
     },
     card: {
       borderRadius: 24,
@@ -227,6 +210,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     imageFallbackText: {
       color: theme.palette.muted,
       fontSize: 12,
+      writingDirection: "rtl",
     },
     details: {
       padding: 14,
@@ -237,16 +221,19 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontWeight: "800",
       textAlign: "right",
       color: theme.palette.text,
+      writingDirection: "rtl",
     },
     description: {
       fontSize: 13,
       color: theme.palette.muted,
       textAlign: "right",
+      writingDirection: "rtl",
     },
     metaRow: {
       flexDirection: "row-reverse",
       alignItems: "center",
       justifyContent: "space-between",
+      gap: 10,
     },
     badge: {
       paddingHorizontal: 10,
@@ -255,11 +242,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: theme.palette.surfaceAlt,
       color: theme.palette.text,
       fontSize: 11,
-    },
-    basePrice: {
-      fontSize: 12,
-      fontWeight: "700",
-      color: theme.palette.accent,
+      writingDirection: "rtl",
     },
     basePriceRow: {
       flexDirection: "row-reverse",
@@ -270,6 +253,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "700",
       color: theme.palette.accent,
+      writingDirection: "rtl",
     },
     basePriceValue: {
       fontSize: 12,
@@ -286,14 +270,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     sectionTitle: {
       fontSize: 15,
-      fontWeight: "700",
+      fontWeight: "800",
       textAlign: "right",
       color: theme.palette.text,
-    },
-    helperText: {
-      fontSize: 12,
-      color: theme.palette.muted,
-      textAlign: "right",
+      writingDirection: "rtl",
     },
     addonList: {
       gap: 10,
@@ -306,11 +286,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       flexDirection: "row-reverse",
       alignItems: "center",
       justifyContent: "space-between",
+      gap: 10,
     },
     addonLabel: {
       flexDirection: "row-reverse",
       alignItems: "center",
       gap: 8,
+      flex: 1,
     },
     checkbox: {
       width: 20,
@@ -325,6 +307,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     addonName: {
       fontSize: 13,
       color: theme.palette.text,
+      textAlign: "right",
+      flex: 1,
+      writingDirection: "rtl",
     },
     addonPrice: {
       fontSize: 12,
@@ -353,12 +338,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     qtyButtonText: {
       fontSize: 16,
-      fontWeight: "700",
+      fontWeight: "800",
       color: theme.palette.text,
     },
     qtyValue: {
       fontSize: 16,
-      fontWeight: "700",
+      fontWeight: "800",
       color: theme.palette.text,
     },
     summary: {
@@ -373,10 +358,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       flexDirection: "row-reverse",
       alignItems: "center",
       justifyContent: "space-between",
+      gap: 10,
     },
     summaryLabel: {
       fontSize: 12,
       color: theme.palette.muted,
+      writingDirection: "rtl",
     },
     summaryValue: {
       fontSize: 12,
@@ -385,20 +372,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     summaryTotal: {
       fontSize: 16,
-      fontWeight: "800",
+      fontWeight: "900",
       color: theme.palette.accent,
     },
     addToCart: {
-      backgroundColor: theme.palette.accent,
-      borderRadius: 24,
-      paddingVertical: 14,
-      alignItems: "center",
-    },
-    addToCartText: {
-      color: "#fff",
-      fontSize: 15,
-      fontWeight: "700",
+      marginTop: 4,
     },
   });
 
 export default ProductDetailsScreen;
+

@@ -1,11 +1,14 @@
-import React from "react";
-import { Text, StyleSheet } from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { Card } from "../../components/ui";
-import { useTheme } from "../../theme";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
-import StatBadge from "./components/StatBadge";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import StatBadge from "./components/StatBadge";
+import { has, hasAny } from "./components/permissions";
 
 type OrderStats = {
   total_orders?: number;
@@ -22,9 +25,25 @@ type HRStats = {
 
 const DashboardReports: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { user, permissions } = useAuth();
+
+  const allowed = has(user, permissions, "can_view_dashboard");
+  const canHR = hasAny(user, permissions, [
+    "can_view_hr_dashboard",
+    "can_manage_employees",
+    "can_manage_attendance",
+    "can_manage_hr_leaves",
+    "can_manage_hr_payroll",
+    "can_manage_hr_documents",
+    "can_manage_hr_reports",
+    "can_manage_hr_work_reports",
+    "can_view_hr_performance",
+  ]);
 
   const { data: orderStats } = useQuery<OrderStats>({
-    queryKey: ["dashboard-stats"],
+    queryKey: ["dashboard", "orders-stats"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("orders/dashboard-stats/");
       return res.data;
@@ -32,56 +51,49 @@ const DashboardReports: React.FC = () => {
   });
 
   const { data: hrStats } = useQuery<HRStats>({
-    queryKey: ["hr-dashboard-stats"],
+    queryKey: ["dashboard", "hr-stats"],
+    enabled: canHR,
     queryFn: async () => {
       const res = await api.get("hr/dashboard/stats/");
       return res.data;
     },
   });
 
+  if (!allowed) {
+    return <DashboardAccessDenied title="التقارير" subtitle="ملخصات سريعة للطلبات والموارد البشرية." />;
+  }
+
   return (
-    <DashboardShell title="التقارير" subtitle="ملخصات الطلبات والإيرادات ومؤشرات الموارد البشرية.">
-        <Card>
-          <Text style={styles.title}>تقارير سريعة</Text>
-          <Text style={styles.helper}>أرقام موجزة للطلبات والموارد البشرية.</Text>
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>الطلبات</Text>
-          <StatBadge label="إجمالي الطلبات" value={orderStats?.total_orders ?? "-"} />
-          <StatBadge label="مكتملة" value={orderStats?.completed_orders ?? "-"} color="#16a34a" />
-          <StatBadge label="قيد الانتظار" value={orderStats?.pending_orders ?? "-"} color="#f59e0b" />
+    <DashboardShell title="التقارير" subtitle="ملخصات سريعة للطلبات والموارد البشرية.">
+      <DashboardSection title="الطلبات" subtitle="مؤشرات عامة عن الطلبات والإيراد.">
+        <View style={styles.row}>
+          <StatBadge label="كل الطلبات" value={orderStats?.total_orders ?? "-"} color={theme.palette.accentSoft} />
+          <StatBadge label="مكتمل" value={orderStats?.completed_orders ?? "-"} color={theme.palette.success} />
+          <StatBadge label="قيد الانتظار" value={orderStats?.pending_orders ?? "-"} color={theme.palette.accent} />
+        </View>
+        <View style={styles.row}>
           <StatBadge label="الإيراد" value={orderStats?.revenue ?? "-"} color="#0ea5e9" />
-        </Card>
+        </View>
+      </DashboardSection>
 
-        <Card>
-          <Text style={styles.sectionTitle}>الموارد البشرية</Text>
-          <StatBadge label="عدد الموظفين" value={hrStats?.employees ?? "-"} />
-          <StatBadge label="إجازات نشطة" value={hrStats?.active_leaves ?? "-"} color="#f59e0b" />
-          <StatBadge label="تنبيهات" value={hrStats?.alerts ?? "-"} color="#ef4444" />
-        </Card>
+      <DashboardSection title="الموارد البشرية" subtitle="ملخص HR (إن كان مفعّلًا لديك).">
+        <View style={styles.row}>
+          <StatBadge label="الموظفون" value={hrStats?.employees ?? "-"} color={theme.palette.accentSoft} />
+          <StatBadge label="إجازات نشطة" value={hrStats?.active_leaves ?? "-"} color={theme.palette.accent} />
+          <StatBadge label="تنبيهات" value={hrStats?.alerts ?? "-"} color={theme.palette.danger} />
+        </View>
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row-reverse",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+  });
 
 export default DashboardReports;

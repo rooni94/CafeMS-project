@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Image, ToastAndroid, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList, ToastAndroid, Platform } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
+
 import Screen from "../../components/Screen";
 import EmptyState from "../../components/EmptyState";
 import LoadingState from "../../components/LoadingState";
@@ -15,9 +16,9 @@ import { normalizeArabicText } from "../../utils/text";
 import FloatingCart from "../../components/FloatingCart";
 import { useTheme } from "../../theme";
 import ProductAddonsModal from "../../components/ProductAddonsModal";
-import CurrencyAmount from "../../components/CurrencyAmount";
 import ProductGridCard from "../../components/ProductGridCard";
 import { Card } from "../../components/ui";
+import { safeGoBack } from "../../navigation/helpers";
 
 type MenuCategory = {
   id: number;
@@ -31,6 +32,7 @@ const MenuScreen: React.FC = () => {
   const { addItem } = useCart();
   const theme = useTheme();
   const initialCategory: number | null = route.params?.categoryId ?? null;
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const [activeCategory, setActiveCategory] = useState<number | null>(initialCategory);
   const [search, setSearch] = useState("");
@@ -70,13 +72,15 @@ const MenuScreen: React.FC = () => {
     return categories.map((category, index) => ({
       id: category.id,
       name: normalizeArabicText(category.name),
-      image: resolveMediaUrl(category.image) || copy.categoryFallbacks[index % copy.categoryFallbacks.length].image,
+      image:
+        resolveMediaUrl(category.image) ||
+        copy.categoryFallbacks[index % copy.categoryFallbacks.length].image,
     }));
   }, [categories]);
 
   const activeCategoryName = useMemo(() => {
-    if (activeCategory == null) return "القائمة";
-    return decoratedCategories.find((cat) => cat.id === activeCategory)?.name || "القائمة";
+    if (activeCategory == null) return copy.menu.allCategories;
+    return decoratedCategories.find((cat) => cat.id === activeCategory)?.name || copy.menu.allCategories;
   }, [activeCategory, decoratedCategories]);
 
   const filteredProducts = useMemo(() => {
@@ -91,11 +95,19 @@ const MenuScreen: React.FC = () => {
       .filter((product) => {
         const matchesCategory =
           activeCategory == null ||
-          (typeof product.category === "number" ? product.category === activeCategory : product.category?.id === activeCategory);
+          (typeof product.category === "number"
+            ? product.category === activeCategory
+            : product.category?.id === activeCategory);
         const matchesSearch = normalizedSearch ? product.name.toLowerCase().includes(normalizedSearch) : true;
         return matchesCategory && matchesSearch;
       });
   }, [products, activeCategory, search]);
+
+  const toastAdded = () => {
+    if (Platform.OS === "android") {
+      ToastAndroid.show("تمت إضافة المنتج إلى السلة", ToastAndroid.SHORT);
+    }
+  };
 
   const handleAddRequest = (product: Product) => {
     if (product.addons && product.addons.length > 0) {
@@ -109,17 +121,12 @@ const MenuScreen: React.FC = () => {
       quantity: 1,
       image: product.image,
     });
-    if (Platform.OS === "android") {
-      ToastAndroid.show("تمت إضافة المنتج إلى السلة", ToastAndroid.SHORT);
-    }
+    toastAdded();
   };
 
   const handleConfirmAddons = (addons: ProductAddon[]) => {
     if (!addonProduct) return;
-    const addonsTotal = addons.reduce(
-      (sum, addon) => sum + (Number(addon.price_delta) || 0),
-      0
-    );
+    const addonsTotal = addons.reduce((sum, addon) => sum + (Number(addon.price_delta) || 0), 0);
     addItem({
       id: addonProduct.id,
       name: addonProduct.name,
@@ -129,9 +136,7 @@ const MenuScreen: React.FC = () => {
       addons,
     });
     setAddonProduct(null);
-    if (Platform.OS === "android") {
-      ToastAndroid.show("تمت إضافة المنتج إلى السلة", ToastAndroid.SHORT);
-    }
+    toastAdded();
   };
 
   if (categoriesLoading || productsLoading) {
@@ -142,25 +147,23 @@ const MenuScreen: React.FC = () => {
     );
   }
 
-  const styles = useMemo(() => createStyles(theme), [theme]);
-
   return (
     <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
         <View style={styles.topBar}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn}>
-            <Ionicons name="chevron-forward" size={20} color={theme.palette.text} />
-          </Pressable>
-          <Text style={styles.title}>{activeCategoryName}</Text>
           <Pressable onPress={() => setShowSearch((prev) => !prev)} style={styles.iconBtn}>
             <Ionicons name="search" size={20} color={theme.palette.text} />
+          </Pressable>
+          <Text style={styles.title}>{activeCategoryName}</Text>
+          <Pressable onPress={() => safeGoBack(navigation, { tab: "Home" })} style={styles.iconBtn}>
+            <Ionicons name="chevron-forward" size={20} color={theme.palette.text} />
           </Pressable>
         </View>
 
         {showSearch && (
           <View style={styles.searchWrap}>
             <TextInput
-              placeholder="ابحث عن منتج..."
+              placeholder={copy.menu.searchPlaceholder}
               value={search}
               onChangeText={setSearch}
               style={styles.searchInput}
@@ -172,7 +175,7 @@ const MenuScreen: React.FC = () => {
         <Card style={styles.sectionCard}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
             <Pressable onPress={() => setActiveCategory(null)} style={styles.categoryPill}>
-              <Text style={[styles.categoryText, activeCategory == null && styles.categoryTextActive]}>الكل</Text>
+              <Text style={[styles.categoryText, activeCategory == null && styles.categoryTextActive]}>{copy.menu.filterAll}</Text>
             </Pressable>
             {decoratedCategories.map((cat) => {
               const isActive = activeCategory === cat.id;
@@ -189,25 +192,29 @@ const MenuScreen: React.FC = () => {
           <EmptyState title={copy.menu.emptyTitle} description={copy.menu.emptyDescription} />
         ) : (
           <Card style={styles.sectionCard}>
-            <View style={styles.grid}>
-              {filteredProducts.map((product) => (
-                <ProductGridCard
-                  key={product.id}
-                  product={product}
-                  style={styles.productCard}
-                  onPress={() =>
-                    navigation.navigate("ProductDetails", {
-                      productId: product.id,
-                    })
-                  }
-                  onAdd={() => handleAddRequest(product)}
-                  priceColor={theme.palette.success}
-                />
-              ))}
-            </View>
+            <FlatList
+              data={filteredProducts}
+              keyExtractor={(item) => String(item.id)}
+              numColumns={2}
+              scrollEnabled={false}
+              contentContainerStyle={styles.gridList}
+              columnWrapperStyle={styles.gridRow}
+              renderItem={({ item: product }) => (
+                <View style={styles.gridItem}>
+                  <ProductGridCard
+                    product={product}
+                    style={styles.productCard}
+                    onPress={() => navigation.navigate("ProductDetails", { productId: product.id })}
+                    onAdd={() => handleAddRequest(product)}
+                    priceColor={theme.palette.success}
+                  />
+                </View>
+              )}
+            />
           </Card>
         )}
       </ScrollView>
+
       <ProductAddonsModal
         visible={!!addonProduct}
         product={addonProduct}
@@ -221,13 +228,17 @@ const MenuScreen: React.FC = () => {
 
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
+    container: {
+      paddingHorizontal: 4,
+      paddingTop: 6,
+      paddingBottom: 120,
+      gap: 6,
+    },
     topBar: {
       flexDirection: "row-reverse",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: 12,
-      paddingTop: 6,
-      marginBottom: 12,
+      marginBottom: 2,
     },
     title: {
       fontSize: 20,
@@ -235,6 +246,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.palette.text,
       textAlign: "center",
       flex: 1,
+      writingDirection: "rtl",
     },
     iconBtn: {
       width: 40,
@@ -244,8 +256,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "center",
     },
     searchWrap: {
-      paddingHorizontal: 12,
-      marginBottom: 10,
+      marginBottom: 2,
     },
     searchInput: {
       backgroundColor: theme.palette.surface,
@@ -255,11 +266,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderWidth: 1,
       borderColor: theme.palette.border,
       color: theme.palette.text,
+      writingDirection: "rtl",
     },
     categoryRow: {
       flexDirection: "row-reverse",
-      gap: 16,
-      paddingHorizontal: 6,
+      gap: 12,
+      paddingHorizontal: 2,
     },
     categoryPill: {
       paddingVertical: 6,
@@ -268,23 +280,25 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.palette.muted,
       fontWeight: "700",
       fontSize: 14,
+      writingDirection: "rtl",
     },
     categoryTextActive: {
       color: theme.palette.text,
     },
-    grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
+    gridList: {
+      paddingTop: 4,
+      paddingBottom: 4,
+    },
+    gridRow: {
+      flexDirection: "row-reverse",
       justifyContent: "space-between",
-      width: "100%",
-      alignSelf: "stretch",
+      marginBottom: 4,
     },
-    productCard: {
-      width: "48%",
-      marginBottom: 12,
+    gridItem: {
+      width: "49.5%",
     },
+    productCard: {},
     sectionCard: {
-      padding: 12,
       borderRadius: 22,
       borderColor: theme.palette.border,
       backgroundColor: theme.palette.surface,
@@ -292,3 +306,4 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default MenuScreen;
+

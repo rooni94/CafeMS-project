@@ -1,10 +1,14 @@
-import React from "react";
-import { Text, StyleSheet, View } from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { Card } from "../../components/ui";
-import { useTheme } from "../../theme";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import { has } from "./components/permissions";
 
 type ActivityRow = {
   id: number;
@@ -16,79 +20,51 @@ type ActivityRow = {
 
 const DashboardActivity: React.FC = () => {
   const theme = useTheme();
-  const { data: activities } = useQuery<ActivityRow[]>({
-    queryKey: ["order-activity"],
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { user, permissions } = useAuth();
+  const allowed = has(user, permissions, "can_view_activity_log");
+
+  const { data: activities = [], isLoading } = useQuery<ActivityRow[]>({
+    queryKey: ["dashboard", "orders-activity"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("orders/activity-log/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
-  return (
-    <DashboardShell title="لوحة النشاط" subtitle="آخر العمليات والأحداث في النظام.">
-        <Card>
-          <Text style={styles.title}>سجل نشاط الطلبات</Text>
-          <Text style={styles.helper}>أحدث العمليات التي تمت على الطلبات.</Text>
-        </Card>
+  if (!allowed) {
+    return <DashboardAccessDenied title="سجل الطلبات" subtitle="متابعة آخر الأحداث المرتبطة بالطلبات." />;
+  }
 
-        <Card>
-          <Text style={styles.sectionTitle}>النشاط</Text>
-          {activities && activities.length > 0 ? (
-            <View style={{ marginTop: 8, gap: 10 }}>
-              {activities.slice(0, 20).map((a) => (
-                <View key={a.id} style={styles.row}>
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <Text style={styles.action}>{a.action || "إجراء"}</Text>
-                    <Text style={styles.sub}>
-                      {a.order ? `طلب #${a.order}` : "—"} ? {new Date(a.created_at).toLocaleString()}
-                    </Text>
-                    {a.notes ? <Text style={styles.sub}>{a.notes}</Text> : null}
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.helper}>لا يوجد نشاط حتى الآن.</Text>
-          )}
-        </Card>
+  return (
+    <DashboardShell title="سجل الطلبات" subtitle="متابعة آخر الأحداث المرتبطة بالطلبات.">
+      <DashboardSection title="الأنشطة" subtitle={isLoading ? "جاري التحميل..." : "آخر 50 نشاطاً."}>
+        {activities.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا يوجد نشاط.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {activities.slice(0, 50).map((a) => (
+              <DashboardListItem
+                key={a.id}
+                title={a.action?.trim() ? a.action : "نشاط"}
+                subtitle={`${a.order ? `طلب #${a.order}` : "—"} • ${new Date(a.created_at).toLocaleString()}${a.notes ? ` • ${a.notes}` : ""}`}
+                icon="time-outline"
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  action: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  sub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+  });
 
 export default DashboardActivity;

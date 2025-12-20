@@ -1,3 +1,4 @@
+# backend/apps/support/views.py
 from django.utils import timezone
 from django.db import transaction
 from django.utils.crypto import get_random_string
@@ -46,11 +47,17 @@ class MyConversationView(views.APIView):
         if not conv:
             with transaction.atomic():
                 conv = Conversation.objects.create(customer=user, is_guest=False)
+                # 👇 ترحيب باللهجة السعودية
                 SupportMessage.objects.create(
                     conversation=conv,
                     sender=None,
                     sender_type="bot",
-                    content="مرحباً 👋 كيف نقدر نساعدك اليوم؟ اكتب سؤالك وسنرد عليك بأقرب وقت.",
+                    content=(
+                        "هلا وسهلا فيك 👋\n"
+                        "معك دعم CafeMS Demo.\n"
+                        "اكتب مشكلتك أو استفسارك (عن طلب، منيو، أوقات العمل، أو مشكلة في التطبيق)\n"
+                        "وبنحاول نساعدك بأسرع وقت ممكن 🤍"
+                    ),
                     is_read_by_customer=True,
                 )
                 created = True
@@ -117,9 +124,9 @@ class MyMessagesView(views.APIView):
                 conv.bot_disabled = True
                 conv.save(update_fields=["bot_disabled"])
                 auto_text = (
-                    "شكرًا لتواصلك 🤍\n"
-                    "تم الآن تحويل محادثتك لأحد موظفي الدعم البشري.\n"
-                    "قد يستغرق الرد بضع لحظات حسب ضغط المحادثات، نشكر لك صبرك 🌿"
+                    "شكرًا لتواصلك معنا 🤍\n"
+                    "حولّنا محادثتك الحين لأحد موظفي الدعم.\n"
+                    "الرد ممكن يتأخر شوي على حسب ضغط الطلبات، بس بنرجع لك بأقرب وقت ممكن 🌿"
                 )
             else:
                 auto_text = None
@@ -394,12 +401,16 @@ class GuestVerifyCodeView(APIView):
                 guest_email=obj.email,
                 is_guest=True,
             )
-            # رسالة ترحيبية
+            # رسالة ترحيبية للضيف باللهجة
             SupportMessage.objects.create(
                 conversation=conv,
                 sender=None,
                 sender_type="bot",
-                content="مرحباً 👋 تم توثيق بريدك، يمكنك الآن بدء الدردشة مع الدعم.",
+                content=(
+                    "هلا فيك 👋\n"
+                    "تم توثيق بريدك بنجاح.\n"
+                    "اكتب مشكلتك أو استفسارك هنا، وبنرد عليك بأسرع وقت 🌿"
+                ),
                 is_read_by_customer=True,
                 is_read_by_support=False,
             )

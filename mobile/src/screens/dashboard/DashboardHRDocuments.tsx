@@ -1,10 +1,15 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, Button } from "../../components/ui";
-import { useTheme } from "../../theme";
+import { Button, Input } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import { hasAny } from "./components/permissions";
 
 type HRDocument = {
   id: number;
@@ -18,124 +23,93 @@ type HRDocument = {
 
 const DashboardHRDocuments: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
+  const { user, permissions } = useAuth();
+
+  const allowed = hasAny(user, permissions, ["can_view_hr_dashboard", "can_manage_hr_documents"]);
+
   const [name, setName] = useState("");
   const [docType, setDocType] = useState("");
   const [issueDate, setIssueDate] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const { data: docs } = useQuery<HRDocument[]>({
-    queryKey: ["hr-documents"],
+  const { data: docs = [], isLoading } = useQuery<HRDocument[]>({
+    queryKey: ["dashboard", "hr-documents"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("hr/my/documents/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
-  const uploadDoc = async () => {
+  const createDoc = async () => {
     if (!name.trim()) {
-      Alert.alert("تنبيه", "أدخل اسم المستند.");
+      Alert.alert("بيانات ناقصة", "أدخل اسم الوثيقة.");
       return;
     }
+    setSaving(true);
     try {
       await api.post("hr/my/documents/", {
         name: name.trim(),
-        doc_type: docType || undefined,
-        issue_date: issueDate || undefined,
-        expiry_date: expiryDate || undefined,
+        doc_type: docType.trim() || undefined,
+        issue_date: issueDate.trim() || undefined,
+        expiry_date: expiryDate.trim() || undefined,
       });
-      qc.invalidateQueries({ queryKey: ["hr-documents"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "hr-documents"] });
       setName("");
       setDocType("");
       setIssueDate("");
       setExpiryDate("");
-      Alert.alert("تم", "تم رفع المستند (بدون ملف).");
+      Alert.alert("تم الإرسال", "تم إرسال الوثيقة (قد تحتاج مراجعة).");
     } catch {
-      Alert.alert("خطأ", "تعذر رفع المستند.");
+      Alert.alert("تعذر الإرسال", "حدث خطأ أثناء إرسال الوثيقة.");
+    } finally {
+      setSaving(false);
     }
   };
 
+  if (!allowed) {
+    return <DashboardAccessDenied title="وثائق الموارد البشرية" subtitle="رفع الوثائق ومتابعة حالتها." />;
+  }
+
   return (
-    <DashboardShell title="مستندات الموارد البشرية" subtitle="إضافة مستندات ومتابعة حالات الانتهاء والتنبيه.">
-        <Card>
-          <Text style={styles.title}>مستنداتي</Text>
-          <Text style={styles.helper}>رفع مستندات الموارد البشرية (اسم، نوع، تواريخ).</Text>
-        </Card>
+    <DashboardShell title="وثائق الموارد البشرية" subtitle="رفع الوثائق ومتابعة حالتها.">
+      <DashboardSection title="رفع وثيقة" subtitle="أدخل البيانات ثم إرسال.">
+        <Input label="اسم الوثيقة" value={name} onChangeText={setName} />
+        <Input label="نوع الوثيقة (اختياري)" value={docType} onChangeText={setDocType} />
+        <Input label="تاريخ الإصدار (YYYY-MM-DD)" value={issueDate} onChangeText={setIssueDate} />
+        <Input label="تاريخ الانتهاء (YYYY-MM-DD)" value={expiryDate} onChangeText={setExpiryDate} />
+        <Button title={saving ? "جارٍ الإرسال..." : "إرسال"} onPress={createDoc} disabled={saving} />
+      </DashboardSection>
 
-        <Card style={{ gap: 8 }}>
-          <Text style={styles.sectionTitle}>رفع مستند</Text>
-          <TextInput placeholder="اسم المستند" value={name} onChangeText={setName} style={styles.input} textAlign="right" />
-          <TextInput placeholder="نوع المستند" value={docType} onChangeText={setDocType} style={styles.input} textAlign="right" />
-          <TextInput placeholder="تاريخ الإصدار (YYYY-MM-DD)" value={issueDate} onChangeText={setIssueDate} style={styles.input} textAlign="right" />
-          <TextInput placeholder="تاريخ الانتهاء (YYYY-MM-DD)" value={expiryDate} onChangeText={setExpiryDate} style={styles.input} textAlign="right" />
-          <Button title="رفع المستند" onPress={uploadDoc} />
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>قائمة المستندات</Text>
-          {docs && docs.length > 0 ? (
-            <View style={{ marginTop: 8, gap: 10 }}>
-              {docs.map((d) => (
-                <View key={d.id} style={styles.row}>
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <Text style={styles.name}>{d.name}</Text>
-                    <Text style={styles.sub}>النوع: {d.doc_type || "-"}</Text>
-                    <Text style={styles.sub}>الإصدار: {d.issue_date || "-"}</Text>
-                    <Text style={styles.sub}>الانتهاء: {d.expiry_date || "-"}</Text>
-                    <Text style={styles.sub}>الحالة: {d.status || "-"}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.helper}>لا يوجد مستندات.</Text>
-          )}
-        </Card>
+      <DashboardSection title="وثائقي" subtitle={isLoading ? "جاري التحميل..." : "آخر الوثائق."}>
+        {docs.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد وثائق.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {docs.slice(0, 50).map((d) => (
+              <DashboardListItem
+                key={d.id}
+                title={d.name}
+                subtitle={`النوع: ${d.doc_type || "-"} • الإصدار: ${d.issue_date || "-"} • الانتهاء: ${d.expiry_date || "-"} • الحالة: ${d.status || "-"}`}
+                icon="document-text-outline"
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    padding: 10,
-    textAlign: "right",
-  },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  sub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+  });
 
 export default DashboardHRDocuments;

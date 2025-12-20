@@ -23,6 +23,8 @@ const Button: React.FC<ButtonProps> = ({
   style,
   color,
   textColor,
+  contentStyle,
+  labelStyle,
   ...rest
 }) => {
   const theme = useTheme();
@@ -45,11 +47,12 @@ const Button: React.FC<ButtonProps> = ({
       loading={loading}
       buttonColor={buttonColor}
       textColor={finalTextColor}
-      contentStyle={styles.content}
+      contentStyle={[styles.content, contentStyle]}
       style={[styles.button, style]}
       labelStyle={[
         styles.label,
         finalTextColor ? { color: finalTextColor } : undefined,
+        labelStyle,
       ]}
       uppercase={false}
       {...rest}
@@ -64,11 +67,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   content: {
-    paddingVertical: 10,
+    paddingVertical: 14,
   },
   label: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "900",
+    textAlign: "center",
+    writingDirection: "rtl",
   },
 });
 

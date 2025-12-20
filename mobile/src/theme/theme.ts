@@ -64,11 +64,11 @@ const rolePalettes: Record<
   AppRole,
   { primary: string; secondary: string; brandDark?: string }
 > = {
-  customer: { primary: "#f59e0b", secondary: "#6138A1", brandDark: "#111827" },
-  cashier: { primary: "#f59e0b", secondary: "#6138A1", brandDark: "#111827" },
-  driver: { primary: "#f59e0b", secondary: "#6138A1", brandDark: "#111827" },
-  manager: { primary: "#f59e0b", secondary: "#6138A1", brandDark: "#111827" },
-  hr: { primary: "#f59e0b", secondary: "#6138A1", brandDark: "#111827" },
+  customer: { primary: "#6138A1", secondary: "#f59e0b", brandDark: "#111827" },
+  cashier: { primary: "#6138A1", secondary: "#f59e0b", brandDark: "#111827" },
+  driver: { primary: "#6138A1", secondary: "#f59e0b", brandDark: "#111827" },
+  manager: { primary: "#6138A1", secondary: "#f59e0b", brandDark: "#111827" },
+  hr: { primary: "#6138A1", secondary: "#f59e0b", brandDark: "#111827" },
 };
 
 const baseStatus = {
@@ -107,7 +107,7 @@ export const createRoleTheme = (role: AppRole = "customer"): RoleTheme => {
   const palette = {
     ...basePalette,
     accent: roleColors.primary,
-    accentSoft: roleColors.secondary,
+    accentSoft: roleColors.primary,
     brandDark: roleColors.brandDark || basePalette.brandDark,
   };
 

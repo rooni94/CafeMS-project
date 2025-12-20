@@ -1,18 +1,19 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
+
 import Screen from "../../components/Screen";
 import DishCard from "../../components/DishCard";
 import EmptyState from "../../components/EmptyState";
 import LoadingState from "../../components/LoadingState";
+import ProductAddonsModal from "../../components/ProductAddonsModal";
 import { Button, Card, Input } from "../../components/ui";
 import { useCart } from "../../context/CartContext";
 import { api } from "../../services/api";
 import { Product, ProductAddon } from "../../types";
-import { useNavigation } from "@react-navigation/native";
 import { copy } from "../../config/copy";
 import { normalizeArabicText } from "../../utils/text";
-import ProductAddonsModal from "../../components/ProductAddonsModal";
 
 const ProductsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -36,15 +37,11 @@ const ProductsScreen: React.FC = () => {
     const safeList = products.map((product) => ({
       ...product,
       name: normalizeArabicText(product.name),
-      description: product.description
-        ? normalizeArabicText(product.description)
-        : undefined,
+      description: product.description ? normalizeArabicText(product.description) : undefined,
     }));
     const query = search.trim().toLowerCase();
     if (!query) return safeList;
-    return safeList.filter((product) =>
-      product.name.toLowerCase().includes(query)
-    );
+    return safeList.filter((product) => product.name.toLowerCase().includes(query));
   }, [products, search]);
 
   const handleAddRequest = (product: Product) => {
@@ -63,10 +60,7 @@ const ProductsScreen: React.FC = () => {
 
   const handleConfirmAddons = (addons: ProductAddon[]) => {
     if (!addonProduct) return;
-    const addonsTotal = addons.reduce(
-      (sum, addon) => sum + (Number(addon.price_delta) || 0),
-      0
-    );
+    const addonsTotal = addons.reduce((sum, addon) => sum + (Number(addon.price_delta) || 0), 0);
     addItem({
       id: addonProduct.id,
       name: addonProduct.name,
@@ -89,10 +83,7 @@ const ProductsScreen: React.FC = () => {
   if (isError) {
     return (
       <Screen>
-        <EmptyState
-          title="تعذر تحميل القائمة"
-          description="الرجاء المحاولة مجدداً أو العودة لاحقاً."
-        />
+        <EmptyState title="تعذر تحميل المنتجات" description="حدث خطأ أثناء تحميل المنتجات. حاول مرة أخرى لاحقاً." />
       </Screen>
     );
   }
@@ -100,31 +91,20 @@ const ProductsScreen: React.FC = () => {
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>جميع الأصناف</Text>
+        <Text style={styles.title}>تصفّح المنتجات</Text>
         <Text style={styles.body}>
-          هنا تجد ما هو متاح في فروع CafeMS Demo بتفاصيل الصور والأسعار.
+          ابحث عن المنتج وأضفه للسلة بسرعة. إذا كان للمنتج إضافات ستظهر لك نافذة لاختيارها قبل الإضافة.
         </Text>
-        <Input
-          placeholder={copy.menu.searchPlaceholder}
-          value={search}
-          onChangeText={setSearch}
-        />
+        <Input placeholder={copy.menu.searchPlaceholder} value={search} onChangeText={setSearch} />
         <Button
-          title={
-            totalQuantity > 0
-              ? `إتمام الطلب (${totalQuantity})`
-              : copy.menu.cartCtaEmpty
-          }
+          title={totalQuantity > 0 ? `اذهب إلى السلة (${totalQuantity})` : "اذهب إلى السلة"}
           variant="secondary"
           onPress={() => navigation.navigate("Cart")}
         />
       </Card>
 
       {filteredProducts.length === 0 ? (
-        <EmptyState
-          title={copy.menu.emptyTitle}
-          description={copy.menu.emptyDescription}
-        />
+        <EmptyState title={copy.menu.emptyTitle} description={copy.menu.emptyDescription} />
       ) : (
         <View style={styles.grid}>
           {filteredProducts.map((product) => (
@@ -132,16 +112,13 @@ const ProductsScreen: React.FC = () => {
               key={product.id}
               product={product}
               style={styles.productCard}
-              onPress={() =>
-                navigation.navigate("ProductDetails", {
-                  productId: product.id,
-                })
-              }
+              onPress={() => navigation.navigate("ProductDetails", { productId: product.id })}
               onAdd={() => handleAddRequest(product)}
             />
           ))}
         </View>
       )}
+
       <ProductAddonsModal
         visible={!!addonProduct}
         product={addonProduct}
@@ -164,16 +141,17 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   grid: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     flexWrap: "wrap",
     justifyContent: "space-between",
     width: "100%",
     alignSelf: "stretch",
   },
   productCard: {
-    width: "48%",
+    width: "49.5%",
     marginBottom: 12,
   },
 });
 
 export default ProductsScreen;
+

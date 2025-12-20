@@ -1,10 +1,15 @@
-import React, { useState } from "react";
-import { Text, StyleSheet, View, TextInput, Alert, Pressable } from "react-native";
-import { useQuery } from "@tanstack/react-query";
-import { Card, Button } from "../../components/ui";
-import { useTheme } from "../../theme";
+import React, { useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Input } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import { has } from "./components/permissions";
 
 type ContactMessage = {
   id: number;
@@ -18,157 +23,143 @@ type ContactMessage = {
 
 const DashboardMessages: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const qc = useQueryClient();
+  const { user, permissions } = useAuth();
+
+  const allowed = has(user, permissions, "can_manage_contact_messages");
+
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [reply, setReply] = useState<string>("");
-  const { data: messages } = useQuery<ContactMessage[]>({
-    queryKey: ["contact-messages"],
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const { data: messages = [], isLoading } = useQuery<ContactMessage[]>({
+    queryKey: ["dashboard", "contact-messages"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("contact/messages/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
+  const selected = useMemo(() => messages.find((m) => m.id === selectedId) || null, [messages, selectedId]);
+
   const sendReply = async () => {
     if (!selectedId || !reply.trim()) {
-      Alert.alert("تنبيه", "اختر رسالة واكتب الرد.");
+      Alert.alert("بيانات ناقصة", "اختر رسالة واكتب الرد.");
       return;
     }
+    setSending(true);
     try {
-      await api.post(`contact/messages/${selectedId}/reply/`, { reply });
-      Alert.alert("تم", "تم إرسال الرد.");
+      await api.post(`contact/messages/${selectedId}/reply/`, { reply: reply.trim() });
       setReply("");
+      qc.invalidateQueries({ queryKey: ["dashboard", "contact-messages"] });
+      Alert.alert("تم الإرسال", "تم إرسال الرد بنجاح.");
     } catch {
-      Alert.alert("خطأ", "تعذر إرسال الرد.");
+      Alert.alert("تعذر الإرسال", "حدث خطأ أثناء إرسال الرد.");
+    } finally {
+      setSending(false);
     }
   };
 
+  if (!allowed) {
+    return <DashboardAccessDenied title="رسائل التواصل" subtitle="قراءة الرسائل والرد عليها من لوحة التحكم." />;
+  }
+
   return (
-    <DashboardShell title="رسائل العملاء" subtitle="استعراض رسائل التواصل وتحديد المقروء منها.">
-        <Card>
-          <Text style={styles.title}>الرسائل والاستفسارات</Text>
-          <Text style={styles.helper}>عرض رسائل التواصل والرد عليها وإدارتها.</Text>
-        </Card>
-
-        <Card style={{ gap: 8 }}>
-          <Text style={styles.sectionTitle}>الإجراءات</Text>
-          <Button title="صندوق الوارد" onPress={() => {}} />
-          <Button title="مقروءة" variant="secondary" onPress={() => {}} />
-          <Button title="المؤرشفة" variant="ghost" onPress={() => {}} />
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>قائمة الرسائل</Text>
-          {messages && messages.length > 0 ? (
-            <View style={{ marginTop: 8, gap: 10 }}>
-              {messages.slice(0, 5).map((msg) => (
-                <Pressable
-                  key={msg.id}
-                  style={[
-                    styles.row,
-                    selectedId === msg.id && { backgroundColor: "#f1f5f9" },
-                  ]}
-                  onPress={() => setSelectedId(msg.id)}
-                >
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <Text style={styles.msgTitle}>{msg.subject || "بدون عنوان"}</Text>
-                    <Text style={styles.msgSub}>
-                      {msg.name || "ضيف"} • {msg.email || msg.phone || ""}
-                    </Text>
-                    <Text style={styles.msgBody} numberOfLines={2}>
-                      {msg.message}
-                    </Text>
+    <DashboardShell title="رسائل التواصل" subtitle="قراءة الرسائل والرد عليها من لوحة التحكم.">
+      <DashboardSection title="الرسائل" subtitle={isLoading ? "جاري التحميل..." : "اضغط على رسالة لعرض التفاصيل."}>
+        {messages.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد رسائل.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {messages.slice(0, 40).map((msg) => (
+              <DashboardListItem
+                key={msg.id}
+                title={msg.subject?.trim() ? msg.subject : "بدون عنوان"}
+                subtitle={`${msg.name || "غير معروف"} • ${msg.email || msg.phone || "لا يوجد تواصل"}${msg.message ? ` • ${msg.message}` : ""}`}
+                icon="mail-unread-outline"
+                onPress={() => setSelectedId(msg.id)}
+                style={selectedId === msg.id ? { borderColor: theme.palette.accentSoft, backgroundColor: theme.palette.surfaceAlt } : undefined}
+                right={
+                  <View style={[styles.badge, { backgroundColor: msg.is_read ? theme.palette.border : `${theme.palette.accent}22` }]}>
+                    <Text style={[styles.badgeText, { color: theme.palette.text }]}>{msg.is_read ? "مقروءة" : "جديدة"}</Text>
                   </View>
-                  <View style={[styles.badge, { backgroundColor: msg.is_read ? "#e5e7eb" : "#fef08a" }]}>
-                    <Text style={styles.badgeText}>{msg.is_read ? "مقروء" : "جديد"}</Text>
-                  </View>
-                </Pressable>
-              ))}
+                }
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
+
+      <DashboardSection title="تفاصيل ورد" subtitle={selected ? "اكتب الرد ثم إرسال." : "اختر رسالة من الأعلى."}>
+        {selected ? (
+          <View style={{ gap: 10 }}>
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailKey, { color: theme.palette.muted }]}>المرسل</Text>
+              <Text style={[styles.detailVal, { color: theme.palette.text }]}>{selected.name || "-"}</Text>
             </View>
-          ) : (
-            <Text style={styles.helper}>لا توجد رسائل حالياً.</Text>
-          )}
-        </Card>
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailKey, { color: theme.palette.muted }]}>التواصل</Text>
+              <Text style={[styles.detailVal, { color: theme.palette.text }]}>{selected.email || selected.phone || "-"}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailKey, { color: theme.palette.muted }]}>الموضوع</Text>
+              <Text style={[styles.detailVal, { color: theme.palette.text }]}>{selected.subject || "-"}</Text>
+            </View>
+            {selected.message ? (
+              <View>
+                <Text style={[styles.detailKey, { color: theme.palette.muted, marginBottom: 6 }]}>نص الرسالة</Text>
+                <Text style={[styles.messageBody, { color: theme.palette.text }]}>{selected.message}</Text>
+              </View>
+            ) : null}
 
-        <Card style={{ gap: 10 }}>
-          <Text style={styles.sectionTitle}>رد على رسالة</Text>
-          <Text style={styles.helper}>
-            اختر رسالة من القائمة، ثم اكتب الرد هنا.
-          </Text>
-          <TextInput
-            placeholder="اكتب الرد..."
-            placeholderTextColor="#94a3b8"
-            value={reply}
-            onChangeText={setReply}
-            style={styles.input}
-            multiline
-            textAlign="right"
-          />
-          <Button title="إرسال الرد" onPress={sendReply} />
-        </Card>
+            <Input label="الرد" value={reply} onChangeText={setReply} multiline numberOfLines={4} placeholder="اكتب الرد هنا..." />
+            <Button title={sending ? "جارٍ الإرسال..." : "إرسال الرد"} onPress={sendReply} disabled={sending} />
+          </View>
+        ) : (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>اختر رسالة أولاً.</Text>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  row: {
-    flexDirection: "row-reverse",
-    gap: 10,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  msgTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  msgSub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  msgBody: {
-    fontSize: 12,
-    color: "#374151",
-  },
-  badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
-    textAlignVertical: "top",
-    minHeight: 80,
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+    badge: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+    },
+    badgeText: {
+      fontSize: 12,
+      fontWeight: "800",
+    },
+    detailRow: {
+      flexDirection: "row-reverse",
+      justifyContent: "space-between",
+      gap: 10,
+    },
+    detailKey: {
+      fontSize: 12,
+      fontWeight: "800",
+    },
+    detailVal: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: "800",
+      textAlign: "left",
+    },
+    messageBody: {
+      fontSize: 13,
+      lineHeight: 20,
+      textAlign: "right",
+    },
+  });
 
 export default DashboardMessages;

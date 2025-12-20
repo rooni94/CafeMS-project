@@ -1,16 +1,20 @@
-﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Linking, KeyboardAvoidingView, Platform } from "react-native";
-import Screen from "../../components/Screen";
-import { Card, Button } from "../../components/ui";
-import { useAuth } from "../../context/AuthContext";
-import { api } from "../../services/api";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import QRCode from "react-native-qrcode-svg";
-import { useTheme } from "../../theme";
-import { goToTab, goToStack } from "../../navigation/helpers";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import CurrencyAmount from "../../components/CurrencyAmount";
+import QRCode from "react-native-qrcode-svg";
 
+import { api } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../theme";
+import { Button, Input } from "../../components/ui";
+import CurrencyAmount from "../../components/CurrencyAmount";
+import DashboardShell from "../dashboard/components/DashboardShell";
+import DashboardSection from "../dashboard/components/DashboardSection";
+import DashboardListItem from "../dashboard/components/DashboardListItem";
+import DashboardTile from "../dashboard/components/DashboardTile";
+
+type Address = { id: number; label: string; details: string; is_default?: boolean };
+type OrderRow = { id: number; status: string; total: number; created_at: string };
 type LoyaltyProfile = {
   membership_id?: string;
   qr_token?: string;
@@ -19,102 +23,125 @@ type LoyaltyProfile = {
   google_wallet_pass_url?: string;
 };
 
-type OrderSummary = { id: number; status: string; total: number; created_at: string };
-type Address = { id: number; label: string; details: string; is_default?: boolean };
+const PasswordChangeForm: React.FC = () => {
+  const theme = useTheme();
+  const { accessToken } = useAuth();
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword1, setNewPassword1] = useState("");
+  const [newPassword2, setNewPassword2] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = async () => {
+    if (!accessToken) return;
+    if (!oldPassword.trim() || !newPassword1.trim() || !newPassword2.trim()) {
+      Alert.alert("بيانات ناقصة", "يرجى إدخال كلمة المرور الحالية والجديدة.");
+      return;
+    }
+    if (newPassword1 !== newPassword2) {
+      Alert.alert("غير متطابقة", "كلمة المرور الجديدة غير متطابقة.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.post("auth/change-password/", {
+        old_password: oldPassword,
+        new_password1: newPassword1,
+        new_password2: newPassword2,
+      });
+      setOldPassword("");
+      setNewPassword1("");
+      setNewPassword2("");
+      Alert.alert("تم", "تم تغيير كلمة المرور بنجاح.");
+    } catch (err: any) {
+      Alert.alert("تعذر التغيير", "تحقق من كلمة المرور الحالية أو من قوة كلمة المرور الجديدة.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <View style={{ gap: 10 }}>
+      <Input label="كلمة المرور الحالية" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
+      <Input label="كلمة المرور الجديدة" value={newPassword1} onChangeText={setNewPassword1} secureTextEntry />
+      <Input label="تأكيد كلمة المرور الجديدة" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
+      <Button
+        title={saving ? "جارٍ التغيير..." : "تغيير كلمة المرور"}
+        onPress={handleChange}
+        disabled={saving}
+        style={{ width: "100%" }}
+        color={theme.palette.accent}
+      />
+    </View>
+  );
+};
 
 const ProfileScreen: React.FC = () => {
-  const { user, accessToken, logout } = useAuth();
-  const theme = useTheme();
   const navigation = useNavigation<any>();
-
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [orders, setOrders] = useState<OrderSummary[]>([]);
-  const [loyalty, setLoyalty] = useState<LoyaltyProfile | null>(null);
-
-  const [newEmail, setNewEmail] = useState(user?.email || "");
-  const [newPhone, setNewPhone] = useState((user as any)?.phone || "");
-
-  const [pwOld, setPwOld] = useState("");
-  const [pwNew, setPwNew] = useState("");
-  const [pwNew2, setPwNew2] = useState("");
-
-  const [loadingAddresses, setLoadingAddresses] = useState(false);
-  const [loadingOrders, setLoadingOrders] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(false);
-  const [loadingPw, setLoadingPw] = useState(false);
-  const [loadingLoyalty, setLoadingLoyalty] = useState(false);
-  const [addressesError, setAddressesError] = useState<string | null>(null);
-  const [ordersError, setOrdersError] = useState<string | null>(null);
-  const [loyaltyError, setLoyaltyError] = useState<string | null>(null);
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { user, accessToken, permissions, logout } = useAuth();
 
   const isAuthenticated = !!user && !!accessToken;
+  const isEmployee = user?.role === "manager" || user?.role === "supervisor" || user?.role === "staff";
+  const canManageSupport = user?.role === "manager" || !!permissions?.can_manage_support;
+
+  const [email, setEmail] = useState(user?.email || "");
+  const [phone, setPhone] = useState((user as any)?.phone || "");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(false);
+
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+
+  const [loyalty, setLoyalty] = useState<LoyaltyProfile | null>(null);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+
+  useEffect(() => {
+    setEmail(user?.email || "");
+    setPhone((user as any)?.phone || "");
+  }, [user]);
 
   const loadAddresses = useCallback(async () => {
     if (!accessToken) return;
-    setLoadingAddresses(true);
-    setAddressesError(null);
+    setAddressesLoading(true);
     try {
       const res = await api.get("auth/addresses/");
       setAddresses(res.data?.results || res.data || []);
     } catch {
       setAddresses([]);
-      setAddressesError("تعذر تحميل العناوين.");
     } finally {
-      setLoadingAddresses(false);
+      setAddressesLoading(false);
     }
   }, [accessToken]);
 
   const loadOrders = useCallback(async () => {
     if (!accessToken) return;
-    setLoadingOrders(true);
-    setOrdersError(null);
+    setOrdersLoading(true);
     try {
       const res = await api.get("orders/my-orders/");
       setOrders(res.data?.results || res.data || []);
     } catch {
       setOrders([]);
-      setOrdersError("تعذر تحميل الطلبات.");
     } finally {
-      setLoadingOrders(false);
+      setOrdersLoading(false);
     }
   }, [accessToken]);
 
   const loadLoyalty = useCallback(async () => {
     if (!accessToken) return;
-    setLoadingLoyalty(true);
-    setLoyaltyError(null);
+    setLoyaltyLoading(true);
     try {
       const res = await api.get("loyalty/profile/");
-      setLoyalty(res.data?.profile || res.data?.profileData || res.data || null);
+      setLoyalty(res.data?.profile || res.data || null);
     } catch {
       setLoyalty(null);
-      setLoyaltyError("تعذر تحميل بيانات الولاء.");
     } finally {
-      setLoadingLoyalty(false);
+      setLoyaltyLoading(false);
     }
   }, [accessToken]);
-
-  const updateProfile = async () => {
-    setLoadingProfile(true);
-    try {
-      await api.patch("auth/me/", { email: newEmail || undefined, phone: newPhone || undefined });
-    } finally {
-      setLoadingProfile(false);
-    }
-  };
-
-  const changePassword = async () => {
-    if (!pwOld || !pwNew || pwNew !== pwNew2) return;
-    setLoadingPw(true);
-    try {
-      await api.post("auth/change-password/", { old_password: pwOld, new_password: pwNew, confirm_password: pwNew2 });
-      setPwOld("");
-      setPwNew("");
-      setPwNew2("");
-    } finally {
-      setLoadingPw(false);
-    }
-  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -123,331 +150,320 @@ const ProfileScreen: React.FC = () => {
       setLoyalty(null);
       return;
     }
-    loadAddresses();
-    loadOrders();
-    loadLoyalty();
-  }, [isAuthenticated, loadAddresses, loadOrders, loadLoyalty]);
+    if (!isEmployee) {
+      loadAddresses();
+      loadOrders();
+      loadLoyalty();
+    }
+  }, [isAuthenticated, isEmployee, loadAddresses, loadOrders, loadLoyalty]);
 
-  useEffect(() => {
-    setNewEmail(user?.email || "");
-    setNewPhone((user as any)?.phone || "");
-  }, [user]);
+  const saveProfile = async () => {
+    if (!isAuthenticated) return;
+    setSavingProfile(true);
+    try {
+      await api.patch("auth/me/", { email: email.trim() || undefined, phone: phone.trim() || undefined });
+      Alert.alert("تم الحفظ", "تم تحديث بيانات الحساب.");
+    } catch {
+      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء حفظ البيانات.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
-  const userName = useMemo(() => (user?.username ? user.username : "ضيف"), [user]);
+  const handleLogout = async () => {
+    await logout();
+    Alert.alert("تم تسجيل الخروج", "تم تسجيل الخروج بنجاح.");
+  };
 
-  const quickLinks = [
-    { label: "من نحن", icon: "business-outline", action: () => goToStack(navigation, "About") },
-    { label: "قصتنا", icon: "book-outline", action: () => goToStack(navigation, "Story") },
-    { label: "القائمة", icon: "restaurant-outline", action: () => goToTab(navigation, "Menu") },
-    { label: "المكافات", icon: "gift-outline", action: () => goToStack(navigation, "Rewards") },
-    { label: "الخصوصية", icon: "lock-closed-outline", action: () => goToStack(navigation, "Privacy") },
-    { label: "الشروط والأحكام", icon: "document-text-outline", action: () => goToStack(navigation, "Terms") },
-  ];
+  const tiles = useMemo(
+    (): {
+      title: string;
+      subtitle: string;
+      icon: any;
+      onPress: () => void;
+      color: string;
+    }[] => {
+    if (!isAuthenticated) {
+      return [
+        {
+          title: "تسجيل الدخول",
+          subtitle: "ادخل إلى حسابك",
+          icon: "log-in-outline" as const,
+          onPress: () => navigation.navigate("Login"),
+          color: theme.palette.accent,
+        },
+        {
+          title: "إنشاء حساب",
+          subtitle: "حساب جديد خلال دقيقة",
+          icon: "person-add-outline" as const,
+          onPress: () => navigation.navigate("Register"),
+          color: theme.palette.accentSoft,
+        },
+      ];
+    }
+
+    if (isEmployee) {
+      const base: {
+        title: string;
+        subtitle: string;
+        icon: any;
+        onPress: () => void;
+        color: string;
+      }[] = [
+        {
+          title: "طلباتي",
+          subtitle: "الحضور والطلبات HR",
+          icon: "calendar-outline" as const,
+          onPress: () => navigation.navigate("MyHR"),
+          color: "#8b5cf6",
+        },
+      ];
+      if (canManageSupport) {
+        base.push({
+          title: "الدعم",
+          subtitle: "تذاكر ومحادثات الدعم",
+          icon: "chatbubble-ellipses-outline" as const,
+          onPress: () => navigation.navigate("DashboardSupport"),
+          color: "#f97316",
+        });
+      }
+      return base;
+    }
+
+    return [
+      {
+        title: "طلباتي",
+        subtitle: "آخر الطلبات والتتبع",
+        icon: "receipt-outline" as const,
+        onPress: () => navigation.navigate("OrderTracking"),
+        color: theme.palette.accent,
+      },
+      {
+        title: "الولاء",
+        subtitle: "نقاط وعضوية",
+        icon: "sparkles-outline" as const,
+        onPress: () => navigation.navigate("Rewards"),
+        color: "#22c55e",
+      },
+      {
+        title: "تواصل معنا",
+        subtitle: "الدعم وخدمة العملاء",
+        icon: "call-outline" as const,
+        onPress: () => navigation.navigate("Contact"),
+        color: theme.palette.accentSoft,
+      },
+    ];
+  },
+    [isAuthenticated, isEmployee, canManageSupport, navigation, theme.palette]
+  );
 
   return (
-    <Screen scrollable={false} style={{ backgroundColor: "#f5f7fb" }}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={90} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={{ padding: 12, gap: 12, paddingBottom: 120 }}>
-          <Card style={styles.heroCard}>
-            <View style={styles.heroRow}>
-              <View style={{ flex: 1, alignItems: "flex-end" }}>
-                <Text style={styles.heroName}>{isAuthenticated ? `أهلاً، ${userName}` : "مرحباً، سجل دخولك"}</Text>
-                <Text style={styles.heroHelper}>
-                  {isAuthenticated ? "يمكنك إدارة بياناتك وطلباتك ونقاط الولاء." : "للاطلاع على الطلبات وحفظ العناوين ونقاط الولاء."}
-                </Text>
+    <DashboardShell
+      title="حسابي"
+      subtitle={
+        isAuthenticated
+          ? `مرحباً ${user?.username || ""} — إدارة الحساب والإعدادات.`
+          : "سجّل دخولك للوصول إلى طلباتك ونقاط الولاء."
+      }
+    >
+      <DashboardSection title="اختصارات" subtitle="وصول سريع للأقسام الأكثر استخداماً.">
+        {!isAuthenticated ? (
+          <View style={{ gap: 8 }}>
+            <DashboardTile
+              title="تسجيل الدخول"
+              subtitle="ادخل إلى حسابك"
+              icon="log-in-outline"
+              onPress={() => navigation.navigate("Login")}
+              color={theme.palette.accent}
+              style={{ width: "100%" }}
+            />
+            <DashboardTile
+              title="إنشاء حساب"
+              subtitle="حساب جديد خلال دقيقة"
+              icon="person-add-outline"
+              onPress={() => navigation.navigate("Register")}
+              color={theme.palette.accentSoft}
+              style={{ width: "100%" }}
+            />
+          </View>
+        ) : (
+          <View style={styles.tilesGrid}>
+            {tiles.map((t) => (
+              <View key={t.title} style={styles.tileItem}>
+                <DashboardTile
+                  title={t.title}
+                  subtitle={t.subtitle}
+                  icon={t.icon}
+                  onPress={t.onPress}
+                  color={t.color}
+                  style={{ width: "100%" }}
+                />
               </View>
-              <View style={styles.avatarLarge}>
-                <Ionicons name="person" size={28} color={theme.palette.accent} />
-              </View>
-            </View>
-            {!isAuthenticated ? (
-              <View style={styles.actionRow}>
-                <Button title="تسجيل الدخول" onPress={() => navigation.navigate("Login")} style={{ flex: 1 }} />
-                <Button title="إنشاء حساب" variant="ghost" color="transparent" textColor="#6138A1" onPress={() => navigation.navigate("Register")} style={{ flex: 1, borderWidth: 1, borderColor: "#6138A1" }} />
-              </View>
+            ))}
+          </View>
+        )}
+      </DashboardSection>
+
+      {isAuthenticated ? (
+        <DashboardSection title="بيانات الحساب" subtitle="حدّث بياناتك ثم احفظ.">
+          <Input label="اسم المستخدم" value={user?.username || ""} editable={false} />
+          <Input label="البريد الإلكتروني" value={email} onChangeText={setEmail} keyboardType="email-address" />
+          <Input label="رقم الجوال" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+          <View style={{ gap: 10 }}>
+            <Button
+              title={savingProfile ? "جارٍ الحفظ..." : "حفظ التعديلات"}
+              onPress={saveProfile}
+              disabled={savingProfile}
+              style={{ width: "100%" }}
+            />
+            <Button
+              title="تسجيل الخروج"
+              icon="logout"
+              variant="ghost"
+              color="transparent"
+              textColor={theme.palette.danger}
+              onPress={handleLogout}
+            />
+          </View>
+        </DashboardSection>
+      ) : null}
+
+      {isAuthenticated ? (
+        <DashboardSection title="تغيير كلمة المرور" subtitle="حدّث كلمة المرور لحماية حسابك.">
+          <PasswordChangeForm />
+        </DashboardSection>
+      ) : null}
+
+      {!isEmployee ? (
+        <DashboardSection title="روابط" subtitle="معلومات وبيانات المتجر.">
+          <View style={{ gap: 10 }}>
+            <DashboardListItem title="من نحن" subtitle="تعرف على CafeMS Demo" icon="business-outline" onPress={() => navigation.navigate("About")} />
+            <DashboardListItem title="الشروط والأحكام" subtitle="سياسات الاستخدام" icon="document-text-outline" onPress={() => navigation.navigate("Terms")} />
+            <DashboardListItem title="سياسة الخصوصية" subtitle="حماية البيانات والخصوصية" icon="shield-checkmark-outline" onPress={() => navigation.navigate("Privacy")} />
+            <DashboardListItem title="تواصل معنا" subtitle="دعم وخدمة العملاء" icon="call-outline" onPress={() => navigation.navigate("Contact")} />
+          </View>
+        </DashboardSection>
+      ) : null}
+
+      {isAuthenticated && !isEmployee ? (
+        <>
+          <DashboardSection title="آخر الطلبات" subtitle={ordersLoading ? "جاري التحميل..." : orders.length ? "آخر 5 طلبات." : "لا توجد طلبات بعد."}>
+            {ordersLoading ? (
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>جاري التحميل...</Text>
+            ) : orders.length === 0 ? (
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>لا توجد طلبات.</Text>
             ) : (
-              <View style={styles.fieldsRow}>
-                <View style={styles.field}>
-                  <Text style={styles.label}>البريد الإلكتروني</Text>
-                  <TextInput value={newEmail} onChangeText={setNewEmail} style={styles.input} textAlign="right" />
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>اسم المستخدم</Text>
-                  <Text style={styles.value}>{userName}</Text>
-                </View>
-                <View style={styles.field}>
-                  <Text style={styles.label}>رقم الجوال</Text>
-                  <TextInput value={newPhone} onChangeText={setNewPhone} style={styles.input} keyboardType="phone-pad" textAlign="right" />
-                </View>
-                <Button title={loadingProfile ? "جاري الحفظ..." : "حفظ التغييرات"} onPress={updateProfile} disabled={loadingProfile} />
+              <View style={{ gap: 10 }}>
+                {orders.slice(0, 5).map((o) => (
+                  <DashboardListItem
+                    key={o.id}
+                    title={`طلب #${o.id}`}
+                    subtitle={`${o.status} • ${(o as any).created_at ? new Date((o as any).created_at).toLocaleString() : ""}`}
+                    icon="receipt-outline"
+                    onPress={() => navigation.navigate("OrderTracking", { orderId: o.id })}
+                    right={<CurrencyAmount value={o.total} color={theme.palette.text} symbolSize={12} textStyle={styles.amount} />}
+                  />
+                ))}
               </View>
             )}
-          </Card>
+            <Button title="عرض كل الطلبات" variant="secondary" onPress={() => navigation.navigate("OrderTracking")} />
+          </DashboardSection>
 
-          <Card>
-            <Text style={styles.sectionTitle}>الدعم</Text>
-            <Button title="فتح محادثة دعم" onPress={() => goToTab(navigation, "Support")} />
-          </Card>
+          <DashboardSection title="العناوين" subtitle={addressesLoading ? "جاري التحميل..." : addresses.length ? "عناوينك المحفوظة." : "لا توجد عناوين بعد."}>
+            {addressesLoading ? (
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>جاري التحميل...</Text>
+            ) : addresses.length === 0 ? (
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>لا توجد عناوين.</Text>
+            ) : (
+              <View style={{ gap: 10 }}>
+                {addresses.slice(0, 6).map((a) => (
+                  <DashboardListItem
+                    key={a.id}
+                    title={a.label}
+                    subtitle={a.details}
+                    icon="location-outline"
+                    right={a.is_default ? <Text style={[styles.badge, { color: theme.palette.success }]}>افتراضي</Text> : null}
+                  />
+                ))}
+              </View>
+            )}
+            <Button title="إدارة العناوين" variant="secondary" onPress={() => navigation.navigate("Addresses")} />
+          </DashboardSection>
 
-          <Card>
-            <Text style={styles.sectionTitle}>معلومات</Text>
-            <View style={styles.linksList}>
-              {quickLinks.map((item) => (
-                <Pressable key={item.label} style={styles.linkRow} onPress={item.action}>
-                  <View style={styles.linkIcon}>
-                    <Ionicons name={item.icon as any} size={20} color="#f59e0b" />
-                  </View>
-                  <Text style={styles.linkRowText}>{item.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </Card>
-
-          {isAuthenticated && (
-            <>
-              <Card>
-                <Text style={styles.sectionTitle}>تغيير كلمة المرور</Text>
-                <View style={{ gap: 8 }}>
-                  <TextInput placeholder="كلمة المرور الحالية" value={pwOld} onChangeText={setPwOld} secureTextEntry style={styles.input} textAlign="right" />
-                  <TextInput placeholder="كلمة المرور الجديدة" value={pwNew} onChangeText={setPwNew} secureTextEntry style={styles.input} textAlign="right" />
-                  <TextInput placeholder="تأكيد كلمة المرور الجديدة" value={pwNew2} onChangeText={setPwNew2} secureTextEntry style={styles.input} textAlign="right" />
+          <DashboardSection title="برنامج الولاء" subtitle={loyaltyLoading ? "جاري التحميل..." : "نقاطك وعضويتك."}>
+            {loyaltyLoading ? (
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>جاري التحميل...</Text>
+            ) : loyalty ? (
+              <View style={{ gap: 12 }}>
+                <View style={styles.kv}>
+                  <Text style={[styles.k, { color: theme.palette.muted }]}>النقاط</Text>
+                  <Text style={[styles.v, { color: theme.palette.text }]}>{loyalty.points_balance ?? 0}</Text>
                 </View>
-                <Button title={loadingPw ? "جاري التحديث..." : "تغيير كلمة المرور"} onPress={changePassword} disabled={loadingPw} />
-              </Card>
-
-              <Card>
-                <View style={styles.rowBetween}>
-                  <Text style={styles.sectionTitle}>عناويني</Text>
-                  <Pressable onPress={() => goToTab(navigation, "Orders")}>
-                    <Text style={styles.link}>إدارة العناوين</Text>
-                  </Pressable>
-                </View>
-                {loadingAddresses ? (
-                  <ActivityIndicator />
-                ) : addressesError ? (
-                  <Text style={[styles.helper, { color: "#ef4444" }]}>{addressesError}</Text>
-                ) : (
-                  <View style={{ gap: 8 }}>
-                    {addresses.map((a) => (
-                      <View key={a.id} style={styles.listRow}>
-                        <View style={{ flex: 1, alignItems: "flex-end" }}>
-                          <Text style={styles.value}>{a.label}</Text>
-                          <Text style={styles.helper}>{a.details}</Text>
-                        </View>
-                        {a.is_default ? <Text style={[styles.helper, { color: "#16a34a" }]}>افتراضي</Text> : null}
-                      </View>
-                    ))}
-                    {addresses.length === 0 && <Text style={styles.helper}>لا توجد عناوين محفوظة.</Text>}
+                {loyalty.qr_token ? (
+                  <View style={styles.qrWrap}>
+                    <QRCode value={loyalty.qr_token} size={140} />
+                    <Text style={[styles.muted, { color: theme.palette.muted }]}>اعرض هذا الرمز عند الكاشير لتسجيل النقاط.</Text>
                   </View>
-                )}
-              </Card>
-
-              <Card>
-                <Text style={styles.sectionTitle}>برنامج الولاء</Text>
-                {loadingLoyalty ? (
-                  <ActivityIndicator />
-                ) : loyaltyError ? (
-                  <Text style={[styles.helper, { color: "#ef4444" }]}>{loyaltyError}</Text>
-                ) : loyalty ? (
-                  <View style={{ gap: 10 }}>
-                    <View style={styles.rowBetween}>
-                      <View style={{ flex: 1, alignItems: "flex-end", gap: 4 }}>
-                        <Text style={styles.value}>الرصيد: {loyalty.points_balance ?? 0} نقطة</Text>
-                        <Text style={styles.helper}>المكافأة التالية عند 100 نقطة</Text>
-                      </View>
-                    </View>
-                    <View style={styles.loyaltyRow}>
-                      <View style={{ alignItems: "center", gap: 6 }}>
-                        {loyalty.qr_token ? <QRCode value={loyalty.qr_token} size={120} /> : null}
-                        <Text style={styles.helper}>شارك الـ QR مع الكاشير لمسح البطاقة</Text>
-                      </View>
-                      <View style={{ gap: 6, flex: 1 }}>
-                        <Text style={styles.value}>معرف العضوية</Text>
-                        <Text style={styles.helper}>{loyalty.membership_id || "-"}</Text>
-                        {loyalty.apple_wallet_pass_url ? (
-                          <Pressable onPress={() => Linking.openURL(loyalty.apple_wallet_pass_url as string)} style={styles.linkBtn}>
-                            <Text style={styles.link}>إضافة إلى Apple Wallet</Text>
-                          </Pressable>
-                        ) : null}
-                        {loyalty.google_wallet_pass_url ? (
-                          <Pressable onPress={() => Linking.openURL(loyalty.google_wallet_pass_url as string)} style={styles.linkBtn}>
-                            <Text style={styles.link}>إضافة إلى Google Wallet</Text>
-                          </Pressable>
-                        ) : null}
-                      </View>
-                    </View>
-                  </View>
-                ) : (
-                  <Text style={styles.helper}>لا يوجد ملف ولاء متاح.</Text>
-                )}
-              </Card>
-
-              <Card>
-                <Text style={styles.sectionTitle}>طلباتي الأخيرة</Text>
-                {loadingOrders ? (
-                  <ActivityIndicator />
-                ) : ordersError ? (
-                  <Text style={[styles.helper, { color: "#ef4444" }]}>{ordersError}</Text>
-                ) : (
-                  <View style={{ gap: 8 }}>
-                    {orders.map((o) => (
-                      <View key={o.id} style={styles.listRow}>
-                        <View style={{ flex: 1, alignItems: "flex-end" }}>
-                          <Text style={styles.value}>طلب #{o.id}</Text>
-                          <Text style={styles.helper}>{new Date(o.created_at).toLocaleString()}</Text>
-                        </View>
-                        <CurrencyAmount value={o.total} color="#b45309" symbolSize={12} textStyle={[styles.helper, { color: "#b45309" }]} />
-                      </View>
-                    ))}
-                    {orders.length === 0 && <Text style={styles.helper}>لا توجد طلبات حتى الآن.</Text>}
-                  </View>
-                )}
-                <Button title="اذهب لطلباتك" variant="secondary" onPress={() => goToTab(navigation, "Orders")} />
-              </Card>
-
-              <Pressable onPress={logout} style={styles.logout}>
-                <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-                <Text style={{ color: "#ef4444", fontWeight: "700" }}>تسجيل خروج</Text>
-              </Pressable>
-            </>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Screen>
+                ) : null}
+                {loyalty.apple_wallet_pass_url ? (
+                  <Button title="إضافة إلى Apple Wallet" variant="secondary" onPress={() => Linking.openURL(loyalty.apple_wallet_pass_url!)} />
+                ) : null}
+                {loyalty.google_wallet_pass_url ? (
+                  <Button title="إضافة إلى Google Wallet" variant="secondary" onPress={() => Linking.openURL(loyalty.google_wallet_pass_url!)} />
+                ) : null}
+              </View>
+            ) : (
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>لا تتوفر بيانات الولاء حالياً.</Text>
+            )}
+          </DashboardSection>
+        </>
+      ) : null}
+    </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  heroCard: {
-    gap: 12,
-  },
-  heroRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 10,
-  },
-  heroName: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#0f172a",
-    textAlign: "right",
-  },
-  heroHelper: {
-    fontSize: 13,
-    color: "#94a3b8",
-    textAlign: "right",
-  },
-  avatarLarge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#f3f4f6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  actionRow: {
-    flexDirection: "row-reverse",
-    gap: 10,
-  },
-  fieldsRow: {
-    gap: 10,
-  },
-  field: {
-    gap: 4,
-  },
-  label: {
-    fontSize: 13,
-    color: "#475569",
-    textAlign: "right",
-  },
-  value: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "right",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-    textAlign: "right",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: "#111827",
-    textAlign: "right",
-    marginBottom: 8,
-  },
-  rowBetween: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  link: {
-    color: "#F59E0B",
-    fontWeight: "700",
-  },
-  helper: {
-    fontSize: 12,
-    color: "#94a3b8",
-    textAlign: "right",
-  },
-  listRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 10,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: "#f8fafc",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  loyaltyRow: {
-    flexDirection: "row-reverse",
-    gap: 12,
-  },
-  linksList: {
-    gap: 10,
-  },
-  linkRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 12,
-    backgroundColor: "#fff",
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#f1f5f9",
-  },
-  linkIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#fef3c7",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  linkRowText: {
-    flex: 1,
-    textAlign: "right",
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  linkBtn: {
-    paddingVertical: 8,
-  },
-  logout: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 8,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    tilesGrid: {
+      flexDirection: "row-reverse",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    },
+    tileItem: {
+      width: "49.5%",
+      marginBottom: 6,
+    },
+    muted: {
+      textAlign: "right",
+      fontSize: 13,
+      lineHeight: 18,
+    },
+    kv: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+    },
+    k: {
+      fontSize: 12,
+      fontWeight: "800",
+    },
+    v: {
+      fontSize: 14,
+      fontWeight: "900",
+    },
+    amount: {
+      fontSize: 13,
+      fontWeight: "900",
+    },
+    badge: {
+      fontSize: 12,
+      fontWeight: "900",
+    },
+    qrWrap: {
+      alignItems: "center",
+      gap: 10,
+    },
+  });
 
 export default ProfileScreen;

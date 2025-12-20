@@ -1,14 +1,17 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+
 import Screen from "../../components/Screen";
 import { Button, Input, Card } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
-import { useNavigation } from "@react-navigation/native";
+import { copy } from "../../config/copy";
 
 const ResetPasswordScreen: React.FC = () => {
   const theme = useTheme();
   const navigation = useNavigation<any>();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,7 +20,7 @@ const ResetPasswordScreen: React.FC = () => {
   const handleSubmit = async () => {
     setError(null);
     if (!email.trim()) {
-      Alert.alert("تنبيه", "يرجى إدخال البريد الإلكتروني المرتبط بالحساب.");
+      Alert.alert("تنبيه", "يرجى إدخال البريد الإلكتروني.");
       return;
     }
     setLoading(true);
@@ -25,7 +28,7 @@ const ResetPasswordScreen: React.FC = () => {
       await api.post("auth/password-reset/", { email: email.trim() });
       setSent(true);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "تعذر إرسال رابط إعادة التعيين، حاول لاحقاً.");
+      setError(err?.response?.data?.detail || "تعذر إرسال الرابط. حاول مرة أخرى لاحقاً.");
     } finally {
       setLoading(false);
     }
@@ -34,67 +37,72 @@ const ResetPasswordScreen: React.FC = () => {
   return (
     <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
       <View style={styles.header}>
-        <Text style={styles.title}>استعادة كلمة المرور</Text>
-        <Text style={styles.subtitle}>أدخل بريدك الإلكتروني وسنرسل رابط إعادة تعيين كلمة المرور.</Text>
-      </View>
-      <Card>
-        <Input label="البريد الإلكتروني" placeholder="example@mail.com" value={email} onChangeText={setEmail} keyboardType="email-address" />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {sent ? <Text style={styles.success}>تم إرسال الرابط، تفقد بريدك الإلكتروني.</Text> : null}
-        <Button title={loading ? "جاري الإرسال..." : "إرسال رابط إعادة التعيين"} onPress={handleSubmit} disabled={loading} />
-      </Card>
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>تذكرت كلمة المرور؟</Text>
-        <Text style={[styles.footerAction, { color: theme.palette.accent }]} onPress={() => navigation.navigate("Login")}>
-          العودة لتسجيل الدخول
+        <Text style={styles.title}>إعادة تعيين كلمة المرور</Text>
+        <Text style={styles.subtitle}>
+          أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور.
         </Text>
+      </View>
+
+      <Card>
+        <Input
+          label="البريد الإلكتروني"
+          placeholder="example@mail.com"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        {error ? <Text style={[styles.status, { color: theme.palette.danger }]}>{error}</Text> : null}
+        {sent ? (
+          <Text style={[styles.status, { color: theme.palette.success }]}>
+            تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني.
+          </Text>
+        ) : null}
+
+        <Button title={loading ? copy.messages.loading : "إرسال الرابط"} onPress={handleSubmit} disabled={loading} />
+      </Card>
+
+      <View style={styles.footer}>
+        <Button title="العودة لتسجيل الدخول" variant="ghost" onPress={() => navigation.navigate("Login")} />
       </View>
     </Screen>
   );
 };
 
-const styles = StyleSheet.create({
-  header: {
-    alignItems: "flex-end",
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#1F1A12",
-  },
-  subtitle: {
-    fontSize: 14,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  error: {
-    color: "#dc2626",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  success: {
-    color: "#16a34a",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  footer: {
-    marginTop: 12,
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "flex-end",
-    gap: 6,
-  },
-  footerText: {
-    color: "#6b7280",
-    fontSize: 13,
-  },
-  footerAction: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    header: {
+      alignItems: "flex-end",
+      marginBottom: 12,
+      paddingHorizontal: 4,
+      gap: 4,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: "900",
+      color: theme.palette.text,
+      textAlign: "right",
+      writingDirection: "rtl",
+    },
+    subtitle: {
+      fontSize: 14,
+      color: theme.palette.muted,
+      textAlign: "right",
+      writingDirection: "rtl",
+    },
+    status: {
+      textAlign: "right",
+      marginBottom: 6,
+      fontSize: 13,
+      fontWeight: "700",
+      writingDirection: "rtl",
+    },
+    footer: {
+      marginTop: 12,
+      alignItems: "flex-end",
+    },
+  });
 
 export default ResetPasswordScreen;
+

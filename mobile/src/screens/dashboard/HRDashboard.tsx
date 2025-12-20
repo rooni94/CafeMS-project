@@ -1,11 +1,16 @@
-import React from "react";
-import { Text, StyleSheet, View } from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Button } from "../../components/ui";
-import { useTheme } from "../../theme";
+import { Button } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import HRStatBadge from "./components/HRStatBadge";
 import DashboardShell from "./components/DashboardShell";
+import DashboardSection from "./components/DashboardSection";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import { hasAny } from "./components/permissions";
 
 type HRStats = {
   employees?: number;
@@ -14,69 +19,74 @@ type HRStats = {
 };
 
 const HRDashboard: React.FC = () => {
+  const navigation = useNavigation<any>();
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { user, permissions } = useAuth();
+
+  const allowed = hasAny(user, permissions, [
+    "can_view_hr_dashboard",
+    "can_manage_employees",
+    "can_manage_attendance",
+    "can_manage_hr_leaves",
+    "can_manage_hr_payroll",
+    "can_manage_hr_documents",
+    "can_manage_hr_reports",
+    "can_manage_hr_work_reports",
+    "can_view_hr_performance",
+  ]);
+
   const { data: stats } = useQuery<HRStats>({
-    queryKey: ["hr-dashboard-stats"],
+    queryKey: ["dashboard", "hr-stats"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("hr/dashboard/stats/");
       return res.data;
     },
   });
 
+  if (!allowed) {
+    return <DashboardAccessDenied title="لوحة الموارد البشرية" subtitle="ملخص سريع وروابط سريعة للطلبات والوثائق." />;
+  }
+
   return (
-    <DashboardShell title="لوحة الموارد البشرية" subtitle="مؤشرات سريعة وروابط للصفحات الإدارية.">
-        <Card>
-          <Text style={styles.title}>لوحة الموارد البشرية</Text>
-          <Text style={styles.helper}>نظرة سريعة على الموظفين والإجازات والتنبيهات.</Text>
-        </Card>
+    <DashboardShell title="لوحة الموارد البشرية" subtitle="ملخص سريع وروابط سريعة للطلبات والوثائق.">
+      <DashboardSection title="ملخص" subtitle="قد تختلف البيانات حسب صلاحياتك.">
+        <View style={styles.statsRow}>
+          <HRStatBadge label="الموظفون" value={stats?.employees ?? "-"} color={theme.palette.accentSoft} />
+          <HRStatBadge label="إجازات نشطة" value={stats?.active_leaves ?? "-"} color={theme.palette.accent} />
+          <HRStatBadge label="تنبيهات" value={stats?.alerts ?? "-"} color={theme.palette.danger} />
+        </View>
+      </DashboardSection>
 
-        <Card style={{ gap: 10 }}>
-          <Text style={styles.sectionTitle}>إجراءات سريعة</Text>
-          <Button title="إضافة موظف" onPress={() => {}} />
-          <Button title="تسجيل حضور" variant="secondary" onPress={() => {}} />
-          <Button title="استعراض العقود" variant="ghost" onPress={() => {}} />
-        </Card>
-
-        <Card style={{ gap: 10 }}>
-          <Text style={styles.sectionTitle}>إحصاءات HR</Text>
-          <View style={styles.statsRow}>
-            <HRStatBadge label="عدد الموظفين" value={stats?.employees ?? "-"} />
-            <HRStatBadge label="إجازات نشطة" value={stats?.active_leaves ?? "-"} color="#f59e0b" />
-            <HRStatBadge label="تنبيهات" value={stats?.alerts ?? "-"} color="#ef4444" />
-          </View>
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>ملاحظات</Text>
-          <Text style={styles.helper}>يمكن توصيل هذه الأزرار بشاشات HR التفصيلية (الحضور، العقود، التنبيهات) فور تجهيزها في الواجهة.</Text>
-        </Card>
+      <DashboardSection title="روابط سريعة" subtitle="انتقل مباشرة إلى ما تحتاجه.">
+        <View style={styles.actions}>
+          <Button title="وثائق الموارد البشرية" variant="secondary" onPress={() => navigation.navigate("DashboardHRDocuments")} />
+          <Button title="طلبات الموارد البشرية" onPress={() => navigation.navigate("DashboardHRRequests")} />
+        </View>
+        <Text style={[styles.note, { color: theme.palette.muted }]}>
+          بعض ميزات الموارد البشرية قد تكون متاحة بشكل كامل على نسخة الويب فقط حسب إعدادات مشروعك.
+        </Text>
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  statsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    statsRow: {
+      flexDirection: "row-reverse",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    actions: {
+      gap: 10,
+    },
+    note: {
+      textAlign: "right",
+      fontSize: 12,
+      lineHeight: 18,
+    },
+  });
 
 export default HRDashboard;

@@ -1,17 +1,10 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  ImageBackground,
-  Dimensions,
-  Pressable,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useMemo, useState } from "react";
+import { View, Text, StyleSheet, ImageBackground, Dimensions, Pressable, FlatList, ScrollView } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import Carousel from "react-native-reanimated-carousel";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
+
 import Screen from "../components/Screen";
 import { Button, Card } from "../components/ui";
 import ProductGridCard from "../components/ProductGridCard";
@@ -19,17 +12,20 @@ import { api } from "../services/api";
 import { Category, Product, ProductAddon } from "../types";
 import { useStoreSettings } from "../context/StoreSettingsContext";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../theme";
 import { copy } from "../config/copy";
 import { resolveMediaUrl } from "../utils/media";
 import { normalizeArabicText } from "../utils/text";
 import { goToStack, goToTab } from "../navigation/helpers";
 import ProductAddonsModal from "../components/ProductAddonsModal";
+import DashboardSection from "./dashboard/components/DashboardSection";
+import DashboardTile from "./dashboard/components/DashboardTile";
 
 const HERO_FALLBACK = copy.heroFallback;
 const HERO_PLAY_INTERVAL = 6500;
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const HERO_WIDTH = SCREEN_WIDTH - 24;
+const HERO_WIDTH = SCREEN_WIDTH - 8;
 
 type HeroSlide = {
   title: string;
@@ -37,6 +33,19 @@ type HeroSlide = {
   button_text?: string;
   button_link?: string;
   image?: string;
+};
+
+type QuickAction = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  helper: string;
+  route: string;
+};
+
+type CategoryCard = {
+  id: number;
+  name: string;
+  image: string;
 };
 
 const parseCategoryIdFromLink = (link?: string | null) => {
@@ -61,15 +70,11 @@ const HomeScreen: React.FC = () => {
   const theme = useTheme();
   const { settings } = useStoreSettings();
   const { addItem, totalQuantity } = useCart();
-  const homeCopy = copy.home;
-  const brandName = normalizeArabicText(settings?.store_name) || copy.brandFallback;
-  const [brandFirst, ...brandRest] = brandName.split(" ");
-  const brandSecond = brandRest.join(" ");
+  const { user, permissions } = useAuth();
 
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [addonProduct, setAddonProduct] = useState<Product | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ["categories"],
@@ -86,6 +91,11 @@ const HomeScreen: React.FC = () => {
       return res.data;
     },
   });
+
+  const brandName = normalizeArabicText(settings?.store_name) || copy.brandFallback;
+  const [brandFirst, ...brandRest] = brandName.split(" ");
+  const brandSecond = brandRest.join(" ");
+  const tagline = normalizeArabicText(settings?.tagline) || copy.taglineFallback;
 
   const safeCategories = useMemo(
     () =>
@@ -125,23 +135,35 @@ const HomeScreen: React.FC = () => {
     setHeroIndex(0);
   }, [heroSlides.length]);
 
-  const tagline = normalizeArabicText(settings?.tagline) || copy.taglineFallback;
+  const isEmployee = user?.role === "manager" || user?.role === "supervisor" || user?.role === "staff";
+  const canManageSupport = user?.role === "manager" || !!permissions?.can_manage_support;
 
-  const visibleProducts = useMemo(() => {
-    if (activeCategory == null) return safeProducts.slice(0, 6);
-    return safeProducts.filter((product) => {
-      if (product.category == null) return false;
-      if (typeof product.category === "number") {
-        return product.category === activeCategory;
+  const quickActions: QuickAction[] = useMemo(() => {
+    const raw = (copy.home.quickActions || []) as any[];
+    return raw.map((item) => {
+      if (item.route !== "Orders") return item;
+
+      if (!isEmployee) return item;
+      if (canManageSupport) {
+        return {
+          ...item,
+          route: "Support",
+          label: "الدعم",
+          helper: "متابعة تذاكر ومحادثات الدعم",
+          icon: "chatbubble-ellipses-outline",
+        };
       }
-      if (typeof product.category === "object") {
-        return product.category?.id === activeCategory;
-      }
-      return false;
+      return {
+        ...item,
+        route: "MyHR",
+        label: "طلباتي",
+        helper: "الحضور والانصراف وطلبات الموارد البشرية",
+        icon: "calendar-outline",
+      };
     });
-  }, [safeProducts, activeCategory]);
+  }, [isEmployee, canManageSupport]);
 
-  const categoryCards = useMemo(() => {
+  const categoryCards: CategoryCard[] = useMemo(() => {
     if (!safeCategories.length) {
       return copy.categoryFallbacks.map((item, index) => ({
         id: index,
@@ -155,6 +177,16 @@ const HomeScreen: React.FC = () => {
       image: resolveMediaUrl(category.image) || copy.categoryFallbacks[index % copy.categoryFallbacks.length].image,
     }));
   }, [safeCategories]);
+
+  const visibleProducts = useMemo(() => {
+    if (activeCategory == null) return safeProducts.slice(0, 6);
+    return safeProducts.filter((product) => {
+      if (product.category == null) return false;
+      if (typeof product.category === "number") return product.category === activeCategory;
+      if (typeof product.category === "object") return product.category?.id === activeCategory;
+      return false;
+    });
+  }, [safeProducts, activeCategory]);
 
   const handleHeroCta = (link?: string | null) => {
     const categoryId = parseCategoryIdFromLink(link);
@@ -170,20 +202,12 @@ const HomeScreen: React.FC = () => {
   };
 
   const handleQuickAction = (route: string) => {
-    if (["Home", "Menu", "Orders", "Profile"].includes(route)) {
+    if (["Home", "Menu", "Orders", "Support", "MyHR", "Dashboard", "Profile"].includes(route)) {
       goToTab(navigation, route as any);
       return;
     }
     goToStack(navigation, route as any);
   };
-
-  if (categoriesLoading || productsLoading) {
-    return (
-      <Screen scrollable={false}>
-        <Text style={{ textAlign: "center", color: theme.palette.muted }}>{copy.messages.loading}</Text>
-      </Screen>
-    );
-  }
 
   const handleAddRequest = (product: Product) => {
     if (product.addons && product.addons.length > 0) {
@@ -201,10 +225,7 @@ const HomeScreen: React.FC = () => {
 
   const handleConfirmAddons = (addons: ProductAddon[]) => {
     if (!addonProduct) return;
-    const addonsTotal = addons.reduce(
-      (sum, addon) => sum + (Number(addon.price_delta) || 0),
-      0
-    );
+    const addonsTotal = addons.reduce((sum, addon) => sum + (Number(addon.price_delta) || 0), 0);
     addItem({
       id: addonProduct.id,
       name: addonProduct.name,
@@ -216,31 +237,36 @@ const HomeScreen: React.FC = () => {
     setAddonProduct(null);
   };
 
+  if (categoriesLoading || productsLoading) {
+    return (
+      <Screen scrollable={false}>
+        <Text style={{ textAlign: "center", color: theme.palette.muted }}>{copy.messages.loading}</Text>
+      </Screen>
+    );
+  }
+
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView
-        ref={scrollRef}
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 24, gap: 14 }}
-      >
-        <View style={styles.headerRow}>
-          <View style={styles.brandBlock}>
-            <Text style={styles.brandTitle}>
-              <Text style={styles.brandOrange}>{brandFirst || brandName} </Text>
-              <Text style={styles.brandPurple}>{brandSecond || ''}</Text>
-            </Text>
-            <Text style={styles.brandTagline}>{tagline}</Text>
+    <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+        <DashboardSection style={styles.headerSection}>
+          <View style={styles.headerRow}>
+            <Pressable style={styles.cartBadge} onPress={() => goToStack(navigation, "Cart")}>
+              <Ionicons name="cart-outline" size={22} color="#f59e0b" />
+              {totalQuantity > 0 ? (
+                <View style={[styles.cartCount, { backgroundColor: "#f59e0b" }]}>
+                  <Text style={styles.cartCountText}>{totalQuantity}</Text>
+                </View>
+              ) : null}
+            </Pressable>
+            <View style={styles.brandBlock}>
+              <Text style={styles.brandTitle} numberOfLines={1}>
+                <Text style={styles.brandOrange}>{brandFirst || brandName} </Text>
+                <Text style={styles.brandPurple}>{brandSecond || ""}</Text>
+              </Text>
+              <Text style={styles.brandTagline}>{tagline}</Text>
+            </View>
           </View>
-          <Pressable style={styles.cartBadge} onPress={() => goToStack(navigation, 'Cart')}>
-            <Ionicons name='cart-outline' size={22} color='#f59e0b' />
-            {totalQuantity > 0 && (
-              <View style={styles.cartCount}>
-                <Text style={styles.cartCountText}>{totalQuantity}</Text>
-              </View>
-            )}
-          </Pressable>
-        </View>
+        </DashboardSection>
 
         <Card style={styles.heroCard} contentStyle={styles.heroContent}>
           <View style={styles.heroClip}>
@@ -267,17 +293,17 @@ const HomeScreen: React.FC = () => {
                     <Text style={styles.heroDescription}>{item.description}</Text>
                     <View style={styles.heroActions}>
                       <Button
-                        title={item.button_text?.trim() || settings?.hero_button_text?.trim() || homeCopy.heroExploreCta}
-                        color="#f59e0b"
-                        textColor="#1f2937"
+                        title={item.button_text?.trim() || settings?.hero_button_text?.trim() || copy.home.heroExploreCta}
                         onPress={() => handleHeroCta(item.button_link)}
+                        labelStyle={{ fontWeight: "800", fontSize: 14 }}
                         style={[styles.heroActionButton, styles.heroPrimaryBtn]}
                       />
                       <Button
                         title="ابدأ الطلب الآن"
                         variant="ghost"
                         color="transparent"
-                        textColor="#f59e0b"
+                        textColor="#ffffff"
+                        labelStyle={{ fontWeight: "800", fontSize: 14 }}
                         onPress={() => goToTab(navigation, "Menu")}
                         style={[styles.heroActionButton, styles.heroGhostButton]}
                       />
@@ -287,102 +313,86 @@ const HomeScreen: React.FC = () => {
               )}
             />
           </View>
-          <View style={[styles.pagination, { marginBottom: 6 }]}>
+          <View style={styles.pagination}>
             {heroSlides.map((_, index) => (
               <View key={index} style={[styles.dot, index === heroIndex && styles.dotActive]} />
             ))}
           </View>
         </Card>
 
-        <Card style={[styles.infoCard, { marginTop: 8 }]}>
-          <Text style={[styles.sectionTitle, { color: '#0f172a' }]}>{homeCopy.quickIntro}</Text>
-          <View style={styles.infoTags}>
-            {(homeCopy.infoTags || []).map((text, idx) => {
-              const icons = ['timer-outline', 'leaf-outline', 'shield-checkmark-outline'];
-              return (
-                <View key={`${text}-${idx}`} style={styles.tag}>
-                  <Ionicons name={(icons[idx] || 'timer-outline') as any} size={16} color='#f59e0b' />
-                  <Text style={styles.tagText}>{text}</Text>
-                </View>
-              );
-            })}
-          </View>
-        </Card>
-
-        <View style={styles.quickActions}>
-          {homeCopy.quickActions.map((item) => (
-            <Pressable key={item.label} style={styles.quickCard} onPress={() => handleQuickAction(item.route)}>
-              <View style={[styles.quickIcon, { backgroundColor: theme.palette.accent }]}>
-                <Ionicons name={item.icon as any} size={20} color="#fff" />
+        <DashboardSection title="اختصارات" subtitle={copy.home.quickIntro}>
+          <View style={styles.tileGrid}>
+            {quickActions.map((item) => (
+              <View key={`${item.route}-${item.label}`} style={styles.tileItem}>
+                <DashboardTile
+                  title={item.label}
+                  subtitle={item.helper}
+                  icon={item.icon}
+                  onPress={() => handleQuickAction(item.route)}
+                  color={theme.palette.accent}
+                  style={{ width: "100%" }}
+                />
               </View>
-              <View style={{ flex: 1, alignItems: "flex-end" }}>
-                <Text style={styles.quickLabel}>{item.label}</Text>
-                <Text style={styles.quickHelper}>{item.helper}</Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
-
-        <Card>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{homeCopy.categoriesTitle}</Text>
-            <Button title={homeCopy.categoriesCta} variant="ghost" onPress={() => goToTab(navigation, "Menu")} style={{ borderWidth: 0 }} />
-          </View>
-          <View style={styles.categoryGrid}>
-            {categoryCards.map((category, index) => (
-              <Pressable
-                key={`${category.id}-${index}`}
-                style={styles.categoryCard}
-                onPress={() => {
-                  if (category.id) setActiveCategory(category.id);
-                  goToTab(navigation, "Menu", { categoryId: category.id });
-                }}
-              >
-                <ImageBackground source={{ uri: category.image }} style={styles.categoryImage} imageStyle={{ borderRadius: 18 }}>
-                  <View style={styles.categoryOverlayWide}>
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                  </View>
-                </ImageBackground>
-              </Pressable>
             ))}
           </View>
-        </Card>
+        </DashboardSection>
 
-        <Card style={{ marginVertical: 10 }}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{homeCopy.featuredTitle}</Text>
-            <Button
-              title={homeCopy.categoriesCta}
-              variant="ghost"
-              onPress={() => {
-                setActiveCategory(null);
-                goToTab(navigation, "Menu");
-              }}
-              style={{ borderWidth: 0 }}
-            />
+        <DashboardSection title={copy.home.categoriesTitle} subtitle="اختر القسم الذي تريده.">
+          <View style={styles.categoryGrid}>
+            {categoryCards.map((category) => (
+              <View key={String(category.id)} style={styles.categoryItem}>
+                <Pressable
+                  style={styles.categoryCard}
+                  onPress={() => {
+                    setActiveCategory(category.id);
+                    goToTab(navigation, "Menu", { categoryId: category.id });
+                  }}
+                >
+                  <ImageBackground
+                    source={{ uri: category.image }}
+                    style={styles.categoryImage}
+                    imageStyle={styles.categoryImageStyle}
+                  >
+                    <View style={styles.categoryOverlay}>
+                      <Text style={styles.categoryName} numberOfLines={2}>
+                        {category.name}
+                      </Text>
+                    </View>
+                  </ImageBackground>
+                </Pressable>
+              </View>
+            ))}
           </View>
+          <Button title={copy.home.categoriesCta} variant="secondary" onPress={() => goToTab(navigation, "Menu")} />
+        </DashboardSection>
+
+        <DashboardSection title={copy.home.featuredTitle} subtitle="منتجات مختارة من القائمة.">
           {visibleProducts.length === 0 ? (
-            <Text style={styles.helperText}>{homeCopy.featuredEmpty}</Text>
+            <Text style={styles.helperText}>{copy.home.featuredEmpty}</Text>
           ) : (
-            <View style={styles.productGrid}>
-              {visibleProducts.map((product) => (
-                <ProductGridCard
-                  key={product.id}
-                  product={product}
-                  onPress={() =>
-                    goToStack(navigation, "ProductDetails", {
-                      productId: product.id,
-                    })
-                  }
-                  onAdd={() => handleAddRequest(product)}
-                  priceColor={theme.palette.success}
-                />
-              ))}
-            </View>
+            <FlatList
+              data={visibleProducts}
+              keyExtractor={(item) => String(item.id)}
+              numColumns={2}
+              scrollEnabled={false}
+              contentContainerStyle={styles.productGridList}
+              columnWrapperStyle={styles.productGridRow}
+              renderItem={({ item: product }) => (
+                <View style={styles.productGridItem}>
+                  <ProductGridCard
+                    product={product}
+                    onPress={() => goToStack(navigation, "ProductDetails", { productId: product.id })}
+                    onAdd={() => handleAddRequest(product)}
+                    priceColor={theme.palette.success}
+                  />
+                </View>
+              )}
+            />
           )}
-          <Button title={homeCopy.featuredCta} variant="secondary" onPress={() => goToTab(navigation, "Menu")} />
-        </Card>
+          <Button title={copy.home.featuredCta} variant="secondary" onPress={() => goToTab(navigation, "Menu")} />
+        </DashboardSection>
       </ScrollView>
+
       <ProductAddonsModal
         visible={!!addonProduct}
         product={addonProduct}
@@ -394,13 +404,19 @@ const HomeScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 4,
+    paddingTop: 6,
+    paddingBottom: 24,
+    gap: 6,
+  },
+  headerSection: {
+    borderRadius: 22,
+  },
   headerRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 10,
-    paddingTop: 4,
-    marginBottom: 16,
     gap: 12,
   },
   brandBlock: {
@@ -409,49 +425,45 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   brandTitle: {
-    fontSize: 30,
-    fontWeight: "800",
+    fontSize: 26,
+    fontWeight: "900",
     textAlign: "right",
+    writingDirection: "rtl",
   },
   brandOrange: { color: "#f59e0b" },
   brandPurple: { color: "#6138A1" },
   brandTagline: {
     fontSize: 13,
-    color: "#6b7280",
+    color: "#64748b",
     textAlign: "right",
+    writingDirection: "rtl",
   },
   cartBadge: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     alignItems: "center",
     justifyContent: "center",
     position: "relative",
     backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 6,
   },
   cartCount: {
     position: "absolute",
-    top: 8,
-    left: 10,
-    backgroundColor: "#f59e0b",
+    top: 7,
+    right: 9,
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
   cartCountText: {
     color: "#1f2937",
-    fontWeight: "800",
+    fontWeight: "900",
     fontSize: 12,
   },
   heroCard: {
     padding: 0,
-    marginBottom: 8,
     alignSelf: "center",
     width: HERO_WIDTH,
   },
@@ -461,23 +473,23 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   heroClip: {
-    borderRadius: 32,
+    borderRadius: 22,
     overflow: "hidden",
     alignSelf: "center",
   },
   heroSlide: {
     width: "100%",
     height: 320,
-    borderRadius: 26,
+    borderRadius: 22,
     overflow: "hidden",
     justifyContent: "flex-end",
   },
   heroImage: {
-    borderRadius: 26,
+    borderRadius: 22,
   },
   heroOverlay: {
     backgroundColor: "rgba(17, 24, 39, 0.55)",
-    padding: 20,
+    padding: 18,
     gap: 10,
     alignItems: "flex-end",
   },
@@ -490,41 +502,44 @@ const styles = StyleSheet.create({
   heroTagText: {
     color: "#fefefe",
     fontSize: 12,
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   heroTitle: {
     color: "#fefcf7",
     fontSize: 22,
     fontWeight: "800",
     textAlign: "right",
+    writingDirection: "rtl",
   },
   heroDescription: {
     color: "#f8fafc",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   heroActions: {
     flexDirection: "row-reverse",
-    gap: 12,
-    marginTop: 10,
+    gap: 10,
+    marginTop: 6,
   },
   heroActionButton: {
     flex: 1,
   },
   heroPrimaryBtn: {
-    backgroundColor: "#f59e0b",
     borderRadius: 18,
   },
   heroGhostButton: {
     borderWidth: 1.4,
-    borderColor: "#f59e0b",
+    borderColor: "#ffffff",
     borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.05)",
+    backgroundColor: "rgba(255,255,255,0.10)",
   },
   pagination: {
     flexDirection: "row-reverse",
     justifyContent: "center",
-    paddingVertical: 0,
+    paddingVertical: 8,
     gap: 4,
   },
   dot: {
@@ -537,101 +552,37 @@ const styles = StyleSheet.create({
     width: 22,
     backgroundColor: "#f59e0b",
   },
-  infoCard: {
-    backgroundColor: "#fdfcf9",
-    borderColor: "#f3f4f6",
-    borderWidth: 1,
-  },
-  infoTags: {
-    flexDirection: "row-reverse",
-    gap: 8,
-    flexWrap: "wrap",
-    marginTop: 8,
-  },
-  tag: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(0,0,0,0.04)",
-  },
-  tagText: {
-    color: "#0f172a",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  quickActions: {
+  tileGrid: {
     flexDirection: "row-reverse",
     flexWrap: "wrap",
-    justifyContent: "flex-start",
-    marginBottom: 12,
-    marginTop: -4,
-  },
-  quickCard: {
-    flexBasis: "48%",
-    maxWidth: "48%",
-    marginHorizontal: "1%",
-    marginBottom: 10,
-    borderRadius: 24,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    backgroundColor: "#ffffff",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 12,
-    minHeight: 86,
-  },
-  quickIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quickLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-    flexShrink: 1,
-    flexWrap: "wrap",
-    textAlign: "right",
-  },
-  quickHelper: {
-    fontSize: 12,
-    color: "#64748b",
-    flexShrink: 1,
-    flexWrap: "wrap",
-    textAlign: "right",
-  },
-  sectionHeader: {
-    flexDirection: "row-reverse",
     justifyContent: "space-between",
-    alignItems: "center",
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "right",
+  tileItem: {
+    width: "49.5%",
+    marginBottom: 6,
   },
   categoryGrid: {
-    flexDirection: "row",
+    flexDirection: "row-reverse",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    gap: 12,
+  },
+  categoryItem: {
+    width: "49.5%",
+    marginBottom: 6,
   },
   categoryCard: {
-    width: "48%",
-    height: 140,
+    width: "100%",
+    height: 136,
+    borderRadius: 18,
+    overflow: "hidden",
   },
   categoryImage: {
     flex: 1,
   },
-  categoryOverlayWide: {
+  categoryImageStyle: {
+    borderRadius: 18,
+  },
+  categoryOverlay: {
     flex: 1,
     borderRadius: 18,
     backgroundColor: "rgba(24, 24, 27, 0.35)",
@@ -640,22 +591,29 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     color: "#fff",
-    fontWeight: "700",
+    fontWeight: "800",
     fontSize: 16,
     textAlign: "right",
+    writingDirection: "rtl",
   },
-  productGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  productGridList: {
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  productGridRow: {
+    flexDirection: "row-reverse",
     justifyContent: "space-between",
-    gap: 12,
-    marginBottom: 12,
+    marginBottom: 4,
+  },
+  productGridItem: {
+    width: "49.5%",
   },
   helperText: {
     fontSize: 13,
     color: "#6b7280",
     textAlign: "right",
-    marginBottom: 12,
+    writingDirection: "rtl",
+    marginBottom: 6,
   },
 });
 

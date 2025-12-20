@@ -14,7 +14,7 @@ const Screen: React.FC<ScreenProps> = ({ children, scrollable = true, style, con
   const theme = useTheme();
   const baseStyle = [{ flex: 1, backgroundColor: theme.palette.background }, style];
   // تقليل الحواف لتكون الشاشة أعرض (مشابهة للوحة التحكم)
-  const containerDefaults = { paddingHorizontal: 8, paddingVertical: 0, paddingBottom: 0, gap: 0 };
+  const containerDefaults = { paddingHorizontal: 0, paddingVertical: 0, paddingBottom: 0, gap: 0 };
 
   if (scrollable) {
     return (

@@ -1,5 +1,6 @@
-﻿import React from "react";
+import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useTheme } from "../../../theme";
 
 type Props = {
   label: string;
@@ -7,11 +8,13 @@ type Props = {
   color?: string;
 };
 
-const HRStatBadge: React.FC<Props> = ({ label, value, color = "#F59E0B" }) => {
+const HRStatBadge: React.FC<Props> = ({ label, value, color }) => {
+  const theme = useTheme();
+  const tint = color || theme.palette.accent;
   return (
-    <View style={styles.card}>
-      <Text style={[styles.value, { color }]}>{value}</Text>
-      <Text style={styles.label}>{label}</Text>
+    <View style={[styles.card, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
+      <Text style={[styles.value, { color: tint }]}>{value}</Text>
+      <Text style={[styles.label, { color: theme.palette.muted }]}>{label}</Text>
     </View>
   );
 };
@@ -20,7 +23,6 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
@@ -32,9 +34,9 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: "#6b7280",
     textAlign: "center",
   },
 });
 
 export default HRStatBadge;
+

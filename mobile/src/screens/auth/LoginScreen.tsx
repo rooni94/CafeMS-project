@@ -1,127 +1,184 @@
-﻿import React, { useState } from "react";
-import { View, Text, StyleSheet, Alert, Pressable } from "react-native";
-import Screen from "../../components/Screen";
-import { useAuth } from "../../context/AuthContext";
+import React, { useMemo, useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { Button, Input, Card } from "../../components/ui";
-import { useTheme } from "../../theme";
+
+import Screen from "../../components/Screen";
+import { Button, Card, Input } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { useStoreSettings } from "../../context/StoreSettingsContext";
+import { safeGoBack } from "../../navigation/helpers";
+import { useTheme } from "../../theme";
 import { copy } from "../../config/copy";
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const { settings } = useStoreSettings();
   const { login, loading } = useAuth();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
     setError(null);
-    if (!username || !password) {
-      Alert.alert("تنبيه", copy.messages.required || "يرجى تعبئة الحقول المطلوبة");
+    if (!username.trim() || !password.trim()) {
+      Alert.alert("تنبيه", copy.messages.required);
       return;
     }
     try {
       await login(username.trim(), password);
-      navigation.goBack();
+      safeGoBack(navigation, { tab: "Profile" });
     } catch (err: any) {
-      setError(err?.message || "تعذر تسجيل الدخول، حاول مرة أخرى");
+      setError(err?.message || "تعذر تسجيل الدخول. تأكد من البيانات وحاول مرة أخرى.");
     }
   };
 
   return (
     <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
-      <View style={styles.header}>
-        <Text style={styles.brand}>{settings?.store_name || copy.brandFallback}</Text>
-        <Text style={styles.subtitle}>أدخل بياناتك للوصول لطلباتك ونقاط الولاء.</Text>
-      </View>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+          <Card style={styles.headerCard} contentStyle={styles.headerContent}>
+            <View style={styles.brandRow}>
+              <Text style={[styles.brand, { color: theme.palette.text }]} numberOfLines={1}>
+                {settings?.store_name || copy.brandFallback}
+              </Text>
+              <Text
+                style={[
+                  styles.badge,
+                  { backgroundColor: theme.palette.accentSoft, color: theme.palette.accent },
+                ]}
+              >
+                تسجيل الدخول
+              </Text>
+            </View>
+            <Text style={[styles.subtitle, { color: theme.palette.muted }]}>
+              سجّل دخولك للوصول إلى طلباتك وحفظ عناوينك ونقاط الولاء.
+            </Text>
+          </Card>
 
-      <View style={styles.segmentWrapper}>
-        <View style={[styles.segmentButton, styles.segmentActive, { backgroundColor: theme.palette.accent }]}>
-          <Text style={styles.segmentActiveText}>تسجيل الدخول</Text>
-        </View>
-        <View style={[styles.segmentButton, styles.segmentGhost, { borderColor: theme.palette.accent }]}>
-          <Text style={[styles.segmentGhostText, { color: theme.palette.accentSoft }]} onPress={() => navigation.navigate("Register")}>
-            إنشاء حساب
-          </Text>
-        </View>
-      </View>
+          <Card style={styles.card} contentStyle={{ gap: 12 }}>
+            <Input
+              label="اسم المستخدم"
+              placeholder="اكتب اسم المستخدم"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
+            <Input
+              label="كلمة المرور"
+              placeholder="اكتب كلمة المرور"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
 
-      <Card>
-        <Input label="اسم المستخدم" placeholder="أدخل اسم المستخدم" value={username} onChangeText={setUsername} />
-        <Input label="كلمة المرور" placeholder="أدخل كلمة المرور" secureTextEntry value={password} onChangeText={setPassword} />
-        <Button title={loading ? copy.messages.loading : "تسجيل الدخول"} onPress={handleSubmit} />
-      </Card>
+            <Button
+              title={loading ? copy.messages.loading : "تسجيل الدخول"}
+              onPress={handleSubmit}
+              disabled={loading}
+            />
 
-      <Pressable style={styles.resetRow} onPress={() => navigation.navigate("ResetPassword")}>
-        <Text style={styles.resetText}>نسيت كلمة المرورٟ استعادة كلمة المرور</Text>
-      </Pressable>
+            <View style={styles.linksRow}>
+              <Pressable onPress={() => navigation.navigate("Register")} style={styles.linkBtn} hitSlop={10}>
+                <Text style={[styles.linkText, { color: theme.palette.accent }]}>إنشاء حساب</Text>
+              </Pressable>
+              <Pressable onPress={() => navigation.navigate("ResetPassword")} style={styles.linkBtn} hitSlop={10}>
+                <Text style={[styles.linkText, { color: theme.palette.accent }]}>نسيت كلمة المرور؟</Text>
+              </Pressable>
+            </View>
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+            {error ? <Text style={[styles.error, { color: theme.palette.danger }]}>{error}</Text> : null}
+          </Card>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 };
 
-const styles = StyleSheet.create({
-  header: {
-    alignItems: "flex-end",
-    marginBottom: 16,
-  },
-  brand: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#1F1A12",
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#7C6A58",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  segmentWrapper: {
-    flexDirection: "row-reverse",
-    gap: 10,
-    marginBottom: 12,
-  },
-  segmentButton: {
-    flex: 1,
-    borderRadius: 999,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  segmentActive: {
-    backgroundColor: "#f59e0b",
-  },
-  segmentActiveText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-  segmentGhost: {
-    flex: 1,
-    borderWidth: 1.2,
-    borderColor: "#e0cbb4",
-    backgroundColor: "#fff",
-  },
-  segmentGhostText: {
-    fontWeight: "700",
-  },
-  resetRow: {
-    alignItems: "flex-end",
-    marginTop: 8,
-    paddingHorizontal: 4,
-  },
-  resetText: {
-    color: "#F59E0B",
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  error: {
-    textAlign: "center",
-    color: "#C24141",
-    marginTop: 8,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    container: {
+      paddingHorizontal: 12,
+      paddingTop: 12,
+      paddingBottom: 24,
+      gap: 12,
+    },
+    headerCard: {
+      borderRadius: 22,
+      borderColor: theme.palette.border,
+      backgroundColor: theme.palette.surface,
+    },
+    headerContent: {
+      gap: 8,
+      alignItems: "flex-end",
+    },
+    brandRow: {
+      width: "100%",
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+    },
+    brand: {
+      fontSize: 18,
+      fontWeight: "900",
+      textAlign: "right",
+      flex: 1,
+      writingDirection: "rtl",
+    },
+    badge: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      fontSize: 12,
+      fontWeight: "900",
+      overflow: "hidden",
+      writingDirection: "rtl",
+    },
+    subtitle: {
+      fontSize: 13,
+      lineHeight: 18,
+      textAlign: "right",
+      writingDirection: "rtl",
+    },
+    card: {
+      borderRadius: 22,
+      borderColor: theme.palette.border,
+      backgroundColor: theme.palette.surface,
+    },
+    linksRow: {
+      flexDirection: "row-reverse",
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    linkBtn: {
+      paddingVertical: 6,
+      paddingHorizontal: 2,
+    },
+    linkText: {
+      fontSize: 14,
+      fontWeight: "900",
+      textAlign: "right",
+      writingDirection: "rtl",
+    },
+    error: {
+      textAlign: "right",
+      fontSize: 13,
+      fontWeight: "800",
+      writingDirection: "rtl",
+    },
+  });
 
 export default LoginScreen;
+

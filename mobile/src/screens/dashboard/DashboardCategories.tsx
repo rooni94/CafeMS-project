@@ -1,11 +1,16 @@
-import React, { useState, useMemo } from "react";
-import { Text, StyleSheet, ScrollView, View, TextInput, Alert, Image } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Alert, Image, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import { Card, Button } from "../../components/ui";
-import { useTheme } from "../../theme";
+import { Button, Input } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import { hasAny } from "./components/permissions";
 
 type Category = {
   id: number;
@@ -24,44 +29,53 @@ type SubCategory = {
 
 const DashboardCategories: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
-  const [isSub, setIsSub] = useState(false);
+  const { user, permissions } = useAuth();
+
+  const allowed = hasAny(user, permissions, ["can_manage_categories", "can_manage_subcategories"]);
+
+  const [mode, setMode] = useState<"category" | "subcategory">("category");
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [parentId, setParentId] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  const { data: categories } = useQuery<Category[]>({
-    queryKey: ["categories-admin"],
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
+    queryKey: ["dashboard", "categories"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("products/categories/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
-  const { data: subcategories } = useQuery<SubCategory[]>({
-    queryKey: ["subcategories-admin"],
+  const { data: subcategories = [], isLoading: subLoading } = useQuery<SubCategory[]>({
+    queryKey: ["dashboard", "subcategories"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("products/subcategories/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
+
+  if (!allowed) {
+    return <DashboardAccessDenied title="الأقسام" subtitle="إدارة الأقسام والأقسام الفرعية." />;
+  }
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.8,
+      quality: 0.85,
     });
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-    }
+    if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
   const resetForm = () => {
     setEditingId(null);
-    setIsSub(false);
     setName("");
     setDescription("");
     setParentId("");
@@ -70,213 +84,194 @@ const DashboardCategories: React.FC = () => {
 
   const save = async () => {
     if (!name.trim()) {
-      Alert.alert("تنبيه", "أدخل الاسم.");
+      Alert.alert("بيانات ناقصة", "أدخل الاسم.");
       return;
     }
-    if (isSub && !parentId) {
-      Alert.alert("تنبيه", "اختر تصنيفاً رئيسياً للتصنيف الفرعي.");
+    if (mode === "subcategory" && !parentId.trim()) {
+      Alert.alert("بيانات ناقصة", "أدخل رقم الفئة الرئيسية للتصنيف الفرعي.");
       return;
     }
-    const formData: any = new FormData();
-    formData.append("name", name.trim());
-    formData.append("description", description);
-    if (isSub) formData.append("category", Number(parentId));
-    if (imageUri) {
-      const filename = imageUri.split("/").pop() || "image.jpg";
-      formData.append("image", {
-        uri: imageUri,
-        name: filename,
-        type: "image/jpeg",
-      } as any);
-    }
+
+    setSaving(true);
     try {
-      if (isSub) {
+      const formData: any = new FormData();
+      formData.append("name", name.trim());
+      formData.append("description", description);
+      if (mode === "subcategory") formData.append("category", Number(parentId));
+      if (imageUri) {
+        const filename = imageUri.split("/").pop() || "image.jpg";
+        formData.append("image", { uri: imageUri, name: filename, type: "image/jpeg" } as any);
+      }
+
+      if (mode === "subcategory") {
         if (editingId) {
           await api.patch(`products/subcategories/${editingId}/`, formData, { headers: { "Content-Type": "multipart/form-data" } });
         } else {
           await api.post("products/subcategories/", formData, { headers: { "Content-Type": "multipart/form-data" } });
         }
-        qc.invalidateQueries({ queryKey: ["subcategories-admin"] });
+        qc.invalidateQueries({ queryKey: ["dashboard", "subcategories"] });
       } else {
         if (editingId) {
           await api.patch(`products/categories/${editingId}/`, formData, { headers: { "Content-Type": "multipart/form-data" } });
         } else {
           await api.post("products/categories/", formData, { headers: { "Content-Type": "multipart/form-data" } });
         }
-        qc.invalidateQueries({ queryKey: ["categories-admin"] });
+        qc.invalidateQueries({ queryKey: ["dashboard", "categories"] });
       }
+
       resetForm();
     } catch {
-      Alert.alert("خطأ", "تعذر الحفظ.");
+      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء الحفظ.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const filteredSubsByParent = useMemo(() => {
-    return (subcategories || []).reduce<Record<number, SubCategory[]>>((acc, item) => {
-      const parent = typeof item.category === "object" ? item.category?.id : item.category || 0;
-      acc[parent] = acc[parent] ? [...acc[parent], item] : [item];
-      return acc;
-    }, {});
-  }, [subcategories]);
-
-  const startEdit = (item: Category | SubCategory, sub: boolean) => {
-    setIsSub(sub);
-    const parent = sub ? (item as SubCategory).category : null;
+  const startEdit = (item: Category | SubCategory, nextMode: "category" | "subcategory") => {
+    setMode(nextMode);
     setEditingId(item.id);
     setName(item.name);
     setDescription(item.description || "");
-    setParentId(sub ? (typeof parent === "object" ? String(parent?.id ?? "") : String(parent ?? "")) : "");
     setImageUri(item.image || null);
-  };
-
-  const deleteItem = async (id: number, sub: boolean) => {
-    try {
-      if (sub) {
-        await api.delete(`products/subcategories/${id}/`);
-        qc.invalidateQueries({ queryKey: ["subcategories-admin"] });
-      } else {
-        await api.delete(`products/categories/${id}/`);
-        qc.invalidateQueries({ queryKey: ["categories-admin"] });
-      }
-      if (editingId === id) resetForm();
-    } catch {
-      Alert.alert("خطأ", "تعذر الحذف.");
+    if (nextMode === "subcategory") {
+      const parent = (item as SubCategory).category;
+      setParentId(typeof parent === "object" ? String(parent?.id ?? "") : parent ? String(parent) : "");
+    } else {
+      setParentId("");
     }
   };
 
+  const deleteItem = async (id: number, which: "category" | "subcategory") => {
+    Alert.alert("تأكيد الحذف", "هل أنت متأكد؟", [
+      { text: "إلغاء", style: "cancel" },
+      {
+        text: "حذف",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            if (which === "subcategory") {
+              await api.delete(`products/subcategories/${id}/`);
+              qc.invalidateQueries({ queryKey: ["dashboard", "subcategories"] });
+            } else {
+              await api.delete(`products/categories/${id}/`);
+              qc.invalidateQueries({ queryKey: ["dashboard", "categories"] });
+            }
+            if (editingId === id) resetForm();
+          } catch {
+            Alert.alert("تعذر الحذف", "حدث خطأ أثناء الحذف.");
+          }
+        },
+      },
+    ]);
+  };
+
   return (
-    <DashboardShell title="إدارة التصنيفات" subtitle="إضافة وتحديث تصنيفات المنتجات مع الصور.">
-        <Card>
-          <Text style={styles.title}>الأصناف والأصناف الفرعية</Text>
-          <Text style={styles.helper}>إدارة التصنيفات والصور، مع ربط التصنيف الفرعي بالرئيسي.</Text>
-        </Card>
+    <DashboardShell title="التصنيفات" subtitle="إدارة الفئات والتصنيفات الفرعية.">
+      <DashboardSection title={editingId ? "تعديل" : "إضافة"} subtitle="اختر نوع التصنيف ثم أدخل البيانات.">
+        <View style={styles.modeRow}>
+          <Button title="فئة" variant={mode === "category" ? "primary" : "ghost"} onPress={() => setMode("category")} />
+          <Button title="تصنيف فرعي" variant={mode === "subcategory" ? "primary" : "ghost"} onPress={() => setMode("subcategory")} />
+        </View>
 
-        <Card style={{ gap: 8 }}>
-          <Text style={styles.sectionTitle}>{editingId ? "تعديل" : "إضافة"}</Text>
-          <View style={styles.switchRow}>
-            <Button title="تصنيف رئيسي" variant={!isSub ? "primary" : "ghost"} onPress={() => setIsSub(false)} />
-            <Button title="تصنيف فرعي" variant={isSub ? "primary" : "ghost"} onPress={() => setIsSub(true)} />
-          </View>
-          <TextInput placeholder="الاسم" value={name} onChangeText={setName} style={styles.input} textAlign="right" />
-          <TextInput placeholder="الوصف (اختياري)" value={description} onChangeText={setDescription} style={styles.input} textAlign="right" />
-          {isSub && (
-            <TextInput
-              placeholder="معرف التصنيف الرئيسي"
-              value={parentId}
-              onChangeText={setParentId}
-              style={styles.input}
-              keyboardType="number-pad"
-              textAlign="right"
-            />
-          )}
-          <Button title={imageUri ? "تغيير الصورة" : "اختيار صورة"} variant="secondary" onPress={pickImage} />
-          {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
-          <Button title="حفظ" onPress={save} />
-          {editingId ? <Button title="إلغاء التعديل" variant="ghost" onPress={resetForm} /> : null}
-        </Card>
+        <Input label={mode === "category" ? "اسم الفئة" : "اسم التصنيف الفرعي"} value={name} onChangeText={setName} />
+        <Input label="وصف (اختياري)" value={description} onChangeText={setDescription} multiline numberOfLines={3} />
+        {mode === "subcategory" ? (
+          <Input
+            label="رقم الفئة الرئيسية"
+            value={parentId}
+            onChangeText={setParentId}
+            keyboardType="number-pad"
+            hint="يمكنك معرفة الرقم من قائمة الفئات بالأسفل."
+          />
+        ) : null}
 
-        <Card>
-          <Text style={styles.sectionTitle}>التصنيفات</Text>
-          {categories?.map((cat) => (
-            <View key={cat.id} style={styles.row}>
-              <View style={{ flex: 1, alignItems: "flex-end" }}>
-                <Text style={styles.name}>{cat.name}</Text>
-                {cat.description ? <Text style={styles.sub}>{cat.description}</Text> : null}
-                {filteredSubsByParent[cat.id]?.length ? (
-                  <View style={{ marginTop: 6, gap: 4 }}>
-                    {filteredSubsByParent[cat.id].map((s) => (
-                      <Text key={s.id} style={styles.sub}>فرعي: {s.name}</Text>
-                    ))}
+        <Button title={imageUri ? "تغيير الصورة" : "اختيار صورة"} variant="secondary" onPress={pickImage} />
+        {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
+
+        <Button title={saving ? "جارٍ الحفظ..." : "حفظ"} onPress={save} disabled={saving} />
+        {editingId ? <Button title="إلغاء التعديل" variant="ghost" onPress={resetForm} /> : null}
+      </DashboardSection>
+
+      <DashboardSection title="الفئات" subtitle={categoriesLoading ? "جاري التحميل..." : "اضغط للتعديل."}>
+        {categories.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد فئات.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {categories.map((cat) => (
+              <DashboardListItem
+                key={cat.id}
+                title={cat.name}
+                subtitle={`ID: ${cat.id}${cat.description ? ` • ${cat.description}` : ""}`}
+                icon="albums-outline"
+                onPress={() => startEdit(cat, "category")}
+                right={
+                  <View style={{ flexDirection: "row-reverse", gap: 8, alignItems: "center" }}>
+                    {cat.image ? <Image source={{ uri: cat.image }} style={styles.thumb} /> : null}
+                    <Button title="تعديل" variant="secondary" onPress={() => startEdit(cat, "category")} />
+                    <Button title="حذف" variant="ghost" onPress={() => deleteItem(cat.id, "category")} />
                   </View>
-                ) : null}
-              </View>
-              {cat.image ? <Image source={{ uri: cat.image }} style={styles.thumb} /> : null}
-              <View style={{ gap: 6 }}>
-                <Button title="تعديل" variant="secondary" onPress={() => startEdit(cat, false)} />
-                <Button title="حذف" variant="ghost" onPress={() => deleteItem(cat.id, false)} />
-              </View>
-            </View>
-          ))}
-        </Card>
+                }
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
 
-        <Card>
-          <Text style={styles.sectionTitle}>الأصناف الفرعية</Text>
-          {subcategories?.map((s) => (
-            <View key={s.id} style={styles.row}>
-              <View style={{ flex: 1, alignItems: "flex-end" }}>
-                <Text style={styles.name}>{s.name}</Text>
-                <Text style={styles.sub}>رئيسي: {typeof s.category === "object" ? s.category?.name : s.category ?? "-"}</Text>
-                {s.description ? <Text style={styles.sub}>{s.description}</Text> : null}
-              </View>
-              {s.image ? <Image source={{ uri: s.image }} style={styles.thumb} /> : null}
-              <View style={{ gap: 6 }}>
-                <Button title="تعديل" variant="secondary" onPress={() => startEdit(s, true)} />
-                <Button title="حذف" variant="ghost" onPress={() => deleteItem(s.id, true)} />
-              </View>
-            </View>
-          ))}
-        </Card>
+      <DashboardSection title="التصنيفات الفرعية" subtitle={subLoading ? "جاري التحميل..." : "اضغط للتعديل."}>
+        {subcategories.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد تصنيفات فرعية.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {subcategories.map((s) => (
+              <DashboardListItem
+                key={s.id}
+                title={s.name}
+                subtitle={`ID: ${s.id} • الفئة: ${typeof s.category === "object" ? s.category?.name : s.category ?? "-"}${s.description ? ` • ${s.description}` : ""}`}
+                icon="layers-outline"
+                onPress={() => startEdit(s, "subcategory")}
+                right={
+                  <View style={{ flexDirection: "row-reverse", gap: 8, alignItems: "center" }}>
+                    {s.image ? <Image source={{ uri: s.image }} style={styles.thumb} /> : null}
+                    <Button title="تعديل" variant="secondary" onPress={() => startEdit(s, "subcategory")} />
+                    <Button title="حذف" variant="ghost" onPress={() => deleteItem(s.id, "subcategory")} />
+                  </View>
+                }
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    padding: 10,
-    textAlign: "right",
-  },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  sub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  switchRow: {
-    flexDirection: "row-reverse",
-    gap: 8,
-    marginVertical: 6,
-  },
-  preview: {
-    width: "100%",
-    height: 160,
-    borderRadius: 12,
-    marginTop: 6,
-  },
-  thumb: {
-    width: 46,
-    height: 46,
-    borderRadius: 10,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    modeRow: {
+      flexDirection: "row-reverse",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    preview: {
+      width: "100%",
+      height: 160,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.palette.border,
+      backgroundColor: theme.palette.surfaceAlt,
+    },
+    thumb: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.palette.border,
+      backgroundColor: theme.palette.surfaceAlt,
+    },
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+  });
 
 export default DashboardCategories;

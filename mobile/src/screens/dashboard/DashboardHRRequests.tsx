@@ -1,10 +1,15 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, Button } from "../../components/ui";
-import { useTheme } from "../../theme";
+import { Button, Input } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import { hasAny } from "./components/permissions";
 
 type LeaveRow = {
   id: number;
@@ -30,7 +35,20 @@ type NotificationRow = {
 
 const DashboardHRRequests: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
+  const { user, permissions } = useAuth();
+
+  const allowed = hasAny(user, permissions, [
+    "can_view_hr_dashboard",
+    "can_manage_hr_leaves",
+    "can_manage_hr_payroll",
+    "can_manage_hr_work_reports",
+    "can_manage_hr_reports",
+    "can_manage_attendance",
+    "can_view_hr_performance",
+  ]);
+
   const [leaveType, setLeaveType] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -41,78 +59,83 @@ const DashboardHRRequests: React.FC = () => {
   const [raiseAmount, setRaiseAmount] = useState("");
   const [raiseReason, setRaiseReason] = useState("");
 
-  const { data: leaves } = useQuery<LeaveRow[]>({
-    queryKey: ["hr-my-leaves"],
+  const { data: leaves = [] } = useQuery<LeaveRow[]>({
+    queryKey: ["dashboard", "hr-my-leaves"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("hr/my/leaves/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
-  const { data: payrolls } = useQuery<PayrollRow[]>({
-    queryKey: ["hr-my-payrolls"],
+  const { data: payrolls = [] } = useQuery<PayrollRow[]>({
+    queryKey: ["dashboard", "hr-my-payrolls"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("hr/my/payrolls/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
-  // ملاحظة: يمكن تفعيل استعلام الحضور لاحقاً عند الحاجة لعرضه.
-
-  const { data: notifications } = useQuery<NotificationRow[]>({
-    queryKey: ["hr-my-notifications"],
+  const { data: notifications = [] } = useQuery<NotificationRow[]>({
+    queryKey: ["dashboard", "hr-my-notifications"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("hr/my/notifications/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
+  if (!allowed) {
+    return <DashboardAccessDenied title="طلبات الموارد البشرية" subtitle="إرسال الطلبات ومتابعة حالتها." />;
+  }
+
   const submitLeave = async () => {
-    if (!leaveType.trim() || !startDate || !endDate) {
-      Alert.alert("تنبيه", "أدخل نوع الإجازة وبدايتها ونهايتها.");
+    if (!leaveType.trim() || !startDate.trim() || !endDate.trim()) {
+      Alert.alert("بيانات ناقصة", "أدخل نوع الإجازة وتاريخ البداية والنهاية.");
       return;
     }
     try {
       await api.post("hr/my/leave-requests/", {
         type: leaveType.trim(),
-        start_date: startDate,
-        end_date: endDate,
+        start_date: startDate.trim(),
+        end_date: endDate.trim(),
       });
-      qc.invalidateQueries({ queryKey: ["hr-my-leaves"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "hr-my-leaves"] });
       setLeaveType("");
       setStartDate("");
       setEndDate("");
-      Alert.alert("تم", "تم إرسال طلب الإجازة.");
+      Alert.alert("تم الإرسال", "تم إرسال طلب الإجازة.");
     } catch {
-      Alert.alert("خطأ", "تعذر إرسال الطلب.");
+      Alert.alert("تعذر الإرسال", "حدث خطأ أثناء إرسال طلب الإجازة.");
     }
   };
 
   const submitWorkReport = async () => {
-    if (!workDate) {
-      Alert.alert("تنبيه", "أدخل التاريخ.");
+    if (!workDate.trim()) {
+      Alert.alert("بيانات ناقصة", "أدخل التاريخ.");
       return;
     }
     try {
       await api.post("hr/my/work-reports/", {
-        date: workDate,
-        work_hours: workHours ? Number(workHours) : 0,
-        overtime_hours: overtimeHours ? Number(overtimeHours) : 0,
+        date: workDate.trim(),
+        work_hours: workHours.trim() ? Number(workHours) : 0,
+        overtime_hours: overtimeHours.trim() ? Number(overtimeHours) : 0,
         notes: workNotes,
       });
       setWorkDate("");
       setWorkHours("");
       setOvertimeHours("");
       setWorkNotes("");
-      Alert.alert("تم", "تم إرسال التقرير.");
+      Alert.alert("تم الإرسال", "تم إرسال تقرير العمل.");
     } catch {
-      Alert.alert("خطأ", "تعذر إرسال التقرير.");
+      Alert.alert("تعذر الإرسال", "حدث خطأ أثناء إرسال تقرير العمل.");
     }
   };
 
   const submitRaise = async () => {
     if (!raiseAmount.trim()) {
-      Alert.alert("تنبيه", "أدخل مبلغ الطلب.");
+      Alert.alert("بيانات ناقصة", "أدخل مبلغ طلب الزيادة.");
       return;
     }
     try {
@@ -122,143 +145,95 @@ const DashboardHRRequests: React.FC = () => {
       });
       setRaiseAmount("");
       setRaiseReason("");
-      Alert.alert("تم", "تم إرسال طلب زيادة الراتب.");
+      Alert.alert("تم الإرسال", "تم إرسال طلب الزيادة.");
     } catch {
-      Alert.alert("خطأ", "تعذر إرسال الطلب.");
+      Alert.alert("تعذر الإرسال", "حدث خطأ أثناء إرسال طلب الزيادة.");
     }
   };
 
   return (
-    <DashboardShell title="طلبات الموارد البشرية" subtitle="مراجعة طلبات الإجازات وكشوف الرواتب.">
-        <Card>
-          <Text style={styles.title}>طلباتي وحقوقي الوظيفية</Text>
-          <Text style={styles.helper}>الحضور اليومي، طلبات الإجازة، تقارير الغياب، الرواتب، طلبات الزيادة، والتنبيهات.</Text>
-        </Card>
+    <DashboardShell title="طلبات الموارد البشرية" subtitle="إرسال الطلبات ومتابعة حالتها.">
+      <DashboardSection title="طلب إجازة" subtitle="أدخل البيانات بالتنسيق YYYY-MM-DD.">
+        <Input label="نوع الإجازة" value={leaveType} onChangeText={setLeaveType} placeholder="مثال: سنوية" />
+        <Input label="تاريخ البداية" value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" />
+        <Input label="تاريخ النهاية" value={endDate} onChangeText={setEndDate} placeholder="YYYY-MM-DD" />
+        <Button title="إرسال طلب الإجازة" onPress={submitLeave} />
+      </DashboardSection>
 
-        <Card style={{ gap: 8 }}>
-          <Text style={styles.sectionTitle}>طلب إجازة</Text>
-          <TextInput placeholder="نوع الإجازة" value={leaveType} onChangeText={setLeaveType} style={styles.input} textAlign="right" />
-          <TextInput placeholder="تاريخ البدء YYYY-MM-DD" value={startDate} onChangeText={setStartDate} style={styles.input} textAlign="right" />
-          <TextInput placeholder="تاريخ النهاية YYYY-MM-DD" value={endDate} onChangeText={setEndDate} style={styles.input} textAlign="right" />
-          <Button title="إرسال الطلب" onPress={submitLeave} />
-        </Card>
+      <DashboardSection title="طلباتي (إجازات)" subtitle="آخر الطلبات.">
+        {leaves.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد طلبات.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {leaves.slice(0, 20).map((l) => (
+              <DashboardListItem
+                key={l.id}
+                title={l.type || "إجازة"}
+                subtitle={`${l.start_date || "-"} → ${l.end_date || "-"} • الحالة: ${l.status || "-"}`}
+                icon="leaf-outline"
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
 
-        <Card>
-          <Text style={styles.sectionTitle}>طلبات الإجازة</Text>
-          {leaves && leaves.length > 0 ? (
-            <View style={{ marginTop: 8, gap: 8 }}>
-              {leaves.slice(0, 10).map((l) => (
-                <View key={l.id} style={styles.row}>
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <Text style={styles.name}>{l.type || "إجازة"}</Text>
-                    <Text style={styles.sub}>
-                      {l.start_date} → {l.end_date} ? {l.status || "-"}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.helper}>لا توجد طلبات.</Text>
-          )}
-        </Card>
+      <DashboardSection title="تقرير عمل" subtitle="ساعات العمل والإضافي.">
+        <Input label="التاريخ" value={workDate} onChangeText={setWorkDate} placeholder="YYYY-MM-DD" />
+        <Input label="ساعات العمل" value={workHours} onChangeText={setWorkHours} keyboardType="number-pad" placeholder="مثال: 8" />
+        <Input label="ساعات إضافي" value={overtimeHours} onChangeText={setOvertimeHours} keyboardType="number-pad" placeholder="مثال: 2" />
+        <Input label="ملاحظات (اختياري)" value={workNotes} onChangeText={setWorkNotes} multiline numberOfLines={3} />
+        <Button title="إرسال التقرير" onPress={submitWorkReport} />
+      </DashboardSection>
 
-        <Card style={{ gap: 8 }}>
-          <Text style={styles.sectionTitle}>تقرير عمل / سبب غياب</Text>
-          <TextInput placeholder="التاريخ YYYY-MM-DD" value={workDate} onChangeText={setWorkDate} style={styles.input} textAlign="right" />
-          <TextInput placeholder="ساعات العمل" value={workHours} onChangeText={setWorkHours} style={styles.input} keyboardType="numeric" textAlign="right" />
-          <TextInput placeholder="ساعات إضافية" value={overtimeHours} onChangeText={setOvertimeHours} style={styles.input} keyboardType="numeric" textAlign="right" />
-          <TextInput placeholder="ملاحظات" value={workNotes} onChangeText={setWorkNotes} style={styles.input} textAlign="right" />
-          <Button title="إرسال التقرير" onPress={submitWorkReport} />
-        </Card>
+      <DashboardSection title="الرواتب" subtitle="ملخص الفترات السابقة (إن كانت متاحة).">
+        {payrolls.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد بيانات.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {payrolls.slice(0, 10).map((p) => (
+              <DashboardListItem
+                key={p.id}
+                title={`فترة: ${p.period || "-"}`}
+                subtitle={`المبلغ: ${p.amount ?? "-"} • الحالة: ${p.status || "-"}`}
+                icon="card-outline"
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
 
-        <Card>
-          <Text style={styles.sectionTitle}>سجلات الرواتب</Text>
-          {payrolls && payrolls.length > 0 ? (
-            <View style={{ marginTop: 8, gap: 8 }}>
-              {payrolls.slice(0, 5).map((p) => (
-                <View key={p.id} style={styles.row}>
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <Text style={styles.name}>فترة: {p.period || "-"}</Text>
-                    <Text style={styles.sub}>المبلغ: {p.amount ?? "-"} ? الحالة: {p.status || "-"}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.helper}>لا توجد بيانات رواتب.</Text>
-          )}
-        </Card>
+      <DashboardSection title="طلب زيادة" subtitle="اطلب زيادة مع سبب مختصر.">
+        <Input label="المبلغ" value={raiseAmount} onChangeText={setRaiseAmount} keyboardType="number-pad" placeholder="مثال: 500" />
+        <Input label="السبب (اختياري)" value={raiseReason} onChangeText={setRaiseReason} multiline numberOfLines={3} />
+        <Button title="إرسال الطلب" onPress={submitRaise} />
+      </DashboardSection>
 
-        <Card style={{ gap: 8 }}>
-          <Text style={styles.sectionTitle}>طلب زيادة راتب</Text>
-          <TextInput placeholder="المبلغ المطلوب" value={raiseAmount} onChangeText={setRaiseAmount} style={styles.input} keyboardType="numeric" textAlign="right" />
-          <TextInput placeholder="السبب" value={raiseReason} onChangeText={setRaiseReason} style={styles.input} textAlign="right" />
-          <Button title="إرسال طلب زيادة" onPress={submitRaise} />
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>تنبيهات</Text>
-          {notifications && notifications.length > 0 ? (
-            <View style={{ marginTop: 8, gap: 8 }}>
-              {notifications.slice(0, 10).map((n) => (
-                <View key={n.id} style={styles.row}>
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <Text style={styles.name}>{n.title || "تنبيه"}</Text>
-                    <Text style={styles.sub}>{n.body || "-"} ? {n.created_at ? new Date(n.created_at).toLocaleString() : ""}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.helper}>لا توجد تنبيهات.</Text>
-          )}
-        </Card>
+      <DashboardSection title="إشعارات" subtitle="آخر التنبيهات.">
+        {notifications.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد إشعارات.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {notifications.slice(0, 20).map((n) => (
+              <DashboardListItem
+                key={n.id}
+                title={n.title || "إشعار"}
+                subtitle={`${n.body || "-"}${n.created_at ? ` • ${new Date(n.created_at).toLocaleString()}` : ""}`}
+                icon="notifications-outline"
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    padding: 10,
-    textAlign: "right",
-  },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  sub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+  });
 
 export default DashboardHRRequests;

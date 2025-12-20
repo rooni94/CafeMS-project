@@ -1,33 +1,39 @@
 export const copy = {
   brandFallback: "CafeMS Demo",
   taglineFallback:
-    "سندوتشات طازجة، خفايف شهية، وإفطار سريع بطابع خليجي. تجربة سهلة من الطلب حتى الاستلام.",
+    "نقدّم لك تجربة مميزة من الساندوتشات والمشروبات والحلويات. اطلب الآن واستمتع بجودة عالية وخدمة سريعة.",
   heroFallback: [
     {
-      title: "أهلاً بكم في CafeMS Demo",
-      description: "ساندوتشات طازجة وخفايف مجهزة على طلبكم بخلطاتنا الخاصة ولمسة من الامتنان.",
-      image: "https://images.unsplash.com/photo-1459257868276-5e65389e2722?auto=format&fit=crop&w=1200&q=80",
-      button_text: "ابدأ الطلب الآن",
+      title: "مرحباً بك في CafeMS Demo",
+      description:
+        "اكتشف قائمة متنوعة من الساندوتشات والمشروبات والحلويات. اطلب بسهولة واستلم بسرعة.",
+      image:
+        "https://images.unsplash.com/photo-1459257868276-5e65389e2722?auto=format&fit=crop&w=1200&q=80",
+      button_text: "اذهب إلى القائمة",
       button_link: "/menu?category=1",
     },
     {
-      title: "خفايف تمنحك الطاقة",
-      description: "برجر، فلافل، وخيارات خفيفة تجعل استراحة منتصف اليوم ألذ وأسرع.",
-      image: "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?auto=format&fit=crop&w=1200&q=80",
-      button_text: "جرب الخفايف",
+      title: "مشروبات باردة وساخنة",
+      description:
+        "خيارات يومية تناسب ذوقك: قهوة، شاي، عصائر وأكثر. جرّب الأفضل الآن.",
+      image:
+        "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?auto=format&fit=crop&w=1200&q=80",
+      button_text: "تصفّح المشروبات",
       button_link: "/menu?category=2",
     },
     {
-      title: "إفطار طازج ولطيف",
-      description: "مشروبات ساخنة وباردة، بيض وحلومي، وخبز محمّص يجهز حالاً لبدء يومك.",
-      image: "https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=1200&q=80",
-      button_text: "ابدأ فطورك",
+      title: "حلويات خفيفة ولذيذة",
+      description:
+        "دلّع نفسك بحلوى اليوم. نكهة رائعة وخيارات متعددة تناسب الجميع.",
+      image:
+        "https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=1200&q=80",
+      button_text: "استكشف الحلويات",
       button_link: "/menu?category=3",
     },
   ],
   contactFallback: {
-    address: "الدمام - المملكة العربية السعودية",
-    hours: "يومياً من 6 صباحاً حتى 1 صباحاً",
+    address: "المملكة العربية السعودية - CafeMS Demo",
+    hours: "يومياً من 6 صباحاً إلى 1 صباحاً",
     phone: "+10000000000",
     email: "contact@example.invalid",
     whatsapp: "+10000000000",
@@ -35,105 +41,108 @@ export const copy = {
   categoryFallbacks: [
     {
       title: "ساندوتشات",
-      image: "https://res.cloudinary.com/dnsx3jzec/image/upload/v1707474032/cafems/sandwiches.jpg",
+      image:
+        "https://res.cloudinary.com/dnsx3jzec/image/upload/v1707474032/cafems/sandwiches.jpg",
     },
     {
-      title: "خفايف ومقبلات",
-      image: "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?auto=format&fit=crop&w=1200&q=80",
+      title: "مشروبات",
+      image:
+        "https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?auto=format&fit=crop&w=1200&q=80",
     },
     {
-      title: "مشروبات وإفطار",
-      image: "https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=1200&q=80",
+      title: "حلويات",
+      image:
+        "https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=1200&q=80",
     },
     {
-      title: "حلويات وعصائر",
-      image: "https://res.cloudinary.com/dnsx3jzec/image/upload/v1707474032/cafems/cold-drinks.jpg",
+      title: "مشروبات باردة",
+      image:
+        "https://res.cloudinary.com/dnsx3jzec/image/upload/v1707474032/cafems/cold-drinks.jpg",
     },
   ],
   messages: {
-    required: "هذا الحقل مطلوب، يرجى تعبئته.",
-    passwordMismatch: "كلمتا المرور غير متطابقتين. يرجى التأكد والمحاولة مرة أخرى.",
-    genericError: "حدث خطأ غير متوقع. حاول مجدداً أو تواصل مع الدعم.",
-    loading: "جاري التحميل...",
+    required: "يرجى تعبئة جميع الحقول المطلوبة.",
+    passwordMismatch:
+      "كلمتا المرور غير متطابقتين. يرجى التأكد ثم المحاولة مرة أخرى.",
+    genericError: "حدث خطأ غير متوقع. حاول مرة أخرى لاحقاً.",
+    loading: "جارٍ التحميل...",
   },
   home: {
     headerTagline:
-      "CafeMS Demo محطتكم اليومية للاستمتاع بسندوتشات طازجة، خفايف شهية، ومشروبات تعكس ذائقة الخليج. تجربة سهلة من الطلب حتى الاستلام.",
-    heroSecondaryCta: "تتبع الطلب",
-    heroExploreCta: "ابدأ الطلب الآن",
-    quickIntro: "اطلب سندوتشات، خفايف، وإفطار طازج بسرعة وسهولة.",
-    infoTags: ["تحضير سريع", "مكونات طازجة", "دفع آمن"],
+      "CafeMS Demo — ساندوتشات ومشروبات وحلويات بجودة عالية وخدمة سريعة.",
+    heroSecondaryCta: "تتبّع الطلب",
+    heroExploreCta: "اذهب إلى القائمة",
+    quickIntro: "اختصر الطريق إلى الأقسام الأكثر استخداماً، وابدأ طلبك بسرعة.",
+    infoTags: ["طازج يومياً", "جودة عالية", "خدمة سريعة"],
     quickActions: [
       {
         icon: "grid-outline",
-        label: "استكشف القائمة",
-        helper: "أصناف جاهزة مع صور وتفاصيل",
+        label: "القائمة",
+        helper: "تصفّح الأصناف وإضافة للسلة",
         route: "Menu",
       },
       {
         icon: "time-outline",
-        label: "تتبع الطلب",
-        helper: "اعرف حالة طلبك لحظياً",
+        label: "تتبّع الطلب",
+        helper: "تابع حالة طلبك بسهولة",
         route: "OrderTracking",
       },
       {
         icon: "document-text-outline",
         label: "طلباتي",
-        helper: "سجل الطلبات السابقة والمكررة",
+        helper: "عرض آخر الطلبات وحالاتها",
         route: "Orders",
       },
       {
-        icon: "book-outline",
-        label: "قصتنا",
-        helper: "تعرف على بدايتنا وشغفنا",
-        route: "Story",
-      },
-      {
         icon: "gift-outline",
-        label: "المكافآت",
-        helper: "نقاط وعروض للعملاء الدائمين",
+        label: "نقاط الولاء",
+        helper: "تابع نقاطك واستفد من العروض",
         route: "Rewards",
       },
       {
         icon: "call-outline",
         label: "تواصل معنا",
-        helper: "نخدمك عبر الهاتف أو الواتساب",
+        helper: "الدعم وخدمة العملاء",
         route: "Contact",
       },
     ],
     categoriesTitle: "الأقسام",
     categoriesCta: "عرض الكل",
-    featuredTitle: "أصناف مختارة",
-    featuredCta: "اذهب للقائمة كاملة",
-    featuredEmpty: "لا توجد أصناف متاحة حالياً. عد لاحقاً أو تواصل معنا.",
+    featuredTitle: "الأكثر طلباً",
+    featuredCta: "اذهب إلى القائمة الكاملة",
+    featuredEmpty: "لا توجد منتجات مميزة حالياً. جرّب البحث أو تصفّح الأقسام.",
   },
   menu: {
-    title: "القائمة بطابع خليجي",
-    subtitle: "تصفح الساندوتشات، الخفايف، والمشروبات. اختر القسم الذي تفضله وابدأ الطلب فوراً.",
-    searchPlaceholder: "ابحث عن صنف أو مكون...",
-    loading: "جاري تجهيز القائمة...",
-    emptyTitle: "لا توجد أصناف لعرضها حالياً",
-    emptyDescription: "جرّب تغيير الفلتر أو الرجوع لاحقاً، أو تواصل معنا للمساعدة.",
-    filterAll: "كل الأقسام",
-    cartCtaFilled: "اذهب للسلة",
-    cartCtaEmpty: "أضف أول صنف للسلة",
-    allCategories: "كل الأقسام",
+    title: "القائمة",
+    subtitle:
+      "اختر من الأقسام المختلفة واطلب بسهولة. يمكنك البحث أو تصفية المنتجات حسب القسم.",
+    searchPlaceholder: "ابحث عن منتج...",
+    loading: "جارٍ تحميل القائمة...",
+    emptyTitle: "لا توجد منتجات",
+    emptyDescription: "جرّب تغيير البحث أو اختر قسماً مختلفاً.",
+    filterAll: "الكل",
+    cartCtaFilled: "الذهاب إلى السلة",
+    cartCtaEmpty: "استعرض السلة",
+    allCategories: "الكل",
   },
   orders: {
-    prompt: "سجل دخولك لتتمكن من استعراض طلباتك وحفظها.",
-    errorEmpty: "لا توجد طلبات مسجلة لهذا الحساب.",
-    notFound: "الطلب غير متاح حالياً.",
-    fetchError: "تعذر تحميل الطلبات. حاول مجدداً.",
-    guestTitle: "للمتابعة تحتاج لتسجيل الدخول",
-    guestDescription: "نحفظ طلباتك وربطها بحسابك لتتبعها بسهولة وتكرارها بسرعة.",
-    login: "تسجيل دخول",
+    prompt: "أدخل رقم الطلب لتتبّع الحالة.",
+    errorEmpty: "يرجى إدخال رقم الطلب.",
+    notFound: "لم يتم العثور على الطلب.",
+    fetchError: "تعذر تحميل بيانات الطلب. حاول مرة أخرى.",
+    guestTitle: "سجّل دخولك للوصول إلى طلباتك",
+    guestDescription: "سجّل الدخول لعرض طلباتك، حفظ عناوينك، ونقاط الولاء.",
+    login: "تسجيل الدخول",
     register: "إنشاء حساب",
   },
   more: {
-    guestWelcome: "مرحباً! ضيفنا الكريم في CafeMS Demo",
-    guestBody: "سجل دخولك لتحفظ طلباتك وعناوينك وتتابع نقاط المكافآت.",
-    morePagesTitle: "صفحات أخرى",
-    supportTitle: "الدعم والمساعدة",
-    supportDescription: "تحتاج مساعدة؟ تواصل معنا لنحل أي مشكلة في الطلب أو الحساب.",
+    guestWelcome: "مرحباً بك!",
+    guestBody:
+      "سجّل الدخول للوصول إلى مزايا إضافية مثل الطلبات والعناوين ونقاط الولاء.",
+    morePagesTitle: "روابط سريعة",
+    supportTitle: "الدعم وخدمة العملاء",
+    supportDescription:
+      "راسلنا للاستفسارات والملاحظات وسنساعدك بأسرع وقت.",
   },
 };
+

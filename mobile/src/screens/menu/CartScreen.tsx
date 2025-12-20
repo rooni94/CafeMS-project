@@ -21,7 +21,7 @@ const CartScreen: React.FC = () => {
           title="السلة فارغة"
           description="أضف اختياراتك من القائمة لنجهزها لك فوراً."
         >
-          <Button title="استكشف القائمة" onPress={() => goToTab(navigation, "Menu")} />
+          <Button title="استكشف القائمة" onPress={() => goToTab(navigation, "Menu")} style={{ width: "100%" }} />
         </EmptyState>
       </Screen>
     );
@@ -79,15 +79,8 @@ const CartScreen: React.FC = () => {
             <CurrencyAmount value={totalPrice} color={theme.palette.accent} symbolSize={16} textStyle={styles.summaryValue} />
           </View>
           <View style={styles.actionsRow}>
-            <Pressable onPress={clearCart} style={styles.secondaryButton}>
-              <Text style={styles.secondaryText}>تفريغ السلة</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => navigation.navigate("Checkout")}
-              style={[styles.primaryButton, { backgroundColor: theme.palette.accent }]}
-            >
-              <Text style={styles.primaryText}>إتمام الطلب</Text>
-            </Pressable>
+            <Button title="تفريغ السلة" variant="secondary" onPress={clearCart} style={{ flex: 1 }} />
+            <Button title="إتمام الطلب" onPress={() => navigation.navigate("Checkout")} style={{ flex: 1 }} />
           </View>
         </Card>
       </View>
@@ -202,29 +195,6 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: "row-reverse",
     gap: 10,
-  },
-  secondaryButton: {
-    flex: 1,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  secondaryText: {
-    color: "#111827",
-    fontWeight: "700",
-  },
-  primaryButton: {
-    flex: 1,
-    borderRadius: 14,
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  primaryText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 15,
   },
 });
 

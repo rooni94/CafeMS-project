@@ -1,22 +1,24 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import Screen from "../../components/Screen";
-import { Button, Card } from "../../components/ui";
+
+import { Button } from "../../components/ui";
 import { useTheme } from "../../theme";
+import DashboardShell from "../dashboard/components/DashboardShell";
+import DashboardSection from "../dashboard/components/DashboardSection";
 
 const differentiators = [
-  "نحضر كل طبق عند الطلب بمكونات مختارة.",
-  "قائمة متنوعة تناسب كل الأذواق الحديثة والتقليدية.",
-  "مرونة كاملة للطلب أونلاين وتتبع حالة الاستلام.",
-  "فريق ودود يكرس كل ضيف لتجربة تظل إلى توقعاته.",
+  "مكونات مختارة وجودة ثابتة.",
+  "قائمة متنوعة تناسب الجميع.",
+  "سرعة في تجهيز الطلب وخدمة مريحة.",
+  "دعم سريع ومتابعة للطلبات.",
 ];
 
 const digitalPerks = [
-  "بحث سريع عن آخر الأصناف وعروض الهيرو الموسمية.",
-  "إضافة الطلبات إلى السلة ودفع آمن.",
-  "إنشاء حساب لتخزين العناوين ومتابعة الطلبات.",
-  "تتبع الحالة لحظة بلحظة حتى تسليم الطلب.",
+  "تصفّح سريع للمنتجات والأقسام.",
+  "إضافة للسلة مع خيارات إضافات المنتج.",
+  "تتبّع الطلبات بسهولة من داخل التطبيق.",
+  "حفظ العناوين وتحديث بيانات الحساب.",
 ];
 
 const StoryScreen: React.FC = () => {
@@ -24,91 +26,55 @@ const StoryScreen: React.FC = () => {
   const theme = useTheme();
 
   return (
-    <Screen>
-      <Card>
-        <Text style={[styles.title, { color: theme.palette.brandDark }]}>
-          قصة كافيتريا الخليج
-        </Text>
+    <DashboardShell title="قصتنا" subtitle="تعرف على رحلتنا وما نقدمه لك.">
+      <DashboardSection title="نبذة" subtitle="من المطبخ إلى بابك">
         <Text style={[styles.paragraph, { color: theme.palette.muted }]}>
-          نبدأ كمكان صغير يجتمع فيه الأصدقاء وعائلات الحي لتذوق سندويشات طازجة ومشروبات قهوة
-          مَحمصة بكرامة سعودية أصيلة. مع كل موسم تطورنا لنقدم تجربة متكاملة للضيوف في الفروع وعلى التطبيق.
+          بدأنا بهدف تقديم طعام ومشروبات بجودة عالية وخدمة سريعة. نؤمن أن تجربة الطلب يجب أن تكون بسيطة وممتعة، لذلك نعمل باستمرار على تحسين القائمة والتطبيق وخدمة العملاء.
         </Text>
-        <Text style={[styles.paragraph, { color: theme.palette.muted }]}>
-          عَصرنّا إدارة المقهى إلكترونياً لنسهل الطلب، الدفع، والتتبع من هاتفك المحمول مع التحفيل بالهارموني الذي تراه في الواجهة الرئيسية.
-        </Text>
-      </Card>
+      </DashboardSection>
 
-      <Card>
-        <Text style={[styles.sectionTitle, { color: theme.palette.brandDark }]}>رؤيتنا</Text>
-        <Text style={[styles.paragraph, { color: theme.palette.muted }]}>
-          أن نكون الخيار الأول للضيف الذي يحتاج وجبة شهية سهلة وسريعة، سواء للاستلام المباشر أو التوصيل.
-        </Text>
-        <Text style={[styles.sectionTitle, { color: theme.palette.brandDark }]}>ماذا يميزنا؟</Text>
+      <DashboardSection title="ما الذي يميزنا؟" subtitle="نقاط قوة نعتز بها">
         <View style={styles.list}>
           {differentiators.map((item) => (
-            <Text key={item} style={[styles.listItem, { color: theme.palette.brandDark }]}>
+            <Text key={item} style={[styles.listItem, { color: theme.palette.text }]}>
               • {item}
             </Text>
           ))}
         </View>
-      </Card>
+      </DashboardSection>
 
-      <Card>
-        <Text style={[styles.sectionTitle, { color: theme.palette.brandDark }]}>خدمتنا الرقمية</Text>
-        <Text style={[styles.paragraph, { color: theme.palette.muted }]}>
-          بضغطة واحدة تظهر قائمة الأصناف، تحفظ العناوين، وترسل استفساراتك لفريق الدعم. إليك مصادر الراحة اليومية:
-        </Text>
+      <DashboardSection title="مزايا رقمية" subtitle="تجربة أسهل داخل التطبيق">
         <View style={styles.list}>
           {digitalPerks.map((item) => (
-            <Text key={item} style={[styles.listItem, { color: theme.palette.brandDark }]}>
+            <Text key={item} style={[styles.listItem, { color: theme.palette.text }]}>
               • {item}
             </Text>
           ))}
         </View>
-        <Button
-          title="اتصل بنا"
-          variant="secondary"
-          onPress={() => navigation.navigate("Contact")}
-        />
-      </Card>
 
-      <Card>
-        <Text style={[styles.footerNote, { color: theme.palette.muted }]}>
-          يسعدنا سماع مقترحاتك من خلال شاشة تواصل معنا، ونعدك بتطوير مستمر للتطبيق ليظل مع جميع تفاصيل الموقع الرئيسي.
-        </Text>
-      </Card>
-    </Screen>
+        <Button title="تواصل معنا" variant="secondary" onPress={() => navigation.navigate("Contact")} />
+      </DashboardSection>
+    </DashboardShell>
   );
 };
 
 const styles = StyleSheet.create({
-  title: {
-    fontSize: 22,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 8,
-  },
   paragraph: {
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 20,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   list: {
-    gap: 6,
+    gap: 8,
   },
   listItem: {
     fontSize: 13,
+    lineHeight: 20,
     textAlign: "right",
-  },
-  footerNote: {
-    fontSize: 12,
-    textAlign: "right",
+    writingDirection: "rtl",
   },
 });
 
 export default StoryScreen;
+

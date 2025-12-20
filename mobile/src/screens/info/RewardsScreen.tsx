@@ -1,33 +1,35 @@
-﻿import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React from "react";
+import { StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Screen from "../../components/Screen";
-import { Card, Button } from "../../components/ui";
 import { useNavigation } from "@react-navigation/native";
+
+import { Button } from "../../components/ui";
 import { useTheme } from "../../theme";
+import DashboardShell from "../dashboard/components/DashboardShell";
+import DashboardSection from "../dashboard/components/DashboardSection";
 
 const tiers = [
   {
-    name: "Tier 1 - الضيافة",
+    name: "المستوى 1",
     points: "0 - 299 نقطة",
-    perks: ["خصم 10% على الطلبات الصباحية", "قهوة مجانية بعد 5 زيارات"],
+    perks: ["خصم 10% على منتجات محددة", "هدية صغيرة عند أول طلب"],
   },
   {
-    name: "Tier 2 - الذهبية",
+    name: "المستوى 2",
     points: "300 - 699 نقطة",
-    perks: ["خصم 15% على جميع الأصناف", "هدية عيد ميلاد", "دعم أولوية في الفروع"],
+    perks: ["خصم 15% على منتجات مختارة", "عروض خاصة", "هدية شهرية"],
   },
   {
-    name: "Tier 3 - النادي الخاص",
+    name: "المستوى 3",
     points: "700+ نقطة",
-    perks: ["خدمة باريستا شخصية", "تجربة المنتجات الجديدة أولاً", "مقاعد محجوزة"],
+    perks: ["خصومات أعلى", "أولوية في الدعم", "مفاجآت موسمية"],
   },
 ];
 
 const actions = [
-  { icon: "cafe-outline", title: "التقاط الفاتورة", copy: "أرفق صورة الفاتورة وسنضيف النقاط" },
-  { icon: "gift-outline", title: "استبدل النقاط", copy: "اختر العرض المناسب من متجر الولاء" },
-  { icon: "people-outline", title: "أرسل هدية", copy: "شارك نقاطك مع من تحب مباشرةً" },
+  { icon: "cafe-outline", title: "اجمع نقاطك", copy: "اطلب عبر التطبيق لتحصل على نقاط." },
+  { icon: "gift-outline", title: "استبدل المكافآت", copy: "حوّل نقاطك إلى خصومات ومزايا." },
+  { icon: "people-outline", title: "شارك مع الأصدقاء", copy: "ادعُ أصدقاءك واستفد من العروض." },
 ];
 
 const RewardsScreen: React.FC = () => {
@@ -35,88 +37,79 @@ const RewardsScreen: React.FC = () => {
   const theme = useTheme();
 
   return (
-    <Screen>
-      <Card>
-        <Text style={styles.headline}>برنامج الولاء</Text>
-        <Text style={styles.subtitle}>
-          نجمع بين القهوة والامتنان، كل ريال = نقطة. استبدلها بعروض موسمية وتجارب خاصة.
+    <DashboardShell title="المكافآت" subtitle="برنامج الولاء والمزايا.">
+      <DashboardSection title="نقاط الولاء" subtitle="قريباً بشكل كامل داخل التطبيق.">
+        <Text style={[styles.subtitle, { color: theme.palette.muted }]}>
+          سجّل دخولك لمتابعة نقاطك والاستفادة من العروض. قد تختلف المزايا حسب تحديثات البرنامج.
         </Text>
-        <Button
-          title="تسجيل الدخول لتتبع النقاط"
-          onPress={() => navigation.navigate("Login")}
-          variant="secondary"
-          style={{ marginTop: 8 }}
-        />
-      </Card>
+        <Button title="تسجيل الدخول" onPress={() => navigation.navigate("Login")} variant="secondary" />
+      </DashboardSection>
 
-      <Card>
-        <Text style={styles.sectionTitle}>مستويات المكافآت</Text>
+      <DashboardSection title="مستويات البرنامج" subtitle="مزايا تدريجية حسب النقاط">
         {tiers.map((tier) => (
-          <View key={tier.name} style={styles.tierCard}>
-            <Text style={styles.tierName}>{tier.name}</Text>
-            <Text style={styles.tierPoints}>{tier.points}</Text>
+          <View key={tier.name} style={[styles.tierCard, { borderColor: theme.palette.border, backgroundColor: theme.palette.surfaceAlt }]}>
+            <View style={styles.tierHeader}>
+              <Text style={[styles.tierName, { color: theme.palette.text }]}>{tier.name}</Text>
+              <Text style={[styles.tierPoints, { color: theme.palette.accent }]}>{tier.points}</Text>
+            </View>
             {tier.perks.map((perk) => (
               <View key={perk} style={styles.perkRow}>
-                <View style={styles.dot} />
-                <Text style={styles.perkText}>{perk}</Text>
+                <View style={[styles.dot, { backgroundColor: theme.palette.accent }]} />
+                <Text style={[styles.perkText, { color: theme.palette.text }]}>{perk}</Text>
               </View>
             ))}
           </View>
         ))}
-      </Card>
+      </DashboardSection>
 
-      <Card>
-        <Text style={styles.sectionTitle}>كيف تجمع النقاطٟ</Text>
+      <DashboardSection title="كيف تبدأ؟" subtitle="خطوات بسيطة">
         {actions.map((action) => (
           <View key={action.title} style={styles.actionRow}>
-            <View style={[styles.badge, { backgroundColor: theme.palette.accent }]}>
-              <Ionicons name={action.icon as any} size={18} color="#fff" />
+            <View style={[styles.badge, { backgroundColor: theme.palette.accentSoft }]}>
+              <Ionicons name={action.icon as any} size={18} color={theme.palette.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.actionTitle}>{action.title}</Text>
-              <Text style={styles.actionCopy}>{action.copy}</Text>
+              <Text style={[styles.actionTitle, { color: theme.palette.text }]}>{action.title}</Text>
+              <Text style={[styles.actionCopy, { color: theme.palette.muted }]}>{action.copy}</Text>
             </View>
           </View>
         ))}
-      </Card>
-    </Screen>
+      </DashboardSection>
+    </DashboardShell>
   );
 };
 
 const styles = StyleSheet.create({
-  headline: {
-    fontSize: 24,
-    fontWeight: "800",
-    textAlign: "right",
-  },
   subtitle: {
-    fontSize: 14,
-    color: "#64748b",
+    fontSize: 13,
+    lineHeight: 20,
     textAlign: "right",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 8,
+    writingDirection: "rtl",
   },
   tierCard: {
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
     padding: 14,
     marginBottom: 12,
-    gap: 6,
+    gap: 8,
+  },
+  tierHeader: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
   },
   tierName: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "900",
     textAlign: "right",
+    writingDirection: "rtl",
   },
   tierPoints: {
-    fontSize: 13,
-    color: "#f59e0b",
+    fontSize: 12,
+    fontWeight: "900",
     textAlign: "right",
+    writingDirection: "rtl",
   },
   perkRow: {
     flexDirection: "row-reverse",
@@ -127,13 +120,12 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#F59E0B",
   },
   perkText: {
     fontSize: 13,
-    color: "#475569",
     flex: 1,
     textAlign: "right",
+    writingDirection: "rtl",
   },
   actionRow: {
     flexDirection: "row-reverse",
@@ -149,15 +141,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   actionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "900",
     textAlign: "right",
+    writingDirection: "rtl",
   },
   actionCopy: {
     fontSize: 13,
-    color: "#6b7280",
     textAlign: "right",
+    writingDirection: "rtl",
   },
 });
 
 export default RewardsScreen;
+

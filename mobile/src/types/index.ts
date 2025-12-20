@@ -5,6 +5,7 @@ export interface User {
   username: string;
   email?: string;
   role: UserRole;
+  hr_role?: "none" | "staff" | "supervisor" | "manager";
   phone?: string;
   address?: string;
   avatar?: string | null;
@@ -27,6 +28,14 @@ export interface RolePermissions {
   can_view_user_activity?: boolean;
   can_manage_store_settings?: boolean;
   can_manage_loyalty?: boolean;
+  can_view_hr_dashboard?: boolean;
+  can_manage_employees?: boolean;
+  can_manage_attendance?: boolean;
+  can_manage_hr_leaves?: boolean;
+  can_manage_hr_payroll?: boolean;
+  can_manage_hr_documents?: boolean;
+  can_manage_hr_reports?: boolean;
+  can_manage_hr_work_reports?: boolean;
   can_view_hr_performance?: boolean;
 }
 
@@ -104,13 +113,18 @@ export interface StoreSettings {
   about_title?: string;
   about_subtitle?: string;
   about_description?: string;
+  about_highlights?: string[];
+  hero_image_url?: string;
+  about_image_url?: string;
   contact_title?: string;
+  contact_subtitle?: string;
   contact_description?: string;
   contact_address?: string;
   contact_phone?: string;
   contact_email?: string;
   support_email?: string;
   contact_hours?: string;
+  contact_map_embed?: string;
   contact_whatsapp?: string;
   social_links?: Record<string, string>;
   wallet_pass_base_url?: string;

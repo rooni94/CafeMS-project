@@ -17,7 +17,7 @@ const DashboardShell: React.FC<Props> = ({ title, subtitle, children, headerRigh
   const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   return (
-    <Screen style={{ backgroundColor: theme.palette.background }}>
+    <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
       <ScrollView contentContainerStyle={[styles.container, contentContainerStyle]}>
         <Card style={styles.headerCard}>
           <View style={styles.headerRow}>
@@ -37,10 +37,10 @@ const DashboardShell: React.FC<Props> = ({ title, subtitle, children, headerRigh
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     container: {
-      gap: 12,
-      paddingHorizontal: 12,
-      paddingTop: 12,
-      paddingBottom: 24,
+      gap: 6,
+      paddingHorizontal: 4,
+      paddingTop: 6,
+      paddingBottom: 12,
     },
     headerCard: {
       borderRadius: 22,
@@ -76,4 +76,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default DashboardShell;
-

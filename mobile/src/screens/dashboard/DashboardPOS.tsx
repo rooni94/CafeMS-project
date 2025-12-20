@@ -1,11 +1,16 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, Button } from "../../components/ui";
-import { useTheme } from "../../theme";
-import { api } from "../../services/api";
+import { Button, Input } from "../../components/ui";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import { useAuth } from "../../context/AuthContext";
+import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import { has } from "./components/permissions";
 
 type POSOrder = {
   id: number;
@@ -17,157 +22,98 @@ type POSOrder = {
 
 const DashboardPOS: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
-  const [tableId, setTableId] = useState<string>("");
-  const [productId, setProductId] = useState<string>("");
-  const [qty, setQty] = useState<string>("1");
+  const { user, permissions } = useAuth();
 
-  const { data: orders } = useQuery<POSOrder[]>({
-    queryKey: ["pos-orders"],
+  const allowed = has(user, permissions, "can_access_cashier");
+
+  const [tableId, setTableId] = useState("");
+  const [productId, setProductId] = useState("");
+  const [qty, setQty] = useState("1");
+  const [creating, setCreating] = useState(false);
+
+  const { data: orders = [], isLoading } = useQuery<POSOrder[]>({
+    queryKey: ["dashboard", "pos-orders"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("orders/pos/cashier/orders/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
+  if (!allowed) {
+    return <DashboardAccessDenied title="الكاشير (POS)" subtitle="إنشاء طلبات نقطة البيع واستعراض آخر الطلبات." />;
+  }
+
   const createPOSOrder = async () => {
-    if (!productId) {
-      Alert.alert("تنبيه", "أدخل رقم المنتج على الأقل.");
+    if (!productId.trim()) {
+      Alert.alert("بيانات ناقصة", "أدخل رقم المنتج.");
       return;
     }
+    setCreating(true);
     try {
       await api.post("orders/pos/cashier/orders/", {
-        table: tableId ? Number(tableId) : null,
+        table: tableId.trim() ? Number(tableId) : null,
         items: [{ product: Number(productId), quantity: Number(qty) || 1 }],
       });
-      Alert.alert("تم", "تم إنشاء الطلب.");
       setProductId("");
       setQty("1");
-      qc.invalidateQueries({ queryKey: ["pos-orders"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "pos-orders"] });
+      Alert.alert("تم الإنشاء", "تم إنشاء طلب POS بنجاح.");
     } catch {
-      Alert.alert("خطأ", "تعذر إنشاء الطلب.");
+      Alert.alert("تعذر الإنشاء", "حدث خطأ أثناء إنشاء الطلب.");
+    } finally {
+      setCreating(false);
     }
   };
 
   return (
-    <DashboardShell title="نقطة البيع" subtitle="إنشاء طلبات سريعة ومتابعة طلبات الصالة.">
-        <Card>
-          <Text style={styles.title}>كاشير POS</Text>
-          <Text style={styles.helper}>إنشاء طلبات سريعة وربطها بالطاولات.</Text>
-        </Card>
+    <DashboardShell title="الكاشير (POS)" subtitle="إنشاء طلبات نقطة البيع واستعراض آخر الطلبات.">
+      <DashboardSection title="إنشاء طلب جديد" subtitle="أدخل رقم المنتج والكمية، ويمكن ربطه بطاولة.">
+        <Input label="رقم الطاولة (اختياري)" value={tableId} onChangeText={setTableId} keyboardType="number-pad" />
+        <Input label="رقم المنتج" value={productId} onChangeText={setProductId} keyboardType="number-pad" />
+        <Input label="الكمية" value={qty} onChangeText={setQty} keyboardType="number-pad" />
+        <Button title={creating ? "جارٍ الإنشاء..." : "إنشاء الطلب"} onPress={createPOSOrder} disabled={creating} />
+      </DashboardSection>
 
-        <Card style={{ gap: 8 }}>
-          <Text style={styles.sectionTitle}>إنشاء طلب جديد</Text>
-          <TextInput
-            placeholder="رقم الطاولة (اختياري)"
-            placeholderTextColor="#94a3b8"
-            value={tableId}
-            onChangeText={setTableId}
-            style={styles.input}
-            keyboardType="numeric"
-            textAlign="right"
-          />
-          <TextInput
-            placeholder="رقم المنتج"
-            placeholderTextColor="#94a3b8"
-            value={productId}
-            onChangeText={setProductId}
-            style={styles.input}
-            keyboardType="numeric"
-            textAlign="right"
-          />
-          <TextInput
-            placeholder="الكمية"
-            placeholderTextColor="#94a3b8"
-            value={qty}
-            onChangeText={setQty}
-            style={styles.input}
-            keyboardType="numeric"
-            textAlign="right"
-          />
-          <Button title="إنشاء الطلب" onPress={createPOSOrder} />
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>أحدث الطلبات</Text>
-          {orders && orders.length > 0 ? (
-            <View style={{ marginTop: 8, gap: 10 }}>
-              {orders.slice(0, 6).map((order) => (
-                <View key={order.id} style={styles.row}>
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <Text style={styles.orderTitle}>طلب #{order.id}</Text>
-                    <Text style={styles.orderSub}>
-                      طاولة: {order.table || "-"} • {order.status}
-                    </Text>
-                    <Text style={styles.orderSub}>
-                      {new Date(order.created_at).toLocaleString()}
-                    </Text>
-                  </View>
-                  {order.total ? (
-                    <CurrencyAmount value={order.total} color="#111827" symbolSize={14} textStyle={styles.orderPrice} />
+      <DashboardSection title="آخر الطلبات" subtitle={isLoading ? "جاري التحميل..." : "آخر 20 طلباً."}>
+        {orders.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد طلبات POS.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {orders.slice(0, 20).map((o) => (
+              <DashboardListItem
+                key={o.id}
+                title={`طلب #${o.id}`}
+                subtitle={`طاولة: ${o.table ?? "-"} • ${o.status} • ${new Date(o.created_at).toLocaleString()}`}
+                icon="cash-outline"
+                right={
+                  o.total != null ? (
+                    <CurrencyAmount value={o.total} color={theme.palette.text} symbolSize={12} textStyle={styles.totalText} />
                   ) : (
-                    <Text style={styles.orderPrice}>-</Text>
-                  )}
-                </View>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.helper}>لا توجد طلبات حالياً.</Text>
-          )}
-        </Card>
+                    <Text style={[styles.totalText, { color: theme.palette.text }]}>-</Text>
+                  )
+                }
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#111827",
-    backgroundColor: "#fff",
-  },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  orderTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  orderSub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  orderPrice: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: "#111827",
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+    totalText: {
+      fontSize: 13,
+      fontWeight: "900",
+    },
+  });
 
 export default DashboardPOS;

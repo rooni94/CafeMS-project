@@ -1,13 +1,16 @@
-﻿import React from "react";
-import { View, Text, StyleSheet, Pressable, ActivityIndicator, FlatList } from "react-native";
-import Screen from "../../components/Screen";
-import { Card } from "../../components/ui";
+// mobile/src/screens/dashboard/DashboardSupport.tsx
+import React, { useMemo } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { useTheme } from "../../theme";
-import { api } from "../../services/api";
-import { useAuth } from "../../context/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { useAuth } from "../../context/AuthContext";
+import { api } from "../../services/api";
+import { useTheme } from "../../theme";
+import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import { has } from "./components/permissions";
 
 type Conversation = {
   id: number;
@@ -23,13 +26,13 @@ type Conversation = {
 const DashboardSupport: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const { user } = useAuth();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { user, permissions } = useAuth();
+  const allowed = has(user, permissions, "can_manage_support");
 
-  const canManageSupport = ["manager", "supervisor", "staff", "admin"].includes((user?.role as string) || "");
-
-  const { data: conversations = [], isLoading: convLoading } = useQuery<Conversation[]>({
-    queryKey: ["support-conversations-admin"],
-    enabled: canManageSupport,
+  const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
+    queryKey: ["dashboard", "support-conversations"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("support/conversations/");
       return res.data?.results || res.data || [];
@@ -48,218 +51,65 @@ const DashboardSupport: React.FC = () => {
     return "عميل";
   };
 
-  if (!canManageSupport) {
-    return (
-      <Screen>
-        <Card>
-          <Text style={styles.title}>الدعم للموظفين فقط</Text>
-          <Text style={styles.helper}>تحتاج صلاحية موظف/مدير لعرض محادثات الدعم.</Text>
-        </Card>
-      </Screen>
-    );
+  if (!allowed) {
+    return <DashboardAccessDenied title="الدعم الفني" subtitle="متابعة محادثات وتذاكر الدعم." />;
   }
 
   return (
-    <Screen scrollable={false} style={{ backgroundColor: "#f1f5f9" }}>
-      <View style={styles.container}>
-        <View style={styles.listPane}>
-          <View style={styles.listHeader}>
-            <Text style={styles.title}>طلبات الدعم</Text>
-            {convLoading && <ActivityIndicator size="small" color={theme.palette.accent} />}
+    <DashboardShell title="الدعم الفني" subtitle="متابعة محادثات وتذاكر الدعم من لوحة التحكم.">
+      <DashboardSection
+        title="التذاكر"
+        subtitle={isLoading ? "جاري التحميل..." : "اضغط على تذكرة لفتح المحادثة."}
+      >
+        {isLoading ? (
+          <View style={styles.loadingRow}>
+            <ActivityIndicator size="small" color={theme.palette.accent} />
+            <Text style={[styles.loadingText, { color: theme.palette.muted }]}>جاري التحميل...</Text>
           </View>
-          <FlatList
-            data={conversations}
-            keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={{ gap: 8, paddingBottom: 16, flexGrow: 1 }}
-            renderItem={({ item }) => {
-              return (
-                <Pressable
-                  style={[styles.convCard]}
-                  onPress={() =>
-                    navigation.navigate("DashboardSupportChat", {
-                      id: item.id,
-                      owner_name: getDisplayName(item),
-                      subject: item.subject,
-                    })
-                  }
-                >
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.convName}>{getDisplayName(item)}</Text>
-                    <Text style={styles.convSubject}>{item.subject || "بدون عنوان"}</Text>
-                  </View>
-                  <Ionicons name="chevron-back" size={18} color={"#94a3b8"} />
-                </Pressable>
-              );
-            }}
-            ListEmptyComponent={
-              convLoading ? null : <Text style={styles.helper}>لا توجد محادثات دعم حالياً.</Text>
-            }
-          />
-        </View>
-      </View>
-    </Screen>
+        ) : conversations.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد تذاكر.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {conversations.slice(0, 60).map((c) => (
+              <DashboardListItem
+                key={c.id}
+                title={getDisplayName(c)}
+                subtitle={`${c.subject?.trim() ? c.subject : "بدون عنوان"} • #${c.id}${
+                  c.updated_at ? ` • ${new Date(c.updated_at).toLocaleString()}` : ""
+                }`}
+                icon="chatbubbles-outline"
+                onPress={() =>
+                  navigation.navigate("DashboardSupportChat", {
+                    id: c.id,
+                    owner_name: getDisplayName(c),
+                    subject: c.subject,
+                  })
+                }
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
+    </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  listPane: {
-    flex: 1,
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  listHeader: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  convCard: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    gap: 8,
-  },
-  convCardActive: {
-    backgroundColor: "#F59E0B",
-    borderColor: "#F59E0B",
-  },
-  convName: {
-    textAlign: "right",
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#0f172a",
-  },
-  convSubject: {
-    textAlign: "right",
-    fontSize: 12,
-    color: "#cbd5e1",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#94a3b8",
-    textAlign: "right",
-  },
-  chatPane: {
-    flex: 1,
-    backgroundColor: "#f5f7fb",
-    borderRadius: 16,
-    padding: 10,
-  },
-  chatEmpty: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  chatHeader: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  chatTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: "#0f172a",
-  },
-  bubbleRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 8,
-  },
-  bubbleRowRight: {
-    justifyContent: "flex-end",
-  },
-  bubbleRowLeft: {
-    justifyContent: "flex-start",
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatarStaff: {
-    backgroundColor: "#F59E0B",
-  },
-  avatarCustomer: {
-    backgroundColor: "#f59e0b",
-  },
-  bubble: {
-    maxWidth: "75%",
-    borderRadius: 18,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  bubbleStaff: {
-    backgroundColor: "#F59E0B",
-  },
-  bubbleCustomer: {
-    backgroundColor: "#fff",
-  },
-  bubbleText: {
-    color: "#111827",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  bubbleMeta: {
-    color: "#cbd5e1",
-    fontSize: 11,
-    marginTop: 4,
-    textAlign: "left",
-  },
-  composer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingTop: 8,
-  },
-  input: {
-    flex: 1,
-    minHeight: 44,
-    maxHeight: 120,
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    textAlign: "right",
-  },
-  sendBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+    loadingRow: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      gap: 10,
+    },
+    loadingText: {
+      fontSize: 13,
+      textAlign: "right",
+    },
+  });
 
 export default DashboardSupport;

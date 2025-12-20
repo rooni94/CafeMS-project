@@ -1,11 +1,17 @@
-import React, { useState } from "react";
-import { Text, StyleSheet, ScrollView, View, TextInput, Alert, Switch, Image } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Alert, Image, StyleSheet, Switch, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import { Card, Button } from "../../components/ui";
-import { useTheme } from "../../theme";
+import { Button, Input } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import CurrencyAmount from "../../components/CurrencyAmount";
+import { has } from "./components/permissions";
 
 type ProductRow = {
   id: number;
@@ -22,44 +28,62 @@ type ProductAddonRow = {
   id: number;
   name: string;
   price_delta: number;
+  is_active?: boolean;
+  sort_order?: number;
 };
 
 const DashboardProducts: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
+  const { user, permissions } = useAuth();
+
+  const allowed = has(user, permissions, "can_manage_products");
+
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [name, setName] = useState("");
-  const [price, setPrice] = useState<string>("");
-  const [categoryId, setCategoryId] = useState<string>("");
+  const [price, setPrice] = useState("");
+  const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
-  const [stock, setStock] = useState<string>("");
+  const [stock, setStock] = useState("");
   const [available, setAvailable] = useState(true);
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+
   const [addons, setAddons] = useState<ProductAddonRow[]>([]);
-  const [addonName, setAddonName] = useState("");
-  const [addonPrice, setAddonPrice] = useState<string>("");
-  const [addonEditingId, setAddonEditingId] = useState<number | null>(null);
   const [addonsLoading, setAddonsLoading] = useState(false);
   const [addonsSaving, setAddonsSaving] = useState(false);
+  const [addonEditingId, setAddonEditingId] = useState<number | null>(null);
+  const [addonName, setAddonName] = useState("");
+  const [addonPrice, setAddonPrice] = useState("");
+  const [search, setSearch] = useState("");
 
-  const { data: products } = useQuery<ProductRow[]>({
-    queryKey: ["products-admin"],
+  const { data: products = [], isLoading } = useQuery<ProductRow[]>({
+    queryKey: ["dashboard", "products"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("products/items/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
+
+  const filteredProducts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter((p) => p.name.toLowerCase().includes(q));
+  }, [products, search]);
+
+  if (!allowed) {
+    return <DashboardAccessDenied title="المنتجات" subtitle="إدارة المنتجات وإضافاتها." />;
+  }
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      quality: 0.8,
+      quality: 0.85,
     });
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-    }
+    if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
   const resetForm = () => {
@@ -72,15 +96,13 @@ const DashboardProducts: React.FC = () => {
     setAvailable(true);
     setImageUri(null);
     setAddons([]);
-    setAddonName("");
-    setAddonPrice("");
-    setAddonEditingId(null);
+    resetAddonForm();
   };
 
   const resetAddonForm = () => {
+    setAddonEditingId(null);
     setAddonName("");
     setAddonPrice("");
-    setAddonEditingId(null);
   };
 
   const loadAddons = async (productId: number) => {
@@ -98,8 +120,7 @@ const DashboardProducts: React.FC = () => {
       }
       const data = res.data?.results || res.data || [];
       setAddons(data);
-    } catch (error) {
-      console.warn("load addons error", error);
+    } catch {
       setAddons([]);
     } finally {
       setAddonsLoading(false);
@@ -109,7 +130,7 @@ const DashboardProducts: React.FC = () => {
   const saveAddon = async () => {
     if (!editingId) return;
     if (!addonName.trim()) {
-      Alert.alert("تنبيه", "يرجى إدخال اسم الإضافة.");
+      Alert.alert("بيانات ناقصة", "أدخل اسم الإضافة.");
       return;
     }
     setAddonsSaving(true);
@@ -118,6 +139,7 @@ const DashboardProducts: React.FC = () => {
         name: addonName.trim(),
         price_delta: Number(addonPrice) || 0,
       };
+
       if (addonEditingId) {
         try {
           await api.patch(`products/items/${editingId}/addons/${addonEditingId}/`, payload);
@@ -139,10 +161,11 @@ const DashboardProducts: React.FC = () => {
           }
         }
       }
+
       await loadAddons(editingId);
       resetAddonForm();
     } catch {
-      Alert.alert("خطأ", "تعذر حفظ الإضافة.");
+      Alert.alert("تعذر الحفظ", "تعذر حفظ الإضافة.");
     } finally {
       setAddonsSaving(false);
     }
@@ -154,9 +177,9 @@ const DashboardProducts: React.FC = () => {
     setAddonPrice(String(addon.price_delta ?? ""));
   };
 
-  const deleteAddon = (addonId: number) => {
+  const deleteAddon = async (addonId: number) => {
     if (!editingId) return;
-    Alert.alert("حذف", "هل أنت متأكد من حذف الإضافة؟", [
+    Alert.alert("حذف الإضافة", "هل أنت متأكد؟", [
       { text: "إلغاء", style: "cancel" },
       {
         text: "حذف",
@@ -174,7 +197,7 @@ const DashboardProducts: React.FC = () => {
             }
             await loadAddons(editingId);
           } catch {
-            Alert.alert("خطأ", "تعذر حذف الإضافة.");
+            Alert.alert("تعذر الحذف", "تعذر حذف الإضافة.");
           }
         },
       },
@@ -182,42 +205,36 @@ const DashboardProducts: React.FC = () => {
   };
 
   const saveProduct = async () => {
-    if (!name.trim() || !price) {
-      Alert.alert("تنبيه", "أدخل الاسم والسعر.");
+    if (!name.trim() || !price.trim()) {
+      Alert.alert("بيانات ناقصة", "أدخل اسم المنتج والسعر.");
       return;
     }
+
     setSaving(true);
     try {
       const formData: any = new FormData();
       formData.append("name", name.trim());
       formData.append("price", Number(price));
       formData.append("description", description);
-      if (stock) formData.append("stock", Number(stock));
+      if (stock.trim()) formData.append("stock", Number(stock));
       formData.append("available", available);
-      if (categoryId) formData.append("category", Number(categoryId));
+      if (categoryId.trim()) formData.append("category", Number(categoryId));
+
       if (imageUri) {
         const filename = imageUri.split("/").pop() || "image.jpg";
-        formData.append("image", {
-          uri: imageUri,
-          name: filename,
-          type: "image/jpeg",
-        } as any);
+        formData.append("image", { uri: imageUri, name: filename, type: "image/jpeg" } as any);
       }
 
       if (editingId) {
-        await api.patch(`products/items/${editingId}/`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.patch(`products/items/${editingId}/`, formData, { headers: { "Content-Type": "multipart/form-data" } });
       } else {
-        await api.post("products/items/", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.post("products/items/", formData, { headers: { "Content-Type": "multipart/form-data" } });
       }
 
+      qc.invalidateQueries({ queryKey: ["dashboard", "products"] });
       resetForm();
-      qc.invalidateQueries({ queryKey: ["products-admin"] });
     } catch {
-      Alert.alert("خطأ", "تعذر حفظ المنتج.");
+      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء حفظ المنتج.");
     } finally {
       setSaving(false);
     }
@@ -229,7 +246,7 @@ const DashboardProducts: React.FC = () => {
     setPrice(String(p.price));
     setCategoryId(typeof p.category === "object" ? String(p.category.id) : p.category ? String(p.category) : "");
     setDescription(p.description || "");
-    setStock(p.stock ? String(p.stock) : "");
+    setStock(p.stock != null ? String(p.stock) : "");
     setAvailable(p.available ?? true);
     setImageUri(p.image || null);
     resetAddonForm();
@@ -237,197 +254,135 @@ const DashboardProducts: React.FC = () => {
   };
 
   const deleteProduct = async (id: number) => {
-    try {
-      await api.delete(`products/items/${id}/`);
-      qc.invalidateQueries({ queryKey: ["products-admin"] });
-      if (editingId === id) resetForm();
-    } catch {
-      Alert.alert("خطأ", "تعذر حذف المنتج.");
-    }
+    Alert.alert("حذف المنتج", "هل أنت متأكد؟", [
+      { text: "إلغاء", style: "cancel" },
+      {
+        text: "حذف",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await api.delete(`products/items/${id}/`);
+            qc.invalidateQueries({ queryKey: ["dashboard", "products"] });
+            if (editingId === id) resetForm();
+          } catch {
+            Alert.alert("تعذر الحذف", "حدث خطأ أثناء حذف المنتج.");
+          }
+        },
+      },
+    ]);
   };
 
   return (
-    <DashboardShell title="إدارة المنتجات" subtitle="إضافة منتجات، صور، وتفعيل/تعطيل مع إدارة الإضافات.">
-        <Card>
-          <Text style={styles.title}>المنتجات</Text>
-          <Text style={styles.helper}>إدارة المنتجات مع التحكم في التوفر والصور.</Text>
-        </Card>
+    <DashboardShell title="المنتجات" subtitle="إضافة وتعديل المنتجات وإدارة الإضافات (الخيارات).">
+      <DashboardSection title={editingId ? "تعديل منتج" : "إضافة منتج"} subtitle="املأ البيانات ثم احفظ.">
+        <Input label="اسم المنتج" value={name} onChangeText={setName} placeholder="مثال: ساندوتش دجاج" />
+        <Input label="السعر" value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="مثال: 12" />
+        <Input label="رقم الفئة (اختياري)" value={categoryId} onChangeText={setCategoryId} keyboardType="number-pad" hint="يمكنك تركها فارغة." />
+        <Input label="الوصف (اختياري)" value={description} onChangeText={setDescription} multiline numberOfLines={3} />
+        <Input label="المخزون (اختياري)" value={stock} onChangeText={setStock} keyboardType="number-pad" />
 
-        <Card style={{ gap: 8 }}>
-          <Text style={styles.sectionTitle}>{editingId ? "تعديل منتج" : "إضافة منتج"}</Text>
-          <TextInput placeholder="اسم المنتج" value={name} onChangeText={setName} style={styles.input} textAlign="right" />
-          <TextInput
-            placeholder="السعر"
-            value={price}
-            onChangeText={setPrice}
-            style={styles.input}
-            keyboardType="numeric"
-            textAlign="right"
-          />
-          <TextInput
-            placeholder="الوصف (اختياري)"
-            value={description}
-            onChangeText={setDescription}
-            style={styles.input}
-            textAlign="right"
-          />
-          <TextInput
-            placeholder="المخزون (اختياري)"
-            value={stock}
-            onChangeText={setStock}
-            style={styles.input}
-            keyboardType="numeric"
-            textAlign="right"
-          />
-          <TextInput
-            placeholder="معرف التصنيف (اختياري)"
-            value={categoryId}
-            onChangeText={setCategoryId}
-            style={styles.input}
-            keyboardType="number-pad"
-            textAlign="right"
-          />
-          <View style={styles.switchRow}>
-            <Text style={styles.sub}>متاح</Text>
-            <Switch value={available} onValueChange={setAvailable} />
-          </View>
-          <Button title={imageUri ? "تغيير الصورة" : "اختيار صورة"} variant="secondary" onPress={pickImage} />
-          {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
-          <Button title={saving ? "جارٍ الحفظ..." : "حفظ"} onPress={saveProduct} disabled={saving} />
-          {editingId ? <Button title="إلغاء التعديل" variant="ghost" onPress={resetForm} /> : null}
-        </Card>
+        <View style={styles.switchRow}>
+          <Text style={[styles.switchLabel, { color: theme.palette.text }]}>متاح للبيع</Text>
+          <Switch value={available} onValueChange={setAvailable} thumbColor={available ? theme.palette.accent : "#f1f5f9"} />
+        </View>
 
-        <Card style={{ gap: 8 }}>
-          <Text style={styles.sectionTitle}>إضافات المنتج</Text>
-          {editingId ? (
-            <>
-              <TextInput
-                placeholder="اسم الإضافة"
-                value={addonName}
-                onChangeText={setAddonName}
-                style={styles.input}
-                textAlign="right"
-              />
-              <TextInput
-                placeholder="السعر"
-                value={addonPrice}
-                onChangeText={setAddonPrice}
-                style={styles.input}
-                keyboardType="numeric"
-                textAlign="right"
-              />
-              <Button
-                title={addonsSaving ? "جاري الحفظ..." : addonEditingId ? "تحديث" : "إضافة"}
-                onPress={saveAddon}
-                disabled={addonsSaving}
-              />
-              {addonEditingId ? <Button title="إلغاء" variant="ghost" onPress={resetAddonForm} /> : null}
-              {addonsLoading ? (
-                <Text style={styles.sub}>جاري تحميل إضافات...</Text>
-              ) : addons.length === 0 ? (
-                <Text style={styles.sub}>لا توجد إضافات بعد.</Text>
-              ) : (
-                addons.map((addon) => (
-                  <View key={addon.id} style={styles.row}>
-                    <View style={{ flex: 1, alignItems: "flex-end" }}>
-                      <Text style={styles.name}>{addon.name}</Text>
-                      <Text style={styles.sub}>+ {Number(addon.price_delta || 0).toFixed(2)} ?.?</Text>
-                    </View>
-                    <Button title="تعديل" variant="secondary" onPress={() => editAddon(addon)} />
-                    <Button title="حذف" variant="ghost" onPress={() => deleteAddon(addon.id)} />
-                  </View>
-                ))
-              )}
-            </>
+        <Button title={imageUri ? "تغيير الصورة" : "اختيار صورة"} variant="secondary" onPress={pickImage} />
+        {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
+
+        <Button title={saving ? "جارٍ الحفظ..." : "حفظ المنتج"} onPress={saveProduct} disabled={saving} />
+        {editingId ? <Button title="إلغاء التعديل" variant="ghost" onPress={resetForm} /> : null}
+      </DashboardSection>
+
+      {editingId ? (
+        <DashboardSection title="إضافات المنتج" subtitle={addonsLoading ? "جاري التحميل..." : "أضف خيارات إضافية لهذا المنتج."}>
+          <Input label={addonEditingId ? "تعديل اسم الإضافة" : "اسم الإضافة"} value={addonName} onChangeText={setAddonName} placeholder="مثال: جبن" />
+          <Input label="سعر الإضافة" value={addonPrice} onChangeText={setAddonPrice} keyboardType="decimal-pad" placeholder="مثال: 1.5" />
+          <Button title={addonsSaving ? "جارٍ الحفظ..." : addonEditingId ? "تحديث الإضافة" : "إضافة"} onPress={saveAddon} disabled={addonsSaving} />
+          {addonEditingId ? <Button title="إلغاء" variant="ghost" onPress={resetAddonForm} /> : null}
+
+          {addons.length === 0 ? (
+            <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد إضافات لهذا المنتج.</Text>
           ) : (
-            <Text style={styles.sub}>اختر منتجًا لعرض إضافات.</Text>
+            <View style={{ gap: 10 }}>
+              {addons.map((a) => (
+                <DashboardListItem
+                  key={a.id}
+                  title={a.name}
+                  subtitle={`السعر: ${a.price_delta ?? 0}`}
+                  icon="add-circle-outline"
+                  onPress={() => editAddon(a)}
+                  right={
+                    <View style={{ flexDirection: "row-reverse", gap: 8 }}>
+                      <Button title="تعديل" variant="secondary" onPress={() => editAddon(a)} />
+                      <Button title="حذف" variant="ghost" onPress={() => deleteAddon(a.id)} />
+                    </View>
+                  }
+                />
+              ))}
+            </View>
           )}
-        </Card>
+        </DashboardSection>
+      ) : null}
 
-        <Card>
-          <Text style={styles.sectionTitle}>قائمة المنتجات</Text>
-          {products &&
-            products.slice(0, 20).map((p) => (
-              <View key={p.id} style={styles.row}>
-                <View style={{ flex: 1, alignItems: "flex-end" }}>
-                  <Text style={styles.name}>{p.name}</Text>
-                  <Text style={styles.sub}>
-                    السعر: {Number(p.price).toFixed(2)} ? التصنيف:{" "}
-                    {typeof p.category === "object" ? p.category?.name : p.category ?? "-"}
-                  </Text>
-                  {p.description ? <Text style={styles.sub}>{p.description}</Text> : null}
-                  <Text style={styles.sub}>
-                    المخزون: {p.stock ?? "-"} ? {p.available ? "متاح" : "غير متاح"}
-                  </Text>
-                </View>
-                {p.image ? <Image source={{ uri: p.image }} style={styles.thumb} /> : null}
-                <Button title="تعديل" variant="secondary" onPress={() => editProduct(p)} />
-                <Button title="حذف" variant="ghost" onPress={() => deleteProduct(p.id)} />
-              </View>
+      <DashboardSection title="قائمة المنتجات" subtitle={isLoading ? "جاري التحميل..." : "اضغط على منتج للتعديل."}>
+        <Input label="بحث" value={search} onChangeText={setSearch} placeholder="اكتب اسم المنتج..." />
+        {filteredProducts.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد منتجات.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {filteredProducts.slice(0, 50).map((p) => (
+              <DashboardListItem
+                key={p.id}
+                title={p.name}
+                subtitle={`ID: ${p.id}${p.category ? " • فئة: " + (typeof p.category === "object" ? p.category.name : p.category) : ""}`}
+                icon="fast-food-outline"
+                onPress={() => editProduct(p)}
+                right={
+                  <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 10 }}>
+                    <CurrencyAmount value={p.price} color={theme.palette.text} symbolSize={12} textStyle={styles.priceText} />
+                    <Button title="تعديل" variant="secondary" onPress={() => editProduct(p)} />
+                    <Button title="حذف" variant="ghost" onPress={() => deleteProduct(p.id)} />
+                  </View>
+                }
+              />
             ))}
-        </Card>
+          </View>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    padding: 10,
-    textAlign: "right",
-  },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  sub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  switchRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 8,
-  },
-  preview: {
-    width: "100%",
-    height: 160,
-    borderRadius: 12,
-    marginTop: 6,
-  },
-  thumb: {
-    width: 46,
-    height: 46,
-    borderRadius: 10,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    switchRow: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 6,
+    },
+    switchLabel: {
+      fontSize: 13,
+      fontWeight: "900",
+      textAlign: "right",
+    },
+    preview: {
+      width: "100%",
+      height: 160,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: theme.palette.border,
+      backgroundColor: theme.palette.surfaceAlt,
+    },
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+    priceText: {
+      fontSize: 13,
+      fontWeight: "900",
+      color: theme.palette.text,
+    },
+  });
 
 export default DashboardProducts;

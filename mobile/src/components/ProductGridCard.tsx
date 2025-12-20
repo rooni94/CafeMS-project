@@ -36,7 +36,7 @@ const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, pric
         )}
       </View>
 
-      <Text style={styles.productName} numberOfLines={1}>
+      <Text style={styles.productName} numberOfLines={3}>
         {product.name}
       </Text>
       <CurrencyAmount
@@ -65,10 +65,10 @@ const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, pric
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     card: {
-      width: "47%",
+      width: "100%",
       backgroundColor: theme.palette.surface,
       borderRadius: 24,
-      padding: 12,
+      padding: 8,
       alignItems: "center",
       position: "relative",
       shadowColor: "#000",
@@ -80,10 +80,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     imageWrap: {
       width: "100%",
-      height: 120,
+      height: 106,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 8,
+      marginBottom: 4,
     },
     image: {
       width: "85%",
@@ -103,23 +103,24 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       textAlign: "center",
     },
     productName: {
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: "700",
       color: theme.palette.text,
       textAlign: "center",
       alignSelf: "stretch",
+      lineHeight: 18,
     },
     price: {
       fontSize: 14,
       fontWeight: "800",
-      marginTop: 6,
+      marginTop: 2,
       textAlign: "center",
       alignSelf: "stretch",
     },
     addBtn: {
       position: "absolute",
-      left: 10,
-      bottom: 10,
+      left: 8,
+      bottom: 8,
       width: 28,
       height: 28,
       borderRadius: 14,

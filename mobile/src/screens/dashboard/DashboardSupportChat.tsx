@@ -1,12 +1,26 @@
-﻿import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from "react-native";
+// mobile/src/screens/dashboard/DashboardSupportChat.tsx
+import React, { useMemo, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  Pressable,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
-import Screen from "../../components/Screen";
-import { useTheme } from "../../theme";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "../../services/api";
+
+import Screen from "../../components/Screen";
+import { useTheme } from "../../theme";
+import { api, parseApiError } from "../../services/api";
 import { AppStackParamList } from "../../navigation/AppNavigator";
+import { safeGoBack } from "../../navigation/helpers";
 
 type Message = {
   id: number;
@@ -54,13 +68,16 @@ const DashboardSupportChat: React.FC = () => {
 
   const sendMessage = useMutation({
     mutationFn: async () => {
-      const payload = { message: reply };
-      await api.post(`support/conversations/${id}/reply/`, payload);
+      const content = reply.trim();
+      if (!content) return;
+      const payload = { content, message: content, text: content };
+      await api.post(`support/conversations/${id}/messages/`, payload);
     },
     onSuccess: () => {
       setReply("");
       qc.invalidateQueries({ queryKey: ["support-messages-admin", id] });
     },
+    onError: (err) => Alert.alert("تعذر الإرسال", parseApiError(err) || "تعذر إرسال الرسالة."),
   });
 
   const closeConversation = useMutation({
@@ -70,8 +87,9 @@ const DashboardSupportChat: React.FC = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["support-conversation-admin", id] });
       qc.invalidateQueries({ queryKey: ["support-conversations-admin"] });
+      Alert.alert("تم", "تم إنهاء المحادثة.");
     },
-    onError: () => Alert.alert("خطأ", "تعذر إنهاء المحادثة."),
+    onError: (err) => Alert.alert("خطأ", parseApiError(err) || "تعذر إنهاء المحادثة."),
   });
 
   const deleteConversation = useMutation({
@@ -82,49 +100,40 @@ const DashboardSupportChat: React.FC = () => {
       qc.invalidateQueries({ queryKey: ["support-conversations-admin"] });
       qc.invalidateQueries({ queryKey: ["support-conversation-admin", id] });
       qc.invalidateQueries({ queryKey: ["support-messages-admin", id] });
-      navigation.goBack();
+      safeGoBack(navigation, { stack: "DashboardSupport" });
     },
-    onError: () => Alert.alert("خطأ", "تعذر حذف المحادثة."),
+    onError: (err) => Alert.alert("خطأ", parseApiError(err) || "تعذر حذف المحادثة."),
   });
 
-  const chatTitle = useMemo(
-    () => conversation?.owner_name || owner_name || subject || `محادثة #${id}`,
-    [conversation?.owner_name, owner_name, subject, id]
-  );
+  const chatTitle = useMemo(() => conversation?.owner_name || owner_name || subject || `محادثة #${id}`, [conversation?.owner_name, owner_name, subject, id]);
 
   return (
     <Screen scrollable={false} style={{ backgroundColor: "#f5f7fb" }}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={100}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
       >
         <View style={styles.chatPane}>
           <View style={styles.chatHeader}>
-            <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
+            <Pressable onPress={() => safeGoBack(navigation, { stack: "DashboardSupport" })} style={styles.backBtn}>
               <Ionicons name="chevron-back" size={20} color={theme.palette.accent} />
             </Pressable>
+
             <View style={{ flex: 1, alignItems: "flex-end" }}>
               <Text style={styles.chatTitle}>{chatTitle}</Text>
               <Text style={styles.helper}>{subject || "دردشة دعم"}</Text>
             </View>
+
             <View style={{ flexDirection: "row", gap: 8 }}>
-              <Pressable
-                style={styles.actionBtn}
-                onPress={() => closeConversation.mutate()}
-                disabled={(closeConversation as any).isLoading}
-              >
+              <Pressable style={styles.actionBtn} onPress={() => closeConversation.mutate()} disabled={(closeConversation as any).isLoading}>
                 {(closeConversation as any).isLoading ? (
                   <ActivityIndicator size="small" color="#ef4444" />
                 ) : (
                   <Ionicons name="close-circle-outline" size={20} color="#ef4444" />
                 )}
               </Pressable>
-              <Pressable
-                style={styles.actionBtn}
-                onPress={() => deleteConversation.mutate()}
-                disabled={(deleteConversation as any).isLoading}
-              >
+              <Pressable style={styles.actionBtn} onPress={() => deleteConversation.mutate()} disabled={(deleteConversation as any).isLoading}>
                 {(deleteConversation as any).isLoading ? (
                   <ActivityIndicator size="small" color="#ef4444" />
                 ) : (
@@ -137,11 +146,7 @@ const DashboardSupportChat: React.FC = () => {
           {msgLoading ? (
             <ActivityIndicator style={{ marginTop: 12 }} />
           ) : (
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ paddingVertical: 6, paddingBottom: 16, gap: 10 }}
-              keyboardShouldPersistTaps="handled"
-            >
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.messages} keyboardShouldPersistTaps="handled">
               {messages.map((m) => {
                 const isStaff = m.sender_role === "staff" || m.sender_type === "agent";
                 return (
@@ -164,17 +169,22 @@ const DashboardSupportChat: React.FC = () => {
           <View style={styles.composer}>
             <TextInput
               style={styles.input}
-              placeholder="اكتب ردك هنا..."
+              placeholder="اكتب رسالتك..."
               value={reply}
               onChangeText={setReply}
               multiline
+              textAlign="right"
             />
             <Pressable
               onPress={() => sendMessage.mutate()}
               style={[styles.sendBtn, { backgroundColor: theme.palette.accent }]}
-              disabled={!reply.trim()}
+              disabled={!reply.trim() || (sendMessage as any).isLoading}
             >
-              {(sendMessage as any).isLoading ? <ActivityIndicator color="#fff" /> : <Ionicons name="send" size={18} color="#fff" />}
+              {(sendMessage as any).isLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Ionicons name="send" size={18} color="#fff" />
+              )}
             </Pressable>
           </View>
         </View>
@@ -189,8 +199,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f7fb",
     borderRadius: 16,
     padding: 10,
-    marginHorizontal: 0,
-    marginTop: 0,
   },
   chatHeader: {
     flexDirection: "row-reverse",
@@ -198,16 +206,43 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 12,
   },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  actionBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
   chatTitle: {
     fontSize: 17,
-    fontWeight: "800",
+    fontWeight: "900",
     color: "#0f172a",
     textAlign: "right",
+    writingDirection: "rtl",
   },
   helper: {
     fontSize: 12,
     color: "#94a3b8",
     textAlign: "right",
+    writingDirection: "rtl",
+  },
+  messages: {
+    paddingVertical: 6,
+    paddingBottom: 16,
+    gap: 10,
   },
   bubbleRow: {
     flexDirection: "row",
@@ -231,7 +266,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F59E0B",
   },
   avatarCustomer: {
-    backgroundColor: "#f59e0b",
+    backgroundColor: "#94a3b8",
   },
   bubble: {
     maxWidth: "75%",
@@ -254,52 +289,45 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 14,
     lineHeight: 20,
+    writingDirection: "rtl",
+    textAlign: "right",
   },
   bubbleMeta: {
-    color: "#cbd5e1",
+    marginTop: 6,
     fontSize: 11,
-    marginTop: 4,
-    textAlign: "left",
+    color: "#94a3b8",
+    textAlign: "right",
+    writingDirection: "rtl",
   },
   composer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingTop: 8,
+    flexDirection: "row-reverse",
+    alignItems: "flex-end",
+    gap: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
   },
   input: {
     flex: 1,
     minHeight: 44,
     maxHeight: 120,
+    backgroundColor: "#fff",
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#e2e8f0",
-    textAlign: "right",
+    borderColor: "#e5e7eb",
+    color: "#0f172a",
+    writingDirection: "rtl",
   },
   sendBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-  },
-  backBtn: {
-    padding: 6,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-  },
-  actionBtn: {
-    padding: 6,
-    borderRadius: 12,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
   },
 });
 
 export default DashboardSupportChat;
+

@@ -12,7 +12,7 @@ const FloatingCart: React.FC = () => {
 
   return (
     <Pressable style={[styles.container, { backgroundColor: theme.palette.surface }]} onPress={() => navigation.navigate("Cart")}>
-      <Ionicons name="cart-outline" size={20} color={theme.palette.accent} />
+      <Ionicons name="cart-outline" size={20} color="#f59e0b" />
       {totalQuantity > 0 && (
         <View style={[styles.badge, { backgroundColor: theme.palette.accent }]}>
           <Text style={styles.badgeText}>{totalQuantity}</Text>
@@ -25,7 +25,7 @@ const FloatingCart: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    left: 55,
+    left: 20,
     top: 50,
     width: 52,
     height: 52,

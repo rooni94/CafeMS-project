@@ -12,7 +12,7 @@ type AuthContextValue = {
   loading: boolean;
   permissions: RolePermissions | null;
   login: (username: string, password: string) => Promise<void>;
-  register: (payload: { username: string; email?: string; password: string; phone?: string }) => Promise<void>;
+  register: (payload: { username: string; email: string; password: string; phone?: string }) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshPermissions: () => Promise<void>;
@@ -23,6 +23,55 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 const AUTH_STORAGE_KEY = "cafe_mobile_tokens";
 
 type StoredTokens = { access: string; refresh?: string | null };
+
+type PermissionKey = Exclude<keyof RolePermissions, "role">;
+
+const PERMISSION_KEYS: PermissionKey[] = [
+  "can_view_dashboard",
+  "can_manage_orders",
+  "can_manage_products",
+  "can_manage_categories",
+  "can_manage_subcategories",
+  "can_access_cashier",
+  "can_manage_tables",
+  "can_manage_inventory",
+  "can_view_activity_log",
+  "can_manage_support",
+  "can_manage_contact_messages",
+  "can_manage_users",
+  "can_view_user_activity",
+  "can_manage_store_settings",
+  "can_manage_loyalty",
+  "can_view_hr_dashboard",
+  "can_manage_employees",
+  "can_manage_attendance",
+  "can_manage_hr_leaves",
+  "can_manage_hr_payroll",
+  "can_manage_hr_documents",
+  "can_manage_hr_reports",
+  "can_manage_hr_work_reports",
+  "can_view_hr_performance",
+];
+
+const toBoolean = (value: unknown) => {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    if (["true", "1", "yes", "y"].includes(v)) return true;
+    if (["false", "0", "no", "n", ""].includes(v)) return false;
+  }
+  return false;
+};
+
+const normalizePermissions = (raw: any, fallbackRole?: RolePermissions["role"]): RolePermissions => {
+  const role = (raw?.role as RolePermissions["role"]) || fallbackRole || "customer";
+  const normalized: RolePermissions = { role };
+  for (const key of PERMISSION_KEYS) {
+    normalized[key] = toBoolean(raw?.[key]);
+  }
+  return normalized;
+};
 
 // Disable token persistence to avoid stale/forced auto-login states.
 const readTokens = async (): Promise<StoredTokens | null> => {
@@ -48,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(false);
   const [permissions, setPermissions] = useState<RolePermissions | null>(null);
 
-  const fetchProfile = useCallback(
+const fetchProfile = useCallback(
     async (tokenOverride?: string | null) => {
       const effectiveToken = tokenOverride ?? accessToken;
       if (!effectiveToken) {
@@ -57,7 +106,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       try {
-        const res = await api.get<User>("auth/me/");
+        const res = await api.get<User>("auth/me/", {
+          headers: { Authorization: `Bearer ${effectiveToken}` },
+        });
         setUser(res.data);
       } catch (error) {
         console.warn("Failed to load profile", error);
@@ -71,19 +122,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [accessToken]
   );
 
-  const fetchPermissions = useCallback(async () => {
-    if (!accessToken) {
+  const fetchPermissions = useCallback(async (tokenOverride?: string | null) => {
+    const effectiveToken = tokenOverride ?? accessToken;
+    if (!effectiveToken) {
       setPermissions(null);
       return;
     }
     try {
-      const res = await api.get<RolePermissions>("auth/role-permissions/me/");
-      setPermissions(res.data);
+      const res = await api.get<RolePermissions>("auth/role-permissions/me/", {
+        headers: { Authorization: `Bearer ${effectiveToken}` },
+      });
+      setPermissions(normalizePermissions(res.data, (user?.role as any) || undefined));
     } catch (error) {
       console.warn("Failed to load permissions", error);
       setPermissions(null);
     }
-  }, [accessToken]);
+  }, [accessToken, user?.role]);
 
   const refreshTokens = useCallback(
     async (refresh?: string | null) => {
@@ -144,6 +198,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [accessToken]);
 
+  // Ensure permissions are loaded for employee roles when authenticated.
+  useEffect(() => {
+    if (!accessToken || !user) return;
+    const isEmployee = user.role === "manager" || user.role === "supervisor" || user.role === "staff";
+    if (!isEmployee) return;
+    if (permissions) return;
+    fetchPermissions(accessToken).catch(() => null);
+  }, [accessToken, user, permissions, fetchPermissions]);
+
   useEffect(() => {
     const bootstrap = async () => {
       try {
@@ -156,7 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setPermissions(null);
           try {
             const res = await api.get<RolePermissions>("auth/role-permissions/me/");
-            setPermissions(res.data);
+            setPermissions(normalizePermissions(res.data));
           } catch (err) {
             console.warn("bootstrap perms", err);
           }
@@ -185,7 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await writeTokens({ access, refresh });
         setAuthToken(access);
         await fetchProfile(access);
-        await fetchPermissions();
+        await fetchPermissions(access);
       } catch (error) {
         throw new Error(parseApiError(error) || copy.messages.genericError);
       } finally {
@@ -196,7 +259,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const register = useCallback(
-    async (payload: { username: string; email?: string; password: string; phone?: string }) => {
+    async (payload: { username: string; email: string; password: string; phone?: string }) => {
       setLoading(true);
       try {
         await api.post("auth/register/", { ...payload, role: "customer" });

@@ -1,11 +1,16 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, Alert } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, Button } from "../../components/ui";
-import { useTheme } from "../../theme";
+import { Button, Input } from "../../components/ui";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
 import StatBadge from "./components/StatBadge";
+import { hasAny } from "./components/permissions";
 
 type InventorySummary = {
   total_items: number;
@@ -22,180 +27,139 @@ type InventoryItem = {
 
 const DashboardInventory: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
-  const [adjustId, setAdjustId] = useState<string>("");
-  const [adjustQty, setAdjustQty] = useState<string>("");
+  const { user, permissions } = useAuth();
+
+  const allowed = hasAny(user, permissions, ["can_manage_inventory", "can_view_dashboard"]);
+
+  const [productId, setProductId] = useState("");
+  const [qty, setQty] = useState("");
   const [search, setSearch] = useState("");
   const [showLow, setShowLow] = useState(false);
   const [showOut, setShowOut] = useState(false);
 
   const { data: summary } = useQuery<InventorySummary>({
-    queryKey: ["inventory-summary"],
+    queryKey: ["dashboard", "inventory-summary"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("orders/pos/inventory/summary/");
       return res.data;
     },
   });
 
-  const { data: items } = useQuery<InventoryItem[]>({
-    queryKey: ["inventory-items"],
+  const { data: items = [], isLoading } = useQuery<InventoryItem[]>({
+    queryKey: ["dashboard", "inventory-items"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("products/items/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
-  const filteredItems = useMemo(() => {
-    return (items || [])
-      .filter((i) => (search ? i.name.toLowerCase().includes(search.toLowerCase()) : true))
-      .filter((i) => (showLow ? (i.stock ?? 0) < 5 && (i.stock ?? 0) > 0 : true))
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items
+      .filter((i) => (q ? i.name.toLowerCase().includes(q) : true))
+      .filter((i) => (showLow ? (i.stock ?? 0) > 0 && (i.stock ?? 0) < 5 : true))
       .filter((i) => (showOut ? (i.stock ?? 0) <= 0 : true));
   }, [items, search, showLow, showOut]);
 
   const adjustInventory = async () => {
-    if (!adjustId || !adjustQty) {
-      Alert.alert("تنبيه", "أدخل معرف المنتج والكمية.");
+    if (!productId.trim() || !qty.trim()) {
+      Alert.alert("بيانات ناقصة", "أدخل رقم المنتج والكمية (+/-).");
       return;
     }
     try {
       await api.post("orders/pos/inventory/adjust/", {
-        product_id: Number(adjustId),
-        quantity_change: Number(adjustQty),
+        product_id: Number(productId),
+        quantity_change: Number(qty),
       });
-      qc.invalidateQueries({ queryKey: ["inventory-summary"] });
-      qc.invalidateQueries({ queryKey: ["inventory-items"] });
-      setAdjustId("");
-      setAdjustQty("");
+      setProductId("");
+      setQty("");
+      qc.invalidateQueries({ queryKey: ["dashboard", "inventory-summary"] });
+      qc.invalidateQueries({ queryKey: ["dashboard", "inventory-items"] });
     } catch {
-      Alert.alert("خطأ", "تعذر تحديث المخزون.");
+      Alert.alert("تعذر التعديل", "حدث خطأ أثناء تعديل المخزون.");
     }
   };
 
+  if (!allowed) {
+    return <DashboardAccessDenied title="المخزون" subtitle="متابعة الكميات وتعديلها بسرعة." />;
+  }
+
   return (
-    <DashboardShell title="إدارة المخزون" subtitle="متابعة الكميات، تنبيهات النقص، وتحديث المخزون.">
-        <Card>
-          <Text style={styles.title}>المخزون</Text>
-          <View style={styles.statsRow}>
-            <StatBadge label="إجمالي الأصناف" value={summary?.total_items ?? "-"} />
-            <StatBadge label="كمية منخفضة" value={summary?.low_stock_items ?? "-"} color="#f59e0b" />
-            <StatBadge label="نفدت" value={summary?.out_of_stock_items ?? "-"} color="#ef4444" />
-          </View>
-        </Card>
+    <DashboardShell title="المخزون" subtitle="متابعة الكميات وتعديلها بسرعة.">
+      <DashboardSection title="ملخص المخزون" subtitle="نظرة عامة على حالة الأصناف.">
+        <View style={styles.statsRow}>
+          <StatBadge label="كل الأصناف" value={summary?.total_items ?? "-"} color={theme.palette.accentSoft} />
+          <StatBadge label="منخفض" value={summary?.low_stock_items ?? "-"} color={theme.palette.accent} />
+          <StatBadge label="نفد" value={summary?.out_of_stock_items ?? "-"} color={theme.palette.danger} />
+        </View>
+      </DashboardSection>
 
-        <Card>
-          <Text style={styles.sectionTitle}>ضبط المخزون</Text>
-          <Text style={styles.helper}>زيادة أو تخفيض كمية منتج محدد.</Text>
-          <TextInput
-            placeholder="معرف المنتج"
-            value={adjustId}
-            onChangeText={setAdjustId}
-            keyboardType="number-pad"
-            style={styles.input}
-          />
-          <TextInput
-            placeholder="التغير في الكمية (+/-)"
-            value={adjustQty}
-            onChangeText={setAdjustQty}
-            keyboardType="number-pad"
-            style={styles.input}
-          />
-          <Button title="تحديث المخزون" onPress={adjustInventory} />
-        </Card>
+      <DashboardSection title="تعديل سريع" subtitle="استخدم (+) للإضافة و(-) للخصم.">
+        <Input
+          label="رقم المنتج"
+          value={productId}
+          onChangeText={setProductId}
+          keyboardType="number-pad"
+          placeholder="مثال: 15"
+        />
+        <Input
+          label="تغيير الكمية"
+          value={qty}
+          onChangeText={setQty}
+          keyboardType="numbers-and-punctuation"
+          placeholder="مثال: -2 أو 5"
+          hint="تأكد من إدخال قيمة رقمية."
+        />
+        <Button title="تطبيق التعديل" onPress={adjustInventory} />
+      </DashboardSection>
 
-        <Card>
-          <Text style={styles.sectionTitle}>الأصناف</Text>
-          <TextInput
-            placeholder="بحث عن منتج"
-            value={search}
-            onChangeText={setSearch}
-            style={styles.input}
-            textAlign="right"
-          />
-          <View style={styles.filtersRow}>
-            <Button
-              title="منخفضة"
-              variant={showLow ? "primary" : "ghost"}
-              onPress={() => setShowLow((v) => !v)}
-            />
-            <Button
-              title="نفدت"
-              variant={showOut ? "primary" : "ghost"}
-              onPress={() => setShowOut((v) => !v)}
-            />
+      <DashboardSection title="الأصناف" subtitle={isLoading ? "جاري التحميل..." : "يمكنك البحث أو تصفية النتائج."}>
+        <Input label="بحث" value={search} onChangeText={setSearch} placeholder="اكتب اسم المنتج..." />
+        <View style={styles.filtersRow}>
+          <Button title="منخفض" variant={showLow ? "primary" : "ghost"} onPress={() => setShowLow((v) => !v)} />
+          <Button title="نفد" variant={showOut ? "primary" : "ghost"} onPress={() => setShowOut((v) => !v)} />
+        </View>
+
+        {filtered.length === 0 ? (
+          <Text style={[styles.emptyText, { color: theme.palette.muted }]}>لا توجد نتائج.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {filtered.slice(0, 40).map((item) => (
+              <DashboardListItem
+                key={item.id}
+                title={item.name}
+                subtitle={`ID: ${item.id} • الكمية: ${item.stock ?? "-"} • ${item.available ? "متاح للبيع" : "غير متاح"}`}
+                icon="cube-outline"
+              />
+            ))}
           </View>
-          {filteredItems && (
-            <View style={{ marginTop: 8, gap: 10 }}>
-              {filteredItems.slice(0, 20).map((item) => (
-                <View key={item.id} style={styles.row}>
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <Text style={styles.name}>{item.name}</Text>
-                    <Text style={styles.sub}>
-                      {item.stock ?? "-"} حبة ? {item.available ? "متاح" : "غير متاح"}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-        </Card>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  statsRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
-  },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  sub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    padding: 10,
-    textAlign: "right",
-    marginTop: 6,
-  },
-  filtersRow: {
-    flexDirection: "row-reverse",
-    flexWrap: "wrap",
-    gap: 8,
-    marginTop: 8,
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    statsRow: {
+      flexDirection: "row-reverse",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    filtersRow: {
+      flexDirection: "row-reverse",
+      flexWrap: "wrap",
+      gap: 8,
+    },
+    emptyText: {
+      textAlign: "right",
+      fontSize: 13,
+      lineHeight: 18,
+    },
+  });
 
 export default DashboardInventory;

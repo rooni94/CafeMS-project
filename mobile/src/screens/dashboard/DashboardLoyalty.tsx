@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TextInput, Alert } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, Button } from "../../components/ui";
-import { useTheme } from "../../theme";
-import { api } from "../../services/api";
+import { Button, Input } from "../../components/ui";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import { useAuth } from "../../context/AuthContext";
+import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import { has } from "./components/permissions";
 
 type LoyaltyProfile = {
   points?: number;
@@ -29,9 +34,15 @@ type LoyaltyTransaction = {
 
 const DashboardLoyalty: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
+  const { user, permissions } = useAuth();
+
+  const allowed = has(user, permissions, "can_manage_loyalty");
+
   const { data: profile } = useQuery<LoyaltyProfile>({
-    queryKey: ["loyalty-profile"],
+    queryKey: ["dashboard", "loyalty-profile"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("loyalty/profile/");
       return res.data;
@@ -39,157 +50,138 @@ const DashboardLoyalty: React.FC = () => {
   });
 
   const { data: settings } = useQuery<LoyaltySettings>({
-    queryKey: ["loyalty-settings"],
+    queryKey: ["dashboard", "loyalty-settings"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("loyalty/settings/");
       return res.data;
     },
   });
 
-  const { data: transactions } = useQuery<LoyaltyTransaction[]>({
-    queryKey: ["loyalty-transactions"],
+  const { data: transactions = [] } = useQuery<LoyaltyTransaction[]>({
+    queryKey: ["dashboard", "loyalty-transactions"],
+    enabled: allowed,
     queryFn: async () => {
       const res = await api.get("loyalty/transactions/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
   const [earnRate, setEarnRate] = useState("");
   const [redeemRate, setRedeemRate] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (settings) {
-      setEarnRate(settings.earn_rate ? String(settings.earn_rate) : "");
-      setRedeemRate(settings.redeem_rate ? String(settings.redeem_rate) : "");
-    }
+    if (!settings) return;
+    setEarnRate(settings.earn_rate != null ? String(settings.earn_rate) : "");
+    setRedeemRate(settings.redeem_rate != null ? String(settings.redeem_rate) : "");
   }, [settings]);
 
+  if (!allowed) {
+    return <DashboardAccessDenied title="برنامج الولاء" subtitle="إدارة إعدادات الولاء وحركة النقاط." />;
+  }
+
   const saveSettings = async () => {
+    setSaving(true);
     try {
       await api.patch("loyalty/settings/", {
-        earn_rate: earnRate ? Number(earnRate) : undefined,
-        redeem_rate: redeemRate ? Number(redeemRate) : undefined,
+        earn_rate: earnRate.trim() ? Number(earnRate) : undefined,
+        redeem_rate: redeemRate.trim() ? Number(redeemRate) : undefined,
       });
-      qc.invalidateQueries({ queryKey: ["loyalty-settings"] });
-      Alert.alert("تم", "تم حفظ إعدادات الولاء.");
+      qc.invalidateQueries({ queryKey: ["dashboard", "loyalty-settings"] });
+      Alert.alert("تم الحفظ", "تم تحديث إعدادات برنامج الولاء.");
     } catch {
-      Alert.alert("خطأ", "تعذر حفظ إعدادات الولاء.");
+      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء حفظ إعدادات الولاء.");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <DashboardShell title="برنامج الولاء" subtitle="إعدادات الولاء، النقاط، والرصيد النقدي.">
-        <Card>
-          <Text style={styles.title}>برنامج الولاء</Text>
-          <Text style={styles.helper}>رصيد النقاط، الرصيد النقدي، والمستوى الحالي.</Text>
-          <Text style={styles.helper}>النقاط: {profile?.points ?? "-"}</Text>
-          <View style={styles.balanceRow}>
-            <Text style={styles.helper}>الرصيد:</Text>
-            <CurrencyAmount
-              value={profile?.balance ?? "-"}
-              color={theme.palette.accent}
-              symbolSize={12}
-              textStyle={[styles.helper, { color: theme.palette.accent, fontWeight: "800", marginTop: 0 }]}
-            />
-          </View>
-          <Text style={styles.helper}>المستوى: {profile?.tier ?? "-"}</Text>
-          <Text style={styles.helper}>رمز العضوية: {profile?.member_code ?? "-"}</Text>
-        </Card>
+    <DashboardShell title="برنامج الولاء" subtitle="إدارة إعدادات الولاء ومتابعة العمليات.">
+      <DashboardSection title="الملف" subtitle="معلومات العضوية الحالية.">
+        <View style={styles.profileRow}>
+          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>النقاط</Text>
+          <Text style={[styles.profileValue, { color: theme.palette.text }]}>{profile?.points ?? "-"}</Text>
+        </View>
+        <View style={styles.profileRow}>
+          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>الرصيد</Text>
+          <CurrencyAmount value={profile?.balance ?? "-"} color={theme.palette.accent} symbolSize={12} textStyle={styles.balanceText} />
+        </View>
+        <View style={styles.profileRow}>
+          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>المستوى</Text>
+          <Text style={[styles.profileValue, { color: theme.palette.text }]}>{profile?.tier ?? "-"}</Text>
+        </View>
+        <View style={styles.profileRow}>
+          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>كود العضوية</Text>
+          <Text style={[styles.profileValue, { color: theme.palette.text }]}>{profile?.member_code ?? "-"}</Text>
+        </View>
+      </DashboardSection>
 
-        <Card>
-          <Text style={styles.sectionTitle}>إعدادات الكسب والاستبدال</Text>
-          <TextInput
-            placeholder="معدل الكسب (نقطة لكل ريال)"
-            value={earnRate}
-            onChangeText={setEarnRate}
-            style={styles.input}
-            keyboardType="numeric"
-            textAlign="right"
-          />
-          <TextInput
-            placeholder="معدل الاستبدال (عدد النقاط)"
-            value={redeemRate}
-            onChangeText={setRedeemRate}
-            style={styles.input}
-            keyboardType="numeric"
-            textAlign="right"
-          />
-          <Button title="حفظ الإعدادات" onPress={saveSettings} />
-          <View style={{ flexDirection: "row-reverse", gap: 8, marginTop: 10 }}>
-            <Button title="فتح Google Wallet" variant="secondary" onPress={() => api.get("loyalty/pass/android/")} />
-            <Button title="فتح Apple Wallet" variant="ghost" onPress={() => api.get("loyalty/pass/apple/")} />
-          </View>
-        </Card>
+      <DashboardSection title="الإعدادات" subtitle="معدل الكسب ومعدل الاستبدال.">
+        <Input
+          label="معدل كسب النقاط"
+          value={earnRate}
+          onChangeText={setEarnRate}
+          keyboardType="decimal-pad"
+          hint="مثال: 0.1 يعني نقطة لكل 10 ريالات."
+        />
+        <Input
+          label="معدل الاستبدال"
+          value={redeemRate}
+          onChangeText={setRedeemRate}
+          keyboardType="decimal-pad"
+          hint="مثال: 1 يعني ريال لكل نقطة (حسب إعدادك)."
+        />
+        <Button title={saving ? "جارٍ الحفظ..." : "حفظ الإعدادات"} onPress={saveSettings} disabled={saving} />
+      </DashboardSection>
 
-        <Card>
-          <Text style={styles.sectionTitle}>أحدث الحركات</Text>
-          {transactions && (
-            <View style={{ marginTop: 8, gap: 10 }}>
-              {transactions.slice(0, 15).map((t) => (
-                <View key={t.id} style={styles.row}>
-                  <View style={{ flex: 1, alignItems: "flex-end" }}>
-                    <Text style={styles.name}>{t.description || "عملية"}</Text>
-                    <Text style={styles.sub}>
-                      {t.points ?? t.amount ?? "-"} ? {new Date(t.created_at).toLocaleString()}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-        </Card>
+      <DashboardSection title="العمليات" subtitle="آخر عمليات النقاط.">
+        {transactions.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد عمليات.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {transactions.slice(0, 40).map((t) => (
+              <DashboardListItem
+                key={t.id}
+                title={t.description?.trim() ? t.description : "عملية"}
+                subtitle={`${t.points != null ? `${t.points} نقطة` : t.amount != null ? `${t.amount}` : "-"} • ${new Date(t.created_at).toLocaleString()}`}
+                icon="sparkles-outline"
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  balanceRow: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  sub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-    borderRadius: 10,
-    padding: 10,
-    textAlign: "right",
-    marginTop: 6,
-  },
-});
+const createStyles = (theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    profileRow: {
+      flexDirection: "row-reverse",
+      justifyContent: "space-between",
+      gap: 10,
+    },
+    profileLabel: {
+      fontSize: 12,
+      fontWeight: "900",
+    },
+    profileValue: {
+      flex: 1,
+      fontSize: 13,
+      fontWeight: "900",
+      textAlign: "left",
+    },
+    balanceText: {
+      fontSize: 13,
+      fontWeight: "900",
+      color: theme.palette.accent,
+    },
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+  });
 
 export default DashboardLoyalty;

@@ -1,10 +1,14 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
-import { Card } from "../../components/ui";
-import { useTheme } from "../../theme";
+import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
+import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
+import DashboardAccessDenied from "./components/DashboardAccessDenied";
+import DashboardSection from "./components/DashboardSection";
+import DashboardListItem from "./components/DashboardListItem";
+import { hasAny } from "./components/permissions";
 
 type UserLog = {
   id: number;
@@ -24,105 +28,80 @@ type SupportLog = {
 
 const DashboardLogs: React.FC = () => {
   const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { user, permissions } = useAuth();
 
-  const { data: userLogs } = useQuery<UserLog[]>({
-    queryKey: ["user-activity"],
+  const canViewUsers = hasAny(user, permissions, ["can_view_user_activity", "can_view_activity_log"]);
+  const canViewSupport = hasAny(user, permissions, ["can_manage_support", "can_view_activity_log"]);
+  const allowed = canViewUsers || canViewSupport;
+
+  const { data: userLogs = [], isLoading: usersLoading } = useQuery<UserLog[]>({
+    queryKey: ["dashboard", "user-activity"],
+    enabled: canViewUsers,
     queryFn: async () => {
       const res = await api.get("auth/user-activity/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
-  const { data: supportLogs } = useQuery<SupportLog[]>({
-    queryKey: ["support-activity"],
+  const { data: supportLogs = [], isLoading: supportLoading } = useQuery<SupportLog[]>({
+    queryKey: ["dashboard", "support-activity"],
+    enabled: canViewSupport,
     queryFn: async () => {
       const res = await api.get("support/activities/");
-      return res.data.results || res.data;
+      return res.data?.results || res.data || [];
     },
   });
 
+  if (!allowed) {
+    return <DashboardAccessDenied title="السجلات" subtitle="سجل المستخدمين وسجل الدعم." />;
+  }
+
   return (
-    <DashboardShell title="سجل النشاط" subtitle="سجلات المستخدمين والدعم لمتابعة العمليات.">
-        <Card>
-          <Text style={styles.title}>سجل النشاط</Text>
-          <Text style={styles.helper}>نشاط المستخدمين والدعم لمتابعة العمليات الحساسة.</Text>
-        </Card>
+    <DashboardShell title="السجلات" subtitle="سجل المستخدمين وسجل الدعم.">
+      <DashboardSection title="سجل المستخدمين" subtitle={usersLoading ? "جاري التحميل..." : "آخر الأحداث المسجلة."}>
+        {userLogs.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا يوجد سجل مستخدمين.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {userLogs.slice(0, 40).map((log) => (
+              <DashboardListItem
+                key={log.id}
+                title={log.action?.trim() ? log.action : "حدث"}
+                subtitle={`${log.user?.username || "—"} • ${log.ip_address || "—"} • ${log.created_at ? new Date(log.created_at).toLocaleString() : "—"}`}
+                icon="person-outline"
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
 
-        <Card>
-          <Text style={styles.sectionTitle}>نشاط المستخدمين</Text>
-          {userLogs && userLogs.length > 0 ? (
-            userLogs.slice(0, 20).map((log) => (
-              <View key={log.id} style={styles.row}>
-                <View style={{ flex: 1, alignItems: "flex-end" }}>
-                  <Text style={styles.name}>{log.action || "إجراء"}</Text>
-                  <Text style={styles.sub}>
-                    {log.user?.username ?? "مستخدم"} ? {log.ip_address || "—"} ?{" "}
-                    {log.created_at ? new Date(log.created_at).toLocaleString() : ""}
-                  </Text>
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.helper}>لا يوجد سجل حتى الآن.</Text>
-          )}
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>نشاط الدعم</Text>
-          {supportLogs && supportLogs.length > 0 ? (
-            supportLogs.slice(0, 20).map((log) => (
-              <View key={log.id} style={styles.row}>
-                <View style={{ flex: 1, alignItems: "flex-end" }}>
-                  <Text style={styles.name}>{log.action || "إجراء"}</Text>
-                  <Text style={styles.sub}>
-                    محادثة #{log.conversation ?? "-"} ? {log.actor || "فريق الدعم"} ?{" "}
-                    {log.created_at ? new Date(log.created_at).toLocaleString() : ""}
-                  </Text>
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={styles.helper}>لا يوجد نشاط للدعم.</Text>
-          )}
-        </Card>
+      <DashboardSection title="سجل الدعم" subtitle={supportLoading ? "جاري التحميل..." : "آخر الأحداث المرتبطة بالدعم."}>
+        {supportLogs.length === 0 ? (
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا يوجد سجل دعم.</Text>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {supportLogs.slice(0, 40).map((log) => (
+              <DashboardListItem
+                key={log.id}
+                title={log.action?.trim() ? log.action : "حدث"}
+                subtitle={`محادثة #${log.conversation ?? "-"} • ${log.actor || "—"} • ${log.created_at ? new Date(log.created_at).toLocaleString() : "—"}`}
+                icon="chatbubble-ellipses-outline"
+              />
+            ))}
+          </View>
+        )}
+      </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  title: {
-    fontSize: 18,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  helper: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-    marginTop: 4,
-  },
-  sectionTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 6,
-  },
-  row: {
-    flexDirection: "row-reverse",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  sub: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-});
+const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    empty: {
+      textAlign: "right",
+      fontSize: 13,
+    },
+  });
 
 export default DashboardLogs;

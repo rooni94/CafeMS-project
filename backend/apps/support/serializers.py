@@ -1,3 +1,4 @@
+# backend/apps/support/serializers.py
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import Conversation, SupportMessage, SupportStaffActivity
@@ -77,7 +78,6 @@ class ConversationSerializer(serializers.ModelSerializer):
             "created_at": msg.created_at,
         }
 
-# في أسفل apps/support/serializers.py
 
 class SupportConversationSerializer(ConversationSerializer):
     """
@@ -87,6 +87,7 @@ class SupportConversationSerializer(ConversationSerializer):
     """
     class Meta(ConversationSerializer.Meta):
         pass
+
 
 class SupportStaffActivitySerializer(serializers.ModelSerializer):
     staff_name = serializers.CharField(read_only=True)

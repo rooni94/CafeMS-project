@@ -1,217 +1,203 @@
-﻿import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useMemo } from "react";
+import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import Screen from "../../components/Screen";
-import { Card, Button } from "../../components/ui";
 import { useNavigation } from "@react-navigation/native";
+
+import { Button } from "../../components/ui";
 import { useStoreSettings } from "../../context/StoreSettingsContext";
 import { useTheme } from "../../theme";
-import { copy } from "../../config/copy";
+import { normalizeArabicText } from "../../utils/text";
+import { goToTab } from "../../navigation/helpers";
+import DashboardShell from "../dashboard/components/DashboardShell";
+import DashboardSection from "../dashboard/components/DashboardSection";
 
-const differentiators = [
-  {
-    title: "خبز طازج وصلصات منزلية",
-    description: "نحضّر الخبز والحشوات يومياً لترافق كل لقمة بطعم متجدد.",
-    icon: "leaf-outline",
-  },
-  {
-    title: "ضيافة سريعة وواضحة",
-    description: "واجهة الطلب تدعم الاستلام أو التوصيل والجدولة لتبقى تجربتك سهلة.",
-    icon: "people-outline",
-  },
-  {
-    title: "تجديد موسمي",
-    description: "بطاقات الهيرو والعروض تتحدث دورياً لتناسب الموسم وذائقتك.",
-    icon: "sparkles-outline",
-  },
+const DEFAULT_HIGHLIGHTS = [
+  "منتجات يومية بجودة عالية وطعم ثابت.",
+  "خيارات متنوعة تناسب جميع الأذواق.",
+  "طلب سريع وتجربة استخدام سهلة.",
+  "خدمة عملاء سريعة ومتابعة للطلبات.",
 ];
 
-const stats = [
-  { label: "سنوات الخبرة", value: "8+" },
-  { label: "فروع قيد التشغيل", value: "15" },
-  { label: "أصناف في القائمة", value: "120" },
-];
+const extractFirstUrlFromEmbed = (html?: string | null) => {
+  if (!html) return null;
+  const match = html.match(/src\\s*=\\s*['\"]([^'\"]+)['\"]/i);
+  return match?.[1] || null;
+};
 
-const timeline = [
-  {
-    year: "2018",
-    title: "الانطلاق",
-    copy: "افتتاح أول فرع مع قائمة سندوتشات طازجة وخدمة سريعة.",
-  },
-  {
-    year: "2020",
-    title: "التجربة الرقمية",
-    copy: "إطلاق الطلب المسبق عبر الموقع مع مزايا الولاء.",
-  },
-  {
-    year: "2023",
-    title: "توسع الفروع",
-    copy: "تطوير القائمة وإضافة الحلويات والعروض الموسمية.",
-  },
-  {
-    year: "2025",
-    title: "تطبيق موحد",
-    copy: "منصة واحدة للعميل والكاشير والسائق لتسريع الخدمة.",
-  },
-];
+const socialIcon = (platform: string): keyof typeof Ionicons.glyphMap => {
+  const p = platform.toLowerCase();
+  if (p.includes("instagram")) return "logo-instagram";
+  if (p.includes("facebook")) return "logo-facebook";
+  if (p.includes("tiktok")) return "logo-tiktok";
+  if (p.includes("snap")) return "logo-snapchat";
+  if (p.includes("twitter") || p.includes("x")) return "logo-twitter";
+  if (p.includes("youtube")) return "logo-youtube";
+  if (p.includes("whatsapp")) return "logo-whatsapp";
+  return "globe-outline";
+};
 
 const AboutScreen: React.FC = () => {
   const navigation = useNavigation<any>();
-  const { settings } = useStoreSettings();
   const theme = useTheme();
-  const brandName = settings?.store_name || copy.brandFallback;
-  const subtitle =
-    settings?.about_subtitle ||
-    "نحن مساحة دافئة تحتضن شغف الطعام ونكهاته الأصيلة.";
-  const body =
-    settings?.about_description ||
-    "CafeMS Demo محطتكم اليومية للاستمتاع بساندوتشات طازجة، خفايف شهية، ومشروبات تناسب ذائقتكم. نهتم بالتفاصيل لتكون تجربة الطلب سريعة وواضحة بضيافة ودودة.";
+  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { settings } = useStoreSettings();
+
+  const aboutTitle = normalizeArabicText((settings as any)?.about_title) || "من نحن";
+  const aboutSubtitle = normalizeArabicText((settings as any)?.about_subtitle) || "معلومات عن المتجر ورسالتنا.";
+  const aboutDescription =
+    normalizeArabicText((settings as any)?.about_description) ||
+    "نقدّم لك تجربة مميزة من الساندوتشات والمشروبات والحلويات بجودة عالية وخدمة سريعة. هدفنا أن تكون عملية الطلب سهلة وواضحة من أول خطوة حتى استلام الطلب.";
+
+  const aboutImageUrl = (settings as any)?.about_image_url || (settings as any)?.hero_image_url || null;
+  const highlights: string[] =
+    Array.isArray((settings as any)?.about_highlights) && (settings as any).about_highlights.length
+      ? (settings as any).about_highlights.map((x: any) => normalizeArabicText(String(x)))
+      : DEFAULT_HIGHLIGHTS;
+
+  const socialEntries: [string, string][] =
+    (settings as any)?.social_links && typeof (settings as any).social_links === "object"
+      ? Object.entries((settings as any).social_links as Record<string, string>).filter(([, url]) => !!url)
+      : [];
+
+  const contactPhone = String((settings as any)?.contact_phone || "").trim();
+  const contactEmail = String((settings as any)?.contact_email || (settings as any)?.support_email || "").trim();
+  const contactAddress = normalizeArabicText((settings as any)?.contact_address) || "";
+  const mapUrl = extractFirstUrlFromEmbed((settings as any)?.contact_map_embed);
 
   return (
-    <Screen>
-      <Card>
-        <Text style={styles.headline}>{brandName}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
-        <Text style={styles.body}>{body}</Text>
-        <Button
-          title="تصفح القائمة"
-          onPress={() => navigation.navigate("Menu")}
-          style={{ marginTop: 8 }}
-        />
-      </Card>
+    <DashboardShell title="من نحن" subtitle={aboutSubtitle} contentContainerStyle={styles.container}>
+      <DashboardSection title={aboutTitle} subtitle="نبذة سريعة عن المتجر">
+        {aboutImageUrl ? <Image source={{ uri: aboutImageUrl }} style={styles.heroImage} resizeMode="cover" /> : null}
+        <Text style={styles.body}>{aboutDescription}</Text>
+        <Button title="اذهب إلى القائمة" onPress={() => goToTab(navigation, "Menu")} />
+      </DashboardSection>
 
-      <Card>
-        <Text style={styles.sectionTitle}>لماذا نختلفٟ</Text>
-        {differentiators.map((item) => (
-          <View key={item.title} style={styles.listRow}>
-            <View style={styles.iconWrap}>
-              <Ionicons name={item.icon as any} size={18} color="#fff" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.listTitle}>{item.title}</Text>
-              <Text style={styles.listCopy}>{item.description}</Text>
-            </View>
-          </View>
-        ))}
-      </Card>
-
-      <Card>
-        <Text style={styles.sectionTitle}>محطات من رحلتنا</Text>
-        {timeline.map((step) => (
-          <View key={step.year} style={styles.timelineRow}>
-            <View style={styles.timelineDot} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.timelineYear}>{step.year}</Text>
-              <Text style={styles.listTitle}>{step.title}</Text>
-              <Text style={styles.listCopy}>{step.copy}</Text>
-            </View>
-          </View>
-        ))}
-      </Card>
-
-      <Card>
-        <Text style={styles.sectionTitle}>المؤشرات</Text>
-        <View style={styles.statsRow}>
-          {stats.map((stat) => (
-            <View
-              key={stat.label}
-              style={[styles.statCard, { borderColor: theme.palette.border }]}
-            >
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+      <DashboardSection title="لماذا نحن؟" subtitle="أبرز ما يميزنا">
+        <View style={styles.list}>
+          {highlights.map((item) => (
+            <View key={item} style={styles.listRow}>
+              <Ionicons name="checkmark-circle" size={18} color={theme.palette.success} />
+              <Text style={styles.listText}>{item}</Text>
             </View>
           ))}
         </View>
-      </Card>
-    </Screen>
+      </DashboardSection>
+
+      <DashboardSection title="تواصل معنا" subtitle="نسعد بخدمتك دائماً">
+        <View style={styles.contactList}>
+          {contactPhone ? (
+            <Pressable onPress={() => Linking.openURL(`tel:${contactPhone}`)} style={styles.contactRow}>
+              <Ionicons name="call-outline" size={18} color={theme.palette.accent} />
+              <Text style={styles.contactText}>{contactPhone}</Text>
+            </Pressable>
+          ) : null}
+          {contactEmail ? (
+            <Pressable onPress={() => Linking.openURL(`mailto:${contactEmail}`)} style={styles.contactRow}>
+              <Ionicons name="mail-outline" size={18} color={theme.palette.accent} />
+              <Text style={styles.contactText}>{contactEmail}</Text>
+            </Pressable>
+          ) : null}
+          {contactAddress ? (
+            <View style={styles.contactRow}>
+              <Ionicons name="location-outline" size={18} color={theme.palette.accent} />
+              <Text style={styles.contactText}>{contactAddress}</Text>
+            </View>
+          ) : null}
+          {mapUrl ? <Button title="فتح الموقع على الخريطة" variant="secondary" onPress={() => Linking.openURL(mapUrl)} /> : null}
+          <Button title="راسلنا الآن" onPress={() => navigation.navigate("Contact")} />
+        </View>
+
+        {socialEntries.length ? (
+          <View style={styles.socialWrap}>
+            {socialEntries.map(([platform, url]) => (
+              <Pressable key={platform} onPress={() => Linking.openURL(url)} style={styles.socialPill}>
+                <Ionicons name={socialIcon(platform)} size={16} color={theme.palette.accent} />
+                <Text style={styles.socialText}>{platform}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+      </DashboardSection>
+    </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
-  headline: {
-    fontSize: 24,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#64748b",
-    textAlign: "right",
-  },
-  body: {
-    marginTop: 12,
-    fontSize: 14,
-    lineHeight: 22,
-    textAlign: "right",
-    color: "#111827",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "right",
-    marginBottom: 8,
-  },
-  listRow: {
-    flexDirection: "row-reverse",
-    gap: 12,
-    paddingVertical: 8,
-  },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F59E0B",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  listTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    textAlign: "right",
-  },
-  listCopy: {
-    fontSize: 13,
-    color: "#6b7280",
-    textAlign: "right",
-  },
-  timelineRow: {
-    flexDirection: "row-reverse",
-    gap: 12,
-    paddingVertical: 10,
-  },
-  timelineDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#f59e0b",
-    marginTop: 8,
-  },
-  timelineYear: {
-    fontSize: 12,
-    color: "#f59e0b",
-    textAlign: "right",
-  },
-  statsRow: {
-    flexDirection: "row-reverse",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#1f2937",
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#6b7280",
-  },
-});
+const createStyles = (theme: ReturnType<typeof useTheme>) =>
+  StyleSheet.create({
+    container: {
+      paddingBottom: 18,
+    },
+    heroImage: {
+      width: "100%",
+      height: 160,
+      backgroundColor: theme.palette.surfaceAlt,
+      borderRadius: 18,
+    },
+    body: {
+      fontSize: 13,
+      color: theme.palette.text,
+      textAlign: "right",
+      lineHeight: 20,
+      writingDirection: "rtl",
+    },
+    list: {
+      gap: 10,
+      paddingTop: 4,
+    },
+    listRow: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      gap: 10,
+    },
+    listText: {
+      flex: 1,
+      textAlign: "right",
+      color: theme.palette.text,
+      fontSize: 13,
+      lineHeight: 18,
+      fontWeight: "700",
+      writingDirection: "rtl",
+    },
+    contactList: {
+      gap: 10,
+    },
+    contactRow: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      gap: 10,
+    },
+    contactText: {
+      flex: 1,
+      fontSize: 13,
+      lineHeight: 18,
+      color: theme.palette.text,
+      textAlign: "right",
+      writingDirection: "rtl",
+    },
+    socialWrap: {
+      flexDirection: "row-reverse",
+      flexWrap: "wrap",
+      gap: 8,
+      paddingTop: 10,
+    },
+    socialPill: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 999,
+      backgroundColor: theme.palette.surfaceAlt,
+      borderWidth: 1,
+      borderColor: theme.palette.border,
+    },
+    socialText: {
+      fontSize: 12,
+      fontWeight: "800",
+      color: theme.palette.text,
+      writingDirection: "rtl",
+    },
+  });
 
 export default AboutScreen;
+

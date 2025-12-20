@@ -190,38 +190,38 @@ const SupportChatWidget: React.FC = () => {
   };
 
   // 2) فتح WebSocket
-const connectWebSocket = (convId: number) => {
-  const base = getWsBaseUrl();
-  const qs = accessToken ? `?token=${accessToken}` : "?guest=1";
-  const wsUrl = `${base}/ws/support/${convId}/${qs}`;
+  const connectWebSocket = (convId: number) => {
+    const base = getWsBaseUrl();
+    const qs = accessToken ? `?token=${accessToken}` : "?guest=1";
+    const wsUrl = `${base}/ws/support/${convId}/${qs}`;
 
-  setConnecting(true);
-  const ws = new WebSocket(wsUrl);
-  wsRef.current = ws;
+    setConnecting(true);
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
-  ws.onopen = () => {
-    setConnecting(false);
+    ws.onopen = () => {
+      setConnecting(false);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data) as SupportMessage;
+        setMessages((prev) => [...prev, data]);
+      } catch (err) {
+        console.error("WS message parse error", err);
+      }
+    };
+
+    ws.onclose = () => {
+      setConnecting(false);       // ✅ مهم
+      wsRef.current = null;
+    };
+
+    ws.onerror = (err) => {
+      console.error("WS error", err);
+      setConnecting(false);       // ✅ مهم
+    };
   };
-
-  ws.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data) as SupportMessage;
-      setMessages((prev) => [...prev, data]);
-    } catch (err) {
-      console.error("WS message parse error", err);
-    }
-  };
-
-  ws.onclose = () => {
-    setConnecting(false);       // ✅ مهم
-    wsRef.current = null;
-  };
-
-  ws.onerror = (err) => {
-    console.error("WS error", err);
-    setConnecting(false);       // ✅ مهم
-  };
-};
 
   // عند فتح الشات
   useEffect(() => {
@@ -275,51 +275,53 @@ const connectWebSocket = (convId: number) => {
     }
   }, [messages, open]);
 
- const handleSend = async () => {
-  const text = input.trim();
-  if (!text) return;
+  const handleSend = async () => {
+    const text = input.trim();
+    if (!text) return;
 
-  // لو WebSocket جاهز نستعمله
-  if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-    wsRef.current.send(
-      JSON.stringify({
-        type: "message",
-        content: text,
-      })
-    );
-    setInput("");
-    return;
-  }
-
-  // في حال WS غير جاهز → نستخدم REST
-  try {
-    if (user && accessToken) {
-      // مستخدم مسجّل
-      const res = await api.post("support/my-messages/", { content: text });
-      const customerMsg = res.data.customer_message as SupportMessage;
-      const botReply = res.data.bot_reply as SupportMessage;
-      setMessages((prev) => [...prev, customerMsg, botReply]);
+    // لو WebSocket جاهز نستعمله
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: "message",
+          content: text,
+        })
+      );
       setInput("");
-    } else if (isGuest && conversationId) {
-      // ضيف: نرسل الرسالة عن طريق endpoint خاص بالدعم لاحقاً
-      // حالياً سنكتفي بإضافتها محلياً كرسالة ضيف حتى تضبط الـ WebSocket
-      const fakeMsg: SupportMessage = {
-        id: Date.now(),
-        conversation: conversationId,
-        sender_type: "guest",
-        content: text,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, fakeMsg]);
-      setInput("");
-    } else {
-      alert("الرجاء إكمال خطوات التحقق قبل إرسال الرسائل.");
+      return;
     }
-  } catch (err) {
-    console.error(err);
-    alert("حدث خطأ أثناء إرسال الرسالة.");
-  }
-};
+
+    // في حال WS غير جاهز → نستخدم REST
+    try {
+      if (user && accessToken) {
+        // مستخدم مسجّل
+        const res = await api.post("support/my-messages/", { content: text });
+        const customerMsg = res.data.customer_message as SupportMessage;
+        const botReply = res.data.bot_reply as SupportMessage | null;
+        setMessages((prev) =>
+          botReply ? [...prev, customerMsg, botReply] : [...prev, customerMsg]
+        );
+        setInput("");
+      } else if (isGuest && conversationId) {
+        // ضيف: نرسل الرسالة عن طريق endpoint خاص بالدعم لاحقاً
+        // حالياً سنكتفي بإضافتها محلياً كرسالة ضيف حتى تضبط الـ WebSocket
+        const fakeMsg: SupportMessage = {
+          id: Date.now(),
+          conversation: conversationId,
+          sender_type: "guest",
+          content: text,
+          created_at: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, fakeMsg]);
+        setInput("");
+      } else {
+        alert("الرجاء إكمال خطوات التحقق قبل إرسال الرسائل.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("حدث خطأ أثناء إرسال الرسالة.");
+    }
+  };
 
   const handleEndChat = async () => {
     // إغلاق WebSocket
@@ -349,31 +351,29 @@ const connectWebSocket = (convId: number) => {
     }
   };
 
-
   return (
     <div className="fixed bottom-4 left-4 z-40">
       {open && (
         <div className="w-72 sm:w-80 h-96 bg-white rounded-2xl shadow-lg border border-amber-100 flex flex-col overflow-hidden mb-2">
-<div className="px-3 py-2 bg-amber-500 text-white flex items-center justify-between">
-  <span className="text-sm font-semibold">دعم CafeMS Demo</span>
-  <div className="flex items-center gap-2">
-    {(user || (isGuest && guestStep === "chat")) && (
-      <button
-        onClick={handleEndChat}
-        className="text-[10px] border border-white/60 rounded-full px-2 py-0.5 hover:bg-white/10"
-      >
-        إنهاء
-      </button>
-    )}
-    <button
-      onClick={() => setOpen(false)}
-      className="text-xs hover:text-red-100"
-    >
-      ✕
-    </button>
-  </div>
-</div>
-
+          <div className="px-3 py-2 bg-amber-500 text-white flex items-center justify-between">
+            <span className="text-sm font-semibold">دعم CafeMS Demo</span>
+            <div className="flex items-center gap-2">
+              {(user || (isGuest && guestStep === "chat")) && (
+                <button
+                  onClick={handleEndChat}
+                  className="text-[10px] border border-white/60 rounded-full px-2 py-0.5 hover:bg-white/10"
+                >
+                  إنهاء
+                </button>
+              )}
+              <button
+                onClick={() => setOpen(false)}
+                className="text-xs hover:text-red-100"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
 
           {/* 👇 حالة الضيف – خطوة 1: نموذج الاسم والإيميل */}
           {isGuest && guestStep === "form" && (
@@ -574,7 +574,6 @@ const connectWebSocket = (convId: number) => {
       </button>
     </div>
   );
-
 };
 
 export default SupportChatWidget;
