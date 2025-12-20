@@ -87,7 +87,10 @@ const DashboardSupportChat: React.FC = () => {
 
     let wsBase = "";
     try {
-      if (typeof apiUrl === "string" && /^https?:\\/\\//i.test(apiUrl)) {
+      if (
+        typeof apiUrl === "string" &&
+        (apiUrl.startsWith("http://") || apiUrl.startsWith("https://"))
+      ) {
         const url = new URL(apiUrl);
         const wsScheme = url.protocol === "https:" ? "wss" : "ws";
         wsBase = `${wsScheme}://${url.host}`;

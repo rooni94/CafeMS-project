@@ -25,7 +25,10 @@ const getWsBaseUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL || "/api/";
 
   try {
-    if (typeof apiUrl === "string" && /^https?:\\/\\//i.test(apiUrl)) {
+    if (
+      typeof apiUrl === "string" &&
+      (apiUrl.startsWith("http://") || apiUrl.startsWith("https://"))
+    ) {
       const url = new URL(apiUrl);
       const wsScheme = url.protocol === "https:" ? "wss" : "ws";
       return `${wsScheme}://${url.host}`;
