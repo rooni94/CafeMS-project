@@ -78,6 +78,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             "created_at": msg.created_at,
         }
 
+# في أسفل apps/support/serializers.py
 
 class SupportConversationSerializer(ConversationSerializer):
     """
@@ -87,7 +88,6 @@ class SupportConversationSerializer(ConversationSerializer):
     """
     class Meta(ConversationSerializer.Meta):
         pass
-
 
 class SupportStaffActivitySerializer(serializers.ModelSerializer):
     staff_name = serializers.CharField(read_only=True)

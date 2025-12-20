@@ -1,17 +1,6 @@
 // mobile/src/components/support/SupportChatFloating.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Modal,
-  TextInput,
-  ScrollView,
-  ActivityIndicator,
-  Platform,
-  Keyboard,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Modal, TextInput, ScrollView, ActivityIndicator, Platform, Keyboard } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "../../context/AuthContext";
@@ -22,13 +11,7 @@ import { Button } from "../ui";
 type SupportMessage = {
   id: number;
   conversation: number;
-  sender_type:
-    | "customer"
-    | "staff"
-    | "supervisor"
-    | "manager"
-    | "bot"
-    | "guest";
+  sender_type: "customer" | "staff" | "supervisor" | "manager" | "bot" | "guest";
   sender_name?: string;
   content: string;
   created_at: string;
@@ -115,12 +98,10 @@ const SupportChatFloating: React.FC = () => {
   const initForGuestIfHasConversation = async (convId: number) => {
     setLoading(true);
     try {
-      const msgRes = await api.get<SupportMessage[]>(
-        `support/conversations/${convId}/messages/`
-      );
+      const msgRes = await api.get<SupportMessage[]>(`support/conversations/${convId}/messages/`);
       setMessages(msgRes.data || []);
     } catch {
-      setMessages([]);
+      // ignore
     } finally {
       setLoading(false);
     }
@@ -130,34 +111,26 @@ const SupportChatFloating: React.FC = () => {
     if (!wsBase) return;
     const qs = accessToken ? `?token=${accessToken}` : "?guest=1";
     const wsUrl = `${wsBase}/ws/support/${convId}/${qs}`;
+    setConnecting(true);
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
 
-    try {
-      setConnecting(true);
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onopen = () => setConnecting(false);
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data) as SupportMessage;
-          setMessages((prev) => [...prev, data]);
-        } catch {
-          // ignore
-        }
-      };
-
-      ws.onclose = () => {
-        setConnecting(false);
-        wsRef.current = null;
-      };
-
-      ws.onerror = () => {
-        setConnecting(false);
-      };
-    } catch {
+    ws.onopen = () => setConnecting(false);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data) as SupportMessage;
+        setMessages((prev) => [...prev, data]);
+      } catch {
+        // ignore
+      }
+    };
+    ws.onclose = () => {
       setConnecting(false);
-    }
+      wsRef.current = null;
+    };
+    ws.onerror = () => {
+      setConnecting(false);
+    };
   };
 
   useEffect(() => {
@@ -192,34 +165,11 @@ const SupportChatFloating: React.FC = () => {
     }
   }, [open, user, accessToken]);
 
-  // WebSocket + timeout
   useEffect(() => {
     if (!open || !conversationId) return;
-
     connectWebSocket(conversationId);
-
-    const timeout = setTimeout(() => {
-      if (wsRef.current && wsRef.current.readyState !== WebSocket.OPEN) {
-        try {
-          wsRef.current.close();
-        } catch {
-          // ignore
-        }
-        wsRef.current = null;
-        setConnecting(false);
-      }
-    }, 7000);
-
     return () => {
-      clearTimeout(timeout);
-      if (wsRef.current) {
-        try {
-          wsRef.current.close();
-        } catch {
-          // ignore
-        }
-        wsRef.current = null;
-      }
+      if (wsRef.current) wsRef.current.close();
     };
   }, [conversationId, open, accessToken, wsBase]);
 
@@ -242,10 +192,8 @@ const SupportChatFloating: React.FC = () => {
   useEffect(() => {
     if (!open) return;
     setKeyboardHeight(0);
-    const showEvent =
-      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvent =
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const onShow = Keyboard.addListener(showEvent, (event) => {
       setKeyboardHeight(event.endCoordinates?.height || 0);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
@@ -273,16 +221,10 @@ const SupportChatFloating: React.FC = () => {
       });
       setGuestRequestId(res.data.request_id);
       setGuestStep("code");
-      const partial: GuestProfile = {
-        name: guestName.trim(),
-        email: guestEmail.trim(),
-      };
+      const partial: GuestProfile = { name: guestName.trim(), email: guestEmail.trim() };
       await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(partial));
     } catch (err: any) {
-      setGuestError(
-        err?.response?.data?.detail ||
-          "تعذر إرسال رمز التحقق، حاول لاحقاً."
-      );
+      setGuestError(err?.response?.data?.detail || "تعذر إرسال رمز التحقق، حاول لاحقاً.");
     } finally {
       setGuestSubmitting(false);
     }
@@ -309,24 +251,12 @@ const SupportChatFloating: React.FC = () => {
       const convId = conv.id as number;
       setConversationId(convId);
       setGuestStep("chat");
-      const toStore: GuestProfile = {
-        name: guestName.trim(),
-        email: guestEmail.trim(),
-        conversation_id: convId,
-      };
+      const toStore: GuestProfile = { name: guestName.trim(), email: guestEmail.trim(), conversation_id: convId };
       await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(toStore));
-      try {
-        const msgRes = await api.get<SupportMessage[]>(
-          `support/conversations/${convId}/messages/`
-        );
-        setMessages(msgRes.data || []);
-      } catch {
-        setMessages([]);
-      }
+      const msgRes = await api.get<SupportMessage[]>(`support/conversations/${convId}/messages/`);
+      setMessages(msgRes.data || []);
     } catch (err: any) {
-      setGuestError(
-        err?.response?.data?.detail || "رمز غير صحيح، حاول مرة أخرى."
-      );
+      setGuestError(err?.response?.data?.detail || "رمز غير صحيح، حاول مرة أخرى.");
     } finally {
       setGuestSubmitting(false);
     }
@@ -346,10 +276,8 @@ const SupportChatFloating: React.FC = () => {
       if (user && accessToken) {
         const res = await api.post("support/my-messages/", { content: text });
         const customerMsg = res.data.customer_message as SupportMessage;
-        const botReply = res.data.bot_reply as SupportMessage | null;
-        setMessages((prev) =>
-          botReply ? [...prev, customerMsg, botReply] : [...prev, customerMsg]
-        );
+        const botReply = res.data.bot_reply as SupportMessage;
+        setMessages((prev) => [...prev, customerMsg, botReply]);
         setInput("");
       } else if (isGuest && conversationId) {
         const fakeMsg: SupportMessage = {
@@ -363,17 +291,13 @@ const SupportChatFloating: React.FC = () => {
         setInput("");
       }
     } catch {
-      // تجاهل، نقدر نضيف Alert لو حاب
+      // ignore
     }
   };
 
   const handleEndChat = async () => {
     if (wsRef.current) {
-      try {
-        wsRef.current.close();
-      } catch {
-        // ignore
-      }
+      wsRef.current.close();
       wsRef.current = null;
     }
     if (user && accessToken) {
@@ -395,36 +319,19 @@ const SupportChatFloating: React.FC = () => {
   return (
     <>
       <Pressable style={styles.fab} onPress={() => setOpen(true)}>
-        <Ionicons
-          name="chatbubble-ellipses-outline"
-          size={22}
-          color="#fff"
-        />
+        <Ionicons name="chatbubble-ellipses-outline" size={22} color="#fff" />
       </Pressable>
 
-      <Modal
-        visible={open}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOpen(false)}
-      >
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <View style={styles.modalRoot}>
           <Pressable style={styles.overlay} onPress={() => setOpen(false)} />
-          <View
-            style={[
-              styles.panelWrap,
-              { bottom: keyboardHeight ? keyboardHeight + 16 : 80 },
-            ]}
-          >
+          <View style={[styles.panelWrap, { bottom: keyboardHeight ? keyboardHeight + 16 : 80 }]}>
             <Pressable style={styles.panel} onPress={() => undefined}>
               <View style={styles.header}>
                 <Text style={styles.headerTitle}>دعم CafeMS Demo</Text>
                 <View style={styles.headerActions}>
                   {(user || (isGuest && guestStep === "chat")) && (
-                    <Pressable
-                      style={styles.headerButton}
-                      onPress={handleEndChat}
-                    >
+                    <Pressable style={styles.headerButton} onPress={handleEndChat}>
                       <Text style={styles.headerButtonText}>إنهاء</Text>
                     </Pressable>
                   )}
@@ -437,78 +344,28 @@ const SupportChatFloating: React.FC = () => {
               {isGuest && guestStep === "form" && (
                 <View style={styles.body}>
                   <Text style={styles.bodyTitle}>تواصل معنا كضيف</Text>
-                  <Text style={styles.bodyHint}>
-                    الرجاء إدخال الاسم والبريد الإلكتروني لإرسال كود تحقق إلى
-                    بريدك.
-                  </Text>
+                  <Text style={styles.bodyHint}>الرجاء إدخال الاسم والبريد الإلكتروني لإرسال كود تحقق إلى بريدك.</Text>
                   <Text style={styles.inputLabel}>الاسم</Text>
-                  <TextInput
-                    value={guestName}
-                    onChangeText={setGuestName}
-                    style={styles.input}
-                    textAlign="right"
-                    placeholder="الاسم"
-                  />
+                  <TextInput value={guestName} onChangeText={setGuestName} style={styles.input} textAlign="right" placeholder="الاسم" />
                   <Text style={styles.inputLabel}>البريد الإلكتروني</Text>
-                  <TextInput
-                    value={guestEmail}
-                    onChangeText={setGuestEmail}
-                    style={styles.input}
-                    textAlign="right"
-                    placeholder="example@mail.com"
-                    keyboardType="email-address"
-                  />
-                  {guestError ? (
-                    <Text style={styles.error}>{guestError}</Text>
-                  ) : null}
-                  <Button
-                    title={
-                      guestSubmitting ? "جاري الإرسال..." : "إرسال كود التحقق"
-                    }
-                    onPress={handleGuestRequestCode}
-                    disabled={guestSubmitting}
-                  />
+                  <TextInput value={guestEmail} onChangeText={setGuestEmail} style={styles.input} textAlign="right" placeholder="example@mail.com" keyboardType="email-address" />
+                  {guestError ? <Text style={styles.error}>{guestError}</Text> : null}
+                  <Button title={guestSubmitting ? "جاري الإرسال..." : "إرسال كود التحقق"} onPress={handleGuestRequestCode} disabled={guestSubmitting} />
                 </View>
               )}
 
               {isGuest && guestStep === "code" && (
                 <View style={styles.body}>
                   <Text style={styles.bodyTitle}>تأكيد البريد الإلكتروني</Text>
-                  <Text style={styles.bodyHint}>
-                    أدخل كود التحقق المرسل إلى بريدك الإلكتروني.
-                  </Text>
+                  <Text style={styles.bodyHint}>أدخل كود التحقق المرسل إلى بريدك الإلكتروني.</Text>
                   <Text style={styles.inputLabel}>كود التحقق</Text>
-                  <TextInput
-                    value={guestCode}
-                    onChangeText={setGuestCode}
-                    style={styles.input}
-                    textAlign="center"
-                    keyboardType="numeric"
-                    maxLength={6}
-                  />
-                  {guestError ? (
-                    <Text style={styles.error}>{guestError}</Text>
-                  ) : null}
+                  <TextInput value={guestCode} onChangeText={setGuestCode} style={styles.input} textAlign="center" keyboardType="numeric" maxLength={6} />
+                  {guestError ? <Text style={styles.error}>{guestError}</Text> : null}
                   <View style={styles.codeRow}>
-                    <Button
-                      title="رجوع"
-                      variant="secondary"
-                      size="sm"
-                      style={{ flex: 1 }}
-                      onPress={() => {
-                        setGuestStep("form");
-                        setGuestCode("");
-                      }}
-                    />
-                    <Button
-                      title={
-                        guestSubmitting ? "جاري التحقق..." : "تأكيد الكود"
-                      }
-                      onPress={handleGuestVerifyCode}
-                      disabled={guestSubmitting}
-                      style={{ flex: 1 }}
-                      size="sm"
-                    />
+                    <Pressable onPress={() => { setGuestStep("form"); setGuestCode(""); }} style={styles.secondaryButton}>
+                      <Text style={styles.secondaryButtonText}>رجوع</Text>
+                    </Pressable>
+                    <Button title={guestSubmitting ? "جاري التحقق..." : "تأكيد الكود"} onPress={handleGuestVerifyCode} disabled={guestSubmitting} />
                   </View>
                 </View>
               )}
@@ -519,69 +376,24 @@ const SupportChatFloating: React.FC = () => {
                     {(loading || connecting) && (
                       <View style={styles.loadingRow}>
                         <ActivityIndicator color="#f59e0b" />
-                        <Text style={styles.loadingText}>
-                          {loading
-                            ? "جاري تحميل المحادثة..."
-                            : "جاري محاولة الاتصال بالشات..."}
-                        </Text>
+                        <Text style={styles.loadingText}>{loading ? "جاري تحميل المحادثة..." : "جاري الاتصال..."}</Text>
                       </View>
                     )}
                     {!loading && !connecting && messages.length === 0 && (
-                      <Text style={styles.emptyText}>
-                        أهلاً! اكتب سؤالك وبنرد عليك قريب 🤍
-                      </Text>
+                      <Text style={styles.emptyText}>أهلاً! اكتب سؤالك وسنرد عليك قريباً.</Text>
                     )}
-                    <ScrollView
-                      ref={scrollRef}
-                      contentContainerStyle={{
-                        gap: 8,
-                        paddingBottom: 8,
-                      }}
-                      keyboardShouldPersistTaps="handled"
-                    >
+                    <ScrollView ref={scrollRef} contentContainerStyle={{ gap: 8, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
                       {messages.map((m) => {
-                        const isMe =
-                          (!isGuest && m.sender_type === "customer") ||
-                          (isGuest && m.sender_type === "guest");
+                        const isMe = (!isGuest && m.sender_type === "customer") || (isGuest && m.sender_type === "guest");
                         const isBot = m.sender_type === "bot";
                         return (
-                          <View
-                            key={m.id}
-                            style={[
-                              styles.messageRow,
-                              isMe
-                                ? styles.messageRowEnd
-                                : styles.messageRowStart,
-                            ]}
-                          >
-                            <View
-                              style={[
-                                styles.messageBubble,
-                                isMe
-                                  ? styles.messageMine
-                                  : isBot
-                                  ? styles.messageBot
-                                  : styles.messageOther,
-                              ]}
-                            >
+                          <View key={m.id} style={[styles.messageRow, isMe ? styles.messageRowEnd : styles.messageRowStart]}>
+                            <View style={[styles.messageBubble, isMe ? styles.messageMine : isBot ? styles.messageBot : styles.messageOther]}>
                               {!isMe && (
-                                <Text style={styles.messageSender}>
-                                  {isBot ? "رد تلقائي" : m.sender_name || "الدعم"}
-                                </Text>
+                                <Text style={styles.messageSender}>{isBot ? "رد تلقائي" : m.sender_name || "الدعم"}</Text>
                               )}
-                              <Text
-                                style={[
-                                  styles.messageText,
-                                  isMe && { color: "#fff" },
-                                ]}
-                              >
-                                {m.content}
-                              </Text>
-                              <Text style={styles.messageTime}>
-                                {new Date(
-                                  m.created_at
-                                ).toLocaleTimeString()}
-                              </Text>
+                              <Text style={[styles.messageText, isMe && { color: "#fff" }]}>{m.content}</Text>
+                              <Text style={styles.messageTime}>{new Date(m.created_at).toLocaleTimeString()}</Text>
                             </View>
                           </View>
                         );
@@ -599,14 +411,7 @@ const SupportChatFloating: React.FC = () => {
                       onSubmitEditing={handleSend}
                       blurOnSubmit={false}
                     />
-                    <Pressable
-                      style={[
-                        styles.sendButton,
-                        !input.trim() && styles.sendButtonDisabled,
-                      ]}
-                      onPress={handleSend}
-                      disabled={!input.trim()}
-                    >
+                    <Pressable style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]} onPress={handleSend} disabled={!input.trim()}>
                       <Text style={styles.sendButtonText}>إرسال</Text>
                     </Pressable>
                   </View>
@@ -728,6 +533,19 @@ const createStyles = () =>
       flexDirection: "row-reverse",
       alignItems: "center",
       gap: 8,
+    },
+    secondaryButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: "#e2e8f0",
+      backgroundColor: "#fff",
+    },
+    secondaryButtonText: {
+      color: "#0f172a",
+      fontWeight: "700",
+      fontSize: 12,
     },
     chatBody: {
       minHeight: 260,

@@ -24,7 +24,7 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
         )
         self.group_name = f"support_{self.conversation_id}"
 
-        # تحديد الضيف من query string (?guest=1)
+        # نحاول تحديد الضيف من query string (إضافة على الميدل وير)
         qs = parse_qs(self.scope.get("query_string", b"").decode())
         if "guest" in qs:
             self.scope["is_guest"] = True
@@ -62,12 +62,11 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
             user and not isinstance(user, AnonymousUser) and user.is_authenticated
         )
 
-        # 1) إنشاء رسالة المرسل (عميل / ضيف / موظف)
+        # 1) رسالة المستخدم (عميل / ضيف / موظف)
         message_data, sender_type = await self.create_message(
             text, is_authenticated, is_guest, user
         )
 
-        # بث رسالة المرسل
         await self.channel_layer.group_send(
             self.group_name,
             {
@@ -76,14 +75,9 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
             },
         )
 
-        # 2) رد البوت: للعميل أو الضيف
-        #    - لو المستخدم مسجّل: نمرّر الـ user
-        #    - لو ضيف: نمرّر None، و generate_bot_reply يتصرف على هذا الأساس
-        if sender_type in ("customer", "guest"):
-            bot_data = await self.create_bot_message(
-                text,
-                user if is_authenticated else None,
-            )
+        # 2) رد البوت فقط لو المرسل عميل/ضيف و البوت غير معطل
+        if sender_type in ("customer", "guest") and is_authenticated:
+            bot_data = await self.create_bot_message(text, user)
             if bot_data:
                 await self.channel_layer.group_send(
                     self.group_name,
@@ -130,7 +124,7 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
         conv.last_message_at = timezone.now()
         conv.save(update_fields=["last_message_at"])
 
-        # ✅ لو المرسل من فريق الدعم → سجّل نشاطه (reply)
+        # ✅ لو المرسل من فريق الدعم → نسجل نشاطه (reply)
         if (
             is_authenticated
             and not is_guest
@@ -165,10 +159,9 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def create_bot_message(self, text: str, user):
-        """
-        ينشئ رسالة البوت (للعميل أو للضيف).
-        - لو user=None → يعتبر الضيف، ويمنع فقط الاستعلام عن حالة الطلب.
-        """
+        if not user or not getattr(user, "is_authenticated", False):
+            return None
+
         conv = Conversation.objects.get(pk=self.conversation_id)
 
         # لو المحادثة محذوفة، لا نرد
@@ -183,8 +176,8 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
                 conv.bot_disabled = True
                 reply_text = (
                     "شكرًا لتواصلك 🤍\n"
-                    "حوّلنا محادثتك لأحد موظفي الدعم.\n"
-                    "الرد بيكون بأقرب وقت حسب ضغط الطلبات، نقدّر صبرك 🌿"
+                    "تم الآن تحويل محادثتك لأحد موظفي الدعم.\n"
+                    "قد يستغرق الرد بضع لحظات حسب ضغط المحادثات، نشكر لك صبرك 🌿"
                 )
             else:
                 reply_text = None
