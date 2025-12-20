@@ -3,7 +3,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -90,12 +89,18 @@ const LoginScreen: React.FC = () => {
             />
 
             <View style={styles.linksRow}>
-              <Pressable onPress={() => navigation.navigate("Register")} style={styles.linkBtn} hitSlop={10}>
-                <Text style={[styles.linkText, { color: theme.palette.accent }]}>إنشاء حساب</Text>
-              </Pressable>
-              <Pressable onPress={() => navigation.navigate("ResetPassword")} style={styles.linkBtn} hitSlop={10}>
-                <Text style={[styles.linkText, { color: theme.palette.accent }]}>نسيت كلمة المرور؟</Text>
-              </Pressable>
+              <Button
+                title="إنشاء حساب"
+                variant="link"
+                size="sm"
+                onPress={() => navigation.navigate("Register")}
+              />
+              <Button
+                title="نسيت كلمة المرور؟"
+                variant="link"
+                size="sm"
+                onPress={() => navigation.navigate("ResetPassword")}
+              />
             </View>
 
             {error ? <Text style={[styles.error, { color: theme.palette.danger }]}>{error}</Text> : null}
@@ -162,16 +167,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "space-between",
       alignItems: "center",
     },
-    linkBtn: {
-      paddingVertical: 6,
-      paddingHorizontal: 2,
-    },
-    linkText: {
-      fontSize: 14,
-      fontWeight: "900",
-      textAlign: "right",
-      writingDirection: "rtl",
-    },
     error: {
       textAlign: "right",
       fontSize: 13,
@@ -181,4 +176,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default LoginScreen;
-

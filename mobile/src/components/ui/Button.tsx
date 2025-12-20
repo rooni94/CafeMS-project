@@ -1,9 +1,10 @@
 import React, { ComponentProps } from "react";
-import { StyleSheet, StyleProp, ViewStyle } from "react-native";
+import { StyleSheet, StyleProp, ViewStyle, TextStyle } from "react-native";
 import { Button as PaperButton } from "react-native-paper";
 import { useTheme } from "../../theme";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "link";
+type ButtonSize = "md" | "sm";
 
 type ButtonProps = Omit<
   ComponentProps<typeof PaperButton>,
@@ -11,6 +12,7 @@ type ButtonProps = Omit<
 > & {
   title: string;
   variant?: ButtonVariant;
+  size?: ButtonSize;
   style?: StyleProp<ViewStyle>;
   color?: string;
   textColor?: string;
@@ -19,6 +21,7 @@ type ButtonProps = Omit<
 const Button: React.FC<ButtonProps> = ({
   title,
   variant = "primary",
+  size = "md",
   loading,
   style,
   color,
@@ -29,17 +32,36 @@ const Button: React.FC<ButtonProps> = ({
 }) => {
   const theme = useTheme();
 
-  const mode = variant === "ghost" ? "text" : "contained";
-  const buttonColor =
+  const mode =
+    variant === "primary"
+      ? "contained"
+      : variant === "secondary" || variant === "danger"
+      ? "outlined"
+      : "text";
+
+  const baseTint =
     color ||
-    (variant === "primary"
-      ? theme.palette.accent
-      : variant === "secondary"
-      ? theme.palette.accentSoft
-      : undefined);
-  const finalTextColor =
+    (variant === "danger"
+      ? theme.palette.danger
+      : theme.palette.accent);
+
+  const buttonColor = variant === "primary" ? baseTint : undefined;
+  const finalTextColor: string | undefined =
     textColor ||
-    (variant === "ghost" ? color || theme.palette.accent : undefined);
+    (variant === "secondary" || variant === "danger" || variant === "ghost" || variant === "link"
+      ? baseTint
+      : undefined);
+
+  const outlineStyle: StyleProp<ViewStyle> =
+    variant === "secondary" || variant === "danger"
+      ? { borderColor: `${baseTint}66`, borderWidth: 1.4 }
+      : undefined;
+
+  const sizing =
+    variant === "link" ? styles.contentLink : size === "sm" ? styles.contentSm : styles.contentMd;
+  const labelSizing: TextStyle = size === "sm" || variant === "link" ? styles.labelSm : styles.labelMd;
+  const buttonSizing: StyleProp<ViewStyle> =
+    variant === "link" ? styles.buttonLink : size === "sm" ? styles.buttonSm : styles.buttonMd;
 
   return (
     <PaperButton
@@ -47,10 +69,11 @@ const Button: React.FC<ButtonProps> = ({
       loading={loading}
       buttonColor={buttonColor}
       textColor={finalTextColor}
-      contentStyle={[styles.content, contentStyle]}
-      style={[styles.button, style]}
+      contentStyle={[styles.contentBase, sizing, contentStyle]}
+      style={[styles.buttonBase, buttonSizing, outlineStyle, style]}
       labelStyle={[
-        styles.label,
+        styles.labelBase,
+        labelSizing,
         finalTextColor ? { color: finalTextColor } : undefined,
         labelStyle,
       ]}
@@ -63,17 +86,49 @@ const Button: React.FC<ButtonProps> = ({
 };
 
 const styles = StyleSheet.create({
-  button: {
+  buttonBase: {
     borderRadius: 999,
   },
-  content: {
+  buttonMd: {
+    minHeight: 50,
+  },
+  buttonSm: {
+    minHeight: 44,
+  },
+  buttonLink: {
+    minHeight: 0,
+  },
+  contentBase: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  contentMd: {
     paddingVertical: 14,
   },
-  label: {
-    fontSize: 15,
-    fontWeight: "900",
+  contentSm: {
+    paddingVertical: 10,
+  },
+  contentLink: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  labelBase: {
     textAlign: "center",
     writingDirection: "rtl",
+    letterSpacing: 0,
+    includeFontPadding: false,
+  },
+  labelMd: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: "800",
+  },
+  labelSm: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "800",
   },
 });
 

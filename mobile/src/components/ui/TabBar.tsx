@@ -50,6 +50,7 @@ const TabBar: React.FC<BottomTabBarProps> = ({
               : options.title !== undefined
               ? options.title
               : route.name;
+          const badge = options.tabBarBadge;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -62,16 +63,26 @@ const TabBar: React.FC<BottomTabBarProps> = ({
             }
           };
 
+          const onLongPress = () => {
+            navigation.emit({
+              type: "tabLongPress",
+              target: route.key,
+            });
+          };
+
           const iconName = icons[route.name] || "ellipse-outline";
 
           return (
             <Pressable
               key={route.key}
               onPress={onPress}
+              onLongPress={onLongPress}
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
               style={({ pressed }) => [
                 styles.tab,
+                isFocused ? styles.tabActive : styles.tabInactive,
                 {
                   backgroundColor: isFocused ? theme.palette.accent : "transparent",
                   borderColor: isFocused ? `${theme.palette.accent}26` : "transparent",
@@ -79,20 +90,30 @@ const TabBar: React.FC<BottomTabBarProps> = ({
                 pressed && styles.pressed,
               ]}
             >
-              <View
-                style={[
-                  styles.iconWrap,
-                  {
-                    backgroundColor: isFocused ? "rgba(255,255,255,0.18)" : theme.palette.surfaceAlt,
-                    borderColor: isFocused ? "rgba(255,255,255,0.22)" : theme.palette.border,
-                  },
-                ]}
-              >
-                <Ionicons name={iconName} size={18} color={isFocused ? "#ffffff" : theme.palette.muted} />
+              <View style={styles.iconSlot}>
+                <View
+                  style={[
+                    styles.iconWrap,
+                    isFocused ? styles.iconWrapActive : styles.iconWrapInactive,
+                    {
+                      backgroundColor: isFocused ? "rgba(255,255,255,0.18)" : theme.palette.surfaceAlt,
+                      borderColor: isFocused ? "rgba(255,255,255,0.22)" : theme.palette.border,
+                    },
+                  ]}
+                >
+                  <Ionicons name={iconName} size={18} color={isFocused ? "#ffffff" : theme.palette.muted} />
+                </View>
+                {badge != null && badge !== 0 ? (
+                  <View style={[styles.badge, { borderColor: theme.palette.surface, backgroundColor: theme.palette.danger }]}>
+                    <Text style={styles.badgeText} numberOfLines={1}>
+                      {typeof badge === "number" ? String(badge) : String(badge)}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
               <Text
-                numberOfLines={1}
-                style={[styles.label, { color: isFocused ? "#ffffff" : theme.palette.muted }]}
+                numberOfLines={2}
+                style={[styles.label, isFocused ? styles.labelActive : styles.labelInactive, { color: isFocused ? "#ffffff" : theme.palette.muted }]}
               >
                 {String(label)}
               </Text>
@@ -124,14 +145,30 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 22,
     borderWidth: 1,
-    alignItems: "center",
-    justifyContent: "center",
     paddingVertical: 10,
     marginHorizontal: 3,
+    minHeight: 52,
+  },
+  tabActive: {
+    flexDirection: "row-reverse",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
+  tabInactive: {
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
   },
   pressed: {
     opacity: 0.96,
     transform: [{ scale: 0.995 }],
+  },
+  iconSlot: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
   },
   iconWrap: {
     width: 34,
@@ -140,13 +177,50 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+  },
+  iconWrapActive: {
+    width: 34,
+    height: 34,
+    borderRadius: 14,
+  },
+  iconWrapInactive: {
+    width: 32,
+    height: 32,
+    borderRadius: 13,
+  },
+  badge: {
+    position: "absolute",
+    top: -6,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 5,
+    borderRadius: 9,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "800",
+    textAlign: "center",
   },
   label: {
     fontSize: 12,
-    fontWeight: "900",
+    fontWeight: "800",
     textAlign: "center",
     writingDirection: "rtl",
+    lineHeight: 14,
+    flexShrink: 1,
+  },
+  labelActive: {
+    fontSize: 12,
+    marginRight: 8,
+  },
+  labelInactive: {
+    fontSize: 11,
+    marginTop: 4,
   },
 });
 

@@ -79,7 +79,7 @@ const CartScreen: React.FC = () => {
             <CurrencyAmount value={totalPrice} color={theme.palette.accent} symbolSize={16} textStyle={styles.summaryValue} />
           </View>
           <View style={styles.actionsRow}>
-            <Button title="تفريغ السلة" variant="secondary" onPress={clearCart} style={{ flex: 1 }} />
+            <Button title="تفريغ السلة" variant="danger" onPress={clearCart} style={{ flex: 1 }} />
             <Button title="إتمام الطلب" onPress={() => navigation.navigate("Checkout")} style={{ flex: 1 }} />
           </View>
         </Card>

@@ -120,7 +120,7 @@ const SupportChatFloating: React.FC = () => {
       );
       setMessages(msgRes.data || []);
     } catch {
-      // ignore
+      setMessages([]);
     } finally {
       setLoading(false);
     }
@@ -130,26 +130,34 @@ const SupportChatFloating: React.FC = () => {
     if (!wsBase) return;
     const qs = accessToken ? `?token=${accessToken}` : "?guest=1";
     const wsUrl = `${wsBase}/ws/support/${convId}/${qs}`;
-    setConnecting(true);
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
 
-    ws.onopen = () => setConnecting(false);
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as SupportMessage;
-        setMessages((prev) => [...prev, data]);
-      } catch {
-        // ignore
-      }
-    };
-    ws.onclose = () => {
+    try {
+      setConnecting(true);
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => setConnecting(false);
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as SupportMessage;
+          setMessages((prev) => [...prev, data]);
+        } catch {
+          // ignore
+        }
+      };
+
+      ws.onclose = () => {
+        setConnecting(false);
+        wsRef.current = null;
+      };
+
+      ws.onerror = () => {
+        setConnecting(false);
+      };
+    } catch {
       setConnecting(false);
-      wsRef.current = null;
-    };
-    ws.onerror = () => {
-      setConnecting(false);
-    };
+    }
   };
 
   useEffect(() => {
@@ -184,11 +192,34 @@ const SupportChatFloating: React.FC = () => {
     }
   }, [open, user, accessToken]);
 
+  // WebSocket + timeout
   useEffect(() => {
     if (!open || !conversationId) return;
+
     connectWebSocket(conversationId);
+
+    const timeout = setTimeout(() => {
+      if (wsRef.current && wsRef.current.readyState !== WebSocket.OPEN) {
+        try {
+          wsRef.current.close();
+        } catch {
+          // ignore
+        }
+        wsRef.current = null;
+        setConnecting(false);
+      }
+    }, 7000);
+
     return () => {
-      if (wsRef.current) wsRef.current.close();
+      clearTimeout(timeout);
+      if (wsRef.current) {
+        try {
+          wsRef.current.close();
+        } catch {
+          // ignore
+        }
+        wsRef.current = null;
+      }
     };
   }, [conversationId, open, accessToken, wsBase]);
 
@@ -231,7 +262,7 @@ const SupportChatFloating: React.FC = () => {
   const handleGuestRequestCode = async () => {
     setGuestError(null);
     if (!guestName.trim() || !guestEmail.trim()) {
-      setGuestError("الرجاء إدخال الاسم والبريد الإلكتروني.");
+      setGuestError("يرجى إدخال الاسم والبريد الإلكتروني.");
       return;
     }
     setGuestSubmitting(true);
@@ -250,7 +281,7 @@ const SupportChatFloating: React.FC = () => {
     } catch (err: any) {
       setGuestError(
         err?.response?.data?.detail ||
-          "تعذر إرسال كود التحقق، حاول مرة ثانية بعد شوي."
+          "تعذر إرسال رمز التحقق، حاول لاحقاً."
       );
     } finally {
       setGuestSubmitting(false);
@@ -260,12 +291,12 @@ const SupportChatFloating: React.FC = () => {
   const handleGuestVerifyCode = async () => {
     setGuestError(null);
     if (!guestRequestId) {
-      setGuestError("انتهت صلاحية الطلب، أعد إدخال بياناتك.");
+      setGuestError("يرجى طلب رمز التحقق أولاً.");
       setGuestStep("form");
       return;
     }
     if (!guestCode.trim()) {
-      setGuestError("الرجاء إدخال كود التحقق.");
+      setGuestError("يرجى إدخال رمز التحقق.");
       return;
     }
     setGuestSubmitting(true);
@@ -284,13 +315,17 @@ const SupportChatFloating: React.FC = () => {
         conversation_id: convId,
       };
       await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(toStore));
-      const msgRes = await api.get<SupportMessage[]>(
-        `support/conversations/${convId}/messages/`
-      );
-      setMessages(msgRes.data || []);
+      try {
+        const msgRes = await api.get<SupportMessage[]>(
+          `support/conversations/${convId}/messages/`
+        );
+        setMessages(msgRes.data || []);
+      } catch {
+        setMessages([]);
+      }
     } catch (err: any) {
       setGuestError(
-        err?.response?.data?.detail || "الكود غير صحيح، حاول مرة ثانية."
+        err?.response?.data?.detail || "رمز غير صحيح، حاول مرة أخرى."
       );
     } finally {
       setGuestSubmitting(false);
@@ -328,13 +363,17 @@ const SupportChatFloating: React.FC = () => {
         setInput("");
       }
     } catch {
-      // ignore
+      // تجاهل، نقدر نضيف Alert لو حاب
     }
   };
 
   const handleEndChat = async () => {
     if (wsRef.current) {
-      wsRef.current.close();
+      try {
+        wsRef.current.close();
+      } catch {
+        // ignore
+      }
       wsRef.current = null;
     }
     if (user && accessToken) {
@@ -356,7 +395,11 @@ const SupportChatFloating: React.FC = () => {
   return (
     <>
       <Pressable style={styles.fab} onPress={() => setOpen(true)}>
-        <Ionicons name="chatbubble-ellipses-outline" size={22} color="#fff" />
+        <Ionicons
+          name="chatbubble-ellipses-outline"
+          size={22}
+          color="#fff"
+        />
       </Pressable>
 
       <Modal
@@ -420,9 +463,7 @@ const SupportChatFloating: React.FC = () => {
                   ) : null}
                   <Button
                     title={
-                      guestSubmitting
-                        ? "جاري إرسال الكود..."
-                        : "إرسال كود التحقق"
+                      guestSubmitting ? "جاري الإرسال..." : "إرسال كود التحقق"
                     }
                     onPress={handleGuestRequestCode}
                     disabled={guestSubmitting}
@@ -434,7 +475,7 @@ const SupportChatFloating: React.FC = () => {
                 <View style={styles.body}>
                   <Text style={styles.bodyTitle}>تأكيد البريد الإلكتروني</Text>
                   <Text style={styles.bodyHint}>
-                    أدخل كود التحقق اللي أرسلناه على بريدك الإلكتروني.
+                    أدخل كود التحقق المرسل إلى بريدك الإلكتروني.
                   </Text>
                   <Text style={styles.inputLabel}>كود التحقق</Text>
                   <TextInput
@@ -449,21 +490,24 @@ const SupportChatFloating: React.FC = () => {
                     <Text style={styles.error}>{guestError}</Text>
                   ) : null}
                   <View style={styles.codeRow}>
-                    <Pressable
+                    <Button
+                      title="رجوع"
+                      variant="secondary"
+                      size="sm"
+                      style={{ flex: 1 }}
                       onPress={() => {
                         setGuestStep("form");
                         setGuestCode("");
                       }}
-                      style={styles.secondaryButton}
-                    >
-                      <Text style={styles.secondaryButtonText}>رجوع</Text>
-                    </Pressable>
+                    />
                     <Button
                       title={
                         guestSubmitting ? "جاري التحقق..." : "تأكيد الكود"
                       }
                       onPress={handleGuestVerifyCode}
                       disabled={guestSubmitting}
+                      style={{ flex: 1 }}
+                      size="sm"
                     />
                   </View>
                 </View>
@@ -478,13 +522,13 @@ const SupportChatFloating: React.FC = () => {
                         <Text style={styles.loadingText}>
                           {loading
                             ? "جاري تحميل المحادثة..."
-                            : "جاري الاتصال..."}
+                            : "جاري محاولة الاتصال بالشات..."}
                         </Text>
                       </View>
                     )}
                     {!loading && !connecting && messages.length === 0 && (
                       <Text style={styles.emptyText}>
-                        هلا! اكتب سؤالك وبنرد عليك قريب 🤍
+                        أهلاً! اكتب سؤالك وبنرد عليك قريب 🤍
                       </Text>
                     )}
                     <ScrollView
@@ -522,7 +566,7 @@ const SupportChatFloating: React.FC = () => {
                             >
                               {!isMe && (
                                 <Text style={styles.messageSender}>
-                                  {isBot ? "دعم آلي" : m.sender_name || "الدعم"}
+                                  {isBot ? "رد تلقائي" : m.sender_name || "الدعم"}
                                 </Text>
                               )}
                               <Text
@@ -684,19 +728,6 @@ const createStyles = () =>
       flexDirection: "row-reverse",
       alignItems: "center",
       gap: 8,
-    },
-    secondaryButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: "#e2e8f0",
-      backgroundColor: "#fff",
-    },
-    secondaryButtonText: {
-      color: "#0f172a",
-      fontWeight: "700",
-      fontSize: 12,
     },
     chatBody: {
       minHeight: 260,

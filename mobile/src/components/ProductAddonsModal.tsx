@@ -3,6 +3,7 @@ import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from "react-nati
 import { Product, ProductAddon } from "../types";
 import { useTheme } from "../theme";
 import CurrencyAmount from "./CurrencyAmount";
+import { Button } from "./ui";
 
 type ProductAddonsModalProps = {
   visible: boolean;
@@ -111,15 +112,8 @@ const ProductAddonsModal: React.FC<ProductAddonsModalProps> = ({
           </View>
 
           <View style={styles.actions}>
-            <Pressable style={[styles.actionBtn, styles.secondaryBtn]} onPress={onClose}>
-              <Text style={styles.secondaryText}>إلغاء</Text>
-            </Pressable>
-            <Pressable
-              style={[styles.actionBtn, { backgroundColor: theme.palette.accent }]}
-              onPress={() => onConfirm(selectedAddons)}
-            >
-              <Text style={styles.primaryText}>أضف إلى السلة</Text>
-            </Pressable>
+            <Button title="إلغاء" variant="secondary" onPress={onClose} style={{ flex: 1 }} />
+            <Button title="أضف إلى السلة" onPress={() => onConfirm(selectedAddons)} style={{ flex: 1 }} />
           </View>
         </View>
       </View>
@@ -244,24 +238,6 @@ const styles = StyleSheet.create({
     flexDirection: "row-reverse",
     gap: 10,
     marginTop: 12,
-  },
-  actionBtn: {
-    flex: 1,
-    borderRadius: 999,
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  secondaryBtn: {
-    borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  primaryText: {
-    color: "#fff",
-    fontWeight: "800",
-  },
-  secondaryText: {
-    color: "#111827",
-    fontWeight: "700",
   },
 });
 

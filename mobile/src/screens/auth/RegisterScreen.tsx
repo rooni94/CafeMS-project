@@ -163,9 +163,7 @@ const RegisterScreen: React.FC = () => {
 
             <View style={styles.bottomRow}>
               <Text style={[styles.muted, { color: theme.palette.muted }]}>لديك حساب؟</Text>
-              <Pressable onPress={() => navigation.navigate("Login")} style={styles.linkBtn} hitSlop={10}>
-                <Text style={[styles.linkText, { color: theme.palette.accent }]}>تسجيل الدخول</Text>
-              </Pressable>
+              <Button title="تسجيل الدخول" variant="link" size="sm" onPress={() => navigation.navigate("Login")} />
             </View>
 
             {error ? <Text style={[styles.error, { color: theme.palette.danger }]}>{error}</Text> : null}
@@ -276,15 +274,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontWeight: "800",
       writingDirection: "rtl",
     },
-    linkBtn: {
-      paddingVertical: 6,
-      paddingHorizontal: 2,
-    },
-    linkText: {
-      fontSize: 14,
-      fontWeight: "900",
-      writingDirection: "rtl",
-    },
     error: {
       textAlign: "right",
       fontSize: 13,
@@ -294,4 +283,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default RegisterScreen;
-
