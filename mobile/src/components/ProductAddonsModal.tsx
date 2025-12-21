@@ -112,8 +112,8 @@ const ProductAddonsModal: React.FC<ProductAddonsModalProps> = ({
           </View>
 
           <View style={styles.actions}>
-            <Button title="إلغاء" variant="secondary" onPress={onClose} style={{ flex: 1 }} />
-            <Button title="أضف إلى السلة" onPress={() => onConfirm(selectedAddons)} style={{ flex: 1 }} />
+            <Button title="أضف إلى السلة" onPress={() => onConfirm(selectedAddons)} style={{ width: "100%" }} />
+            <Button title="إلغاء" variant="secondary" onPress={onClose} style={{ width: "100%" }} />
           </View>
         </View>
       </View>
@@ -235,8 +235,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   actions: {
-    flexDirection: "row-reverse",
-    gap: 10,
+    flexDirection: "column",
+    gap: 8,
     marginTop: 12,
   },
 });

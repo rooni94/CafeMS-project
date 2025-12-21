@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -38,22 +38,42 @@ const RegisterScreen: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { settings } = useStoreSettings();
-  const { register, loading } = useAuth();
+  const { register, startPhoneRegistration, verifyPhoneOtp, loading } = useAuth();
+
+  const [method, setMethod] = useState<"email" | "phone">("email");
+  const [stage, setStage] = useState<"form" | "otp">("form");
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpPhone, setOtpPhone] = useState("");
+  const [resendLeft, setResendLeft] = useState(0);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const checks = useMemo(() => buildPasswordChecks(password), [password]);
   const allChecksPassed = checks.every((c) => c.ok);
 
+  useEffect(() => {
+    if (method !== "phone" || stage !== "otp" || resendLeft <= 0) return;
+    const id = setInterval(() => setResendLeft((v) => Math.max(0, v - 1)), 1000);
+    return () => clearInterval(id);
+  }, [method, stage, resendLeft]);
+
   const handleSubmit = async () => {
     setError(null);
-    if (!username.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+    if (!username.trim() || !password.trim() || !confirmPassword.trim()) {
+      Alert.alert("تنبيه", copy.messages.required);
+      return;
+    }
+    if (method === "email" && !email.trim()) {
+      Alert.alert("تنبيه", copy.messages.required);
+      return;
+    }
+    if (method === "phone" && !phone.trim()) {
       Alert.alert("تنبيه", copy.messages.required);
       return;
     }
@@ -71,16 +91,60 @@ const RegisterScreen: React.FC = () => {
     }
 
     try {
-      await register({
+      if (method === "email") {
+        await register({
+          username: username.trim(),
+          email: email.trim(),
+          phone: phone.trim() || undefined,
+          password,
+        });
+        Alert.alert("تم", "تم إنشاء الحساب. يرجى تفعيل الحساب عبر البريد الإلكتروني ثم تسجيل الدخول.");
+        navigation.navigate("Login");
+        return;
+      }
+
+      const res = await startPhoneRegistration({
         username: username.trim(),
-        email: email.trim(),
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
         password,
       });
-      Alert.alert("تم", "تم إنشاء الحساب بنجاح.");
-      safeGoBack(navigation, { tab: "Profile" });
+      setOtp("");
+      setOtpPhone(res?.phone || phone.trim());
+      setResendLeft(Number(res?.resend_seconds || 60));
+      setStage("otp");
+      Alert.alert("تم", res?.detail || "تم إرسال رمز التحقق إلى رقم الهاتف.");
     } catch (err: any) {
       setError(err?.message || "تعذر إنشاء الحساب. حاول مرة أخرى.");
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setError(null);
+    if (!otp.trim()) {
+      Alert.alert("تنبيه", "أدخل رمز التحقق.");
+      return;
+    }
+    try {
+      await verifyPhoneOtp(otpPhone || phone.trim(), otp.trim());
+      Alert.alert("تم", "تم تفعيل الحساب بنجاح.");
+      safeGoBack(navigation, { tab: "Profile" });
+    } catch (err: any) {
+      setError(err?.message || copy.messages.genericError);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setError(null);
+    try {
+      const res = await startPhoneRegistration({
+        username: username.trim(),
+        phone: otpPhone || phone.trim(),
+        password,
+      });
+      setResendLeft(Number(res?.resend_seconds || 60));
+      Alert.alert("تم", res?.detail || "تم إرسال رمز التحقق.");
+    } catch (err: any) {
+      setError(err?.message || copy.messages.genericError);
     }
   };
 
@@ -103,63 +167,152 @@ const RegisterScreen: React.FC = () => {
           </Card>
 
           <Card style={styles.card} contentStyle={{ gap: 12 }}>
-            <Input label="اسم المستخدم" placeholder="اكتب اسم المستخدم" value={username} onChangeText={setUsername} />
-            <Input
-              label="البريد الإلكتروني"
-              placeholder="example@mail.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <Input
-              label="رقم الجوال (اختياري)"
-              placeholder="05xxxxxxxx"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-            />
-            <Input label="كلمة المرور" placeholder="اكتب كلمة المرور" secureTextEntry value={password} onChangeText={setPassword} />
-            <Input
-              label="تأكيد كلمة المرور"
-              placeholder="أعد كتابة كلمة المرور"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
-
-            <View style={styles.checklist}>
-              {checks.map((c) => (
-                <View key={c.key} style={styles.checkRow}>
-                  <Ionicons
-                    name={c.ok ? "checkmark-circle" : "ellipse-outline"}
-                    size={18}
-                    color={c.ok ? theme.palette.success : theme.palette.border}
-                  />
-                  <Text style={[styles.checkText, { color: c.ok ? theme.palette.success : theme.palette.muted }]}>
-                    {c.label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            <Pressable style={styles.termsRow} onPress={() => setAcceptedTerms((v) => !v)}>
-              <View
+            <View style={styles.methodRow}>
+              <Pressable
+                onPress={() => {
+                  setMethod("email");
+                  setStage("form");
+                  setError(null);
+                }}
                 style={[
-                  styles.checkbox,
-                  { borderColor: theme.palette.border, backgroundColor: theme.palette.surfaceAlt },
+                  styles.methodButton,
+                  method === "email"
+                    ? { backgroundColor: theme.palette.accent, borderColor: theme.palette.accent }
+                    : { backgroundColor: theme.palette.surfaceAlt, borderColor: theme.palette.border },
                 ]}
               >
-                <Ionicons
-                  name={acceptedTerms ? "checkmark" : "remove-outline"}
-                  size={18}
-                  color={acceptedTerms ? theme.palette.success : theme.palette.muted}
-                />
-              </View>
-              <Text style={[styles.termsText, { color: theme.palette.text }]}>أوافق على الشروط والأحكام</Text>
-            </Pressable>
+                <Text style={[styles.methodText, { color: method === "email" ? theme.paper.colors.onPrimary : theme.palette.muted }]}>
+                  بالبريد الإلكتروني
+                </Text>
+              </Pressable>
 
-            <Button title={loading ? copy.messages.loading : "إنشاء حساب"} onPress={handleSubmit} disabled={loading} />
+              <Pressable
+                onPress={() => {
+                  setMethod("phone");
+                  setStage("form");
+                  setError(null);
+                }}
+                style={[
+                  styles.methodButton,
+                  method === "phone"
+                    ? { backgroundColor: theme.palette.accent, borderColor: theme.palette.accent }
+                    : { backgroundColor: theme.palette.surfaceAlt, borderColor: theme.palette.border },
+                ]}
+              >
+                <Text style={[styles.methodText, { color: method === "phone" ? theme.paper.colors.onPrimary : theme.palette.muted }]}>
+                  برقم الهاتف
+                </Text>
+              </Pressable>
+            </View>
+
+            {method === "phone" && stage === "otp" ? (
+              <>
+                <Input label="رقم الهاتف" value={otpPhone || phone} editable={false} />
+                <Input
+                  label="رمز التحقق"
+                  placeholder="123456"
+                  value={otp}
+                  onChangeText={setOtp}
+                  keyboardType="number-pad"
+                />
+
+                <Button title={loading ? copy.messages.loading : "تحقق"} onPress={handleVerifyOtp} disabled={loading} />
+                <Button
+                  title={
+                    resendLeft > 0 ? `إعادة الإرسال بعد ${resendLeft}s` : "إعادة إرسال الرمز"
+                  }
+                  onPress={handleResendOtp}
+                  disabled={loading || resendLeft > 0}
+                />
+                <Button title="رجوع" variant="link" size="sm" onPress={() => setStage("form")} />
+              </>
+            ) : (
+              <>
+                <Input
+                  label="اسم المستخدم"
+                  placeholder="اكتب اسم المستخدم"
+                  value={username}
+                  onChangeText={setUsername}
+                />
+
+                {method === "email" ? (
+                  <Input
+                    label="البريد الإلكتروني"
+                    placeholder="example@mail.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                ) : null}
+
+                <Input
+                  label={method === "phone" ? "رقم الهاتف" : "رقم الجوال (اختياري)"}
+                  placeholder={method === "phone" ? "+9665XXXXXXXXX" : "05xxxxxxxx"}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                />
+
+                <Input
+                  label="كلمة المرور"
+                  placeholder="اكتب كلمة المرور"
+                  secureTextEntry
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <Input
+                  label="تأكيد كلمة المرور"
+                  placeholder="أعد كتابة كلمة المرور"
+                  secureTextEntry
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                />
+
+                <View style={styles.checklist}>
+                  {checks.map((c) => (
+                    <View key={c.key} style={styles.checkRow}>
+                      <Ionicons
+                        name={c.ok ? "checkmark-circle" : "ellipse-outline"}
+                        size={18}
+                        color={c.ok ? theme.palette.success : theme.palette.border}
+                      />
+                      <Text style={[styles.checkText, { color: c.ok ? theme.palette.success : theme.palette.muted }]}>
+                        {c.label}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+
+                <Pressable style={styles.termsRow} onPress={() => setAcceptedTerms((v) => !v)}>
+                  <View
+                    style={[
+                      styles.checkbox,
+                      { borderColor: theme.palette.border, backgroundColor: theme.palette.surfaceAlt },
+                    ]}
+                  >
+                    <Ionicons
+                      name={acceptedTerms ? "checkmark" : "remove-outline"}
+                      size={18}
+                      color={acceptedTerms ? theme.palette.success : theme.palette.muted}
+                    />
+                  </View>
+                  <Text style={[styles.termsText, { color: theme.palette.text }]}>أوافق على الشروط والأحكام</Text>
+                </Pressable>
+
+                <Button
+                  title={
+                    loading
+                      ? copy.messages.loading
+                      : method === "email"
+                      ? "إنشاء حساب"
+                      : "إرسال رمز التحقق"
+                  }
+                  onPress={handleSubmit}
+                  disabled={loading}
+                />
+              </>
+            )}
 
             <View style={styles.bottomRow}>
               <Text style={[styles.muted, { color: theme.palette.muted }]}>لديك حساب؟</Text>
@@ -224,6 +377,23 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderRadius: 22,
       borderColor: theme.palette.border,
       backgroundColor: theme.palette.surface,
+    },
+    methodRow: {
+      flexDirection: "row-reverse",
+      gap: 10,
+    },
+    methodButton: {
+      flex: 1,
+      borderWidth: 1,
+      borderRadius: 999,
+      paddingVertical: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    methodText: {
+      fontSize: 13,
+      fontWeight: "900",
+      writingDirection: "rtl",
     },
     checklist: {
       gap: 6,

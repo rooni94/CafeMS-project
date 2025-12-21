@@ -261,7 +261,12 @@ const SupportChatFloating: React.FC = () => {
       const conv = res.data.conversation;
       const convId = conv.id as number;
       const token = (res.data.guest_token as string | undefined) || null;
-      if (!token) throw new Error("Missing guest_token");
+      if (!token) {
+        setGuestError(
+          "تم التحقق بنجاح لكن الخادم لم يُرجع guest_token. يرجى تحديث الباكند وتشغيل migrate ثم إعادة المحاولة."
+        );
+        return;
+      }
       setConversationId(convId);
       setGuestToken(token);
       setGuestStep("chat");

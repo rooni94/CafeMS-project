@@ -7,6 +7,7 @@ export interface User {
   email?: string;
   role: "customer" | "staff" | "manager"| "supervisor";
   phone?: string;
+  is_phone_verified?: boolean;
   address?: string;
   avatar?: string | null; 
 }

@@ -14,6 +14,12 @@ interface AuthContextValue {
     password: string;
     phone?: string;
   }) => Promise<void>;
+  startPhoneRegistration: (data: { username: string; phone: string; password: string }) => Promise<{
+    phone: string;
+    resend_seconds: number;
+    detail?: string;
+  }>;
+  verifyPhoneOtp: (phone: string, otp: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -85,25 +91,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const register = async (data: {
-  username: string;
-  email?: string;
-  password: string;
-  phone?: string;
-}) => {
-  setLoading(true);
-  try {
-    await api.post("auth/register/", {
-      username: data.username,
-      email: data.email,
-      password: data.password,
-      phone: data.phone,
-      role: "customer",
-    });
-    // مافيه تسجيل دخول تلقائي هنا
-  } finally {
-    setLoading(false);
-  }
-};
+    username: string;
+    email?: string;
+    password: string;
+    phone?: string;
+  }) => {
+    setLoading(true);
+    try {
+      await api.post("auth/register/", {
+        username: data.username,
+        email: data.email,
+        password: data.password,
+        phone: data.phone,
+        role: "customer",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startPhoneRegistration = async (data: {
+    username: string;
+    phone: string;
+    password: string;
+  }) => {
+    setLoading(true);
+    try {
+      const res = await api.post("auth/phone/register/", {
+        username: data.username,
+        phone: data.phone,
+        password: data.password,
+      });
+      return res.data;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyPhoneOtp = async (phone: string, otp: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post("auth/phone/verify/", { phone, otp });
+      const { access, refresh, user: verifiedUser } = res.data || {};
+
+      if (access) {
+        localStorage.setItem("access", access);
+        if (refresh) localStorage.setItem("refresh", refresh);
+        setAccessToken(access);
+        api.defaults.headers.common["Authorization"] = `Bearer ${access}`;
+      }
+
+      if (verifiedUser) setUser(verifiedUser);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
 
@@ -116,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, loading, login, register, logout }}
+      value={{ user, accessToken, loading, login, register, startPhoneRegistration, verifyPhoneOtp, logout }}
     >
       {children}
     </AuthContext.Provider>

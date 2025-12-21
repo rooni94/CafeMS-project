@@ -1,6 +1,6 @@
 # backend/apps/accounts/urls.py
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.routers import DefaultRouter
 
 from .views import (
@@ -14,10 +14,13 @@ from .views import (
     PasswordResetRequestView,
     PasswordResetConfirmView,
     VerifyEmailView,
+    TokenObtainPairByIdentifierView,
     RolePermissionViewSet,
     MyRolePermissionView,
     UserActivityListView,   
     MyPermissionsAPIView,
+    PhoneRegisterStartView,
+    PhoneRegisterVerifyView,
 )
 
 router = DefaultRouter()
@@ -28,7 +31,7 @@ router.register(r"role-permissions", RolePermissionViewSet, basename="role-permi
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
-    path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("token/", TokenObtainPairByIdentifierView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("me/", CurrentUserView.as_view(), name="current_user"),
 
@@ -51,6 +54,8 @@ urlpatterns = [
         name="password-reset-confirm",
     ),
     path("verify-email/", VerifyEmailView.as_view(), name="verify-email"),
+    path("phone/register/", PhoneRegisterStartView.as_view(), name="phone-register"),
+    path("phone/verify/", PhoneRegisterVerifyView.as_view(), name="phone-verify"),
     path("role-permissions/me/", MyRolePermissionView.as_view(), name="my-role-permissions"),
     path("user-activity/", UserActivityListView.as_view(), name="user-activity"),
     path("my-permissions/", MyPermissionsAPIView.as_view(), name="my-permissions"),

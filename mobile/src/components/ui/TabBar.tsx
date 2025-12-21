@@ -3,7 +3,6 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../../theme";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
   Home: "grid-outline",
@@ -21,16 +20,8 @@ const TabBar: React.FC<BottomTabBarProps> = ({
   navigation,
 }) => {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   return (
-    <View
-      style={[
-        styles.outer,
-        {
-          paddingBottom: Math.max(insets.bottom, 10) + 6,
-        },
-      ]}
-    >
+    <View style={styles.outer}>
       <View
         style={[
           styles.container,
@@ -82,6 +73,7 @@ const TabBar: React.FC<BottomTabBarProps> = ({
               accessibilityLabel={options.tabBarAccessibilityLabel}
               style={({ pressed }) => [
                 styles.tab,
+                { flex: isFocused ? 1.08 : 1 },
                 isFocused ? styles.tabActive : styles.tabInactive,
                 {
                   backgroundColor: isFocused ? theme.palette.accent : "transparent",
@@ -101,7 +93,7 @@ const TabBar: React.FC<BottomTabBarProps> = ({
                     },
                   ]}
                 >
-                  <Ionicons name={iconName} size={18} color={isFocused ? "#ffffff" : theme.palette.muted} />
+                  <Ionicons name={iconName} size={22} color={isFocused ? "#ffffff" : theme.palette.muted} />
                 </View>
                 {badge != null && badge !== 0 ? (
                   <View style={[styles.badge, { borderColor: theme.palette.surface, backgroundColor: theme.palette.danger }]}>
@@ -112,8 +104,12 @@ const TabBar: React.FC<BottomTabBarProps> = ({
                 ) : null}
               </View>
               <Text
-                numberOfLines={2}
-                style={[styles.label, isFocused ? styles.labelActive : styles.labelInactive, { color: isFocused ? "#ffffff" : theme.palette.muted }]}
+                numberOfLines={1}
+                style={[
+                  styles.label,
+                  isFocused ? styles.labelActive : styles.labelInactive,
+                  { color: isFocused ? "#ffffff" : theme.palette.muted },
+                ]}
               >
                 {String(label)}
               </Text>
@@ -127,14 +123,20 @@ const TabBar: React.FC<BottomTabBarProps> = ({
 
 const styles = StyleSheet.create({
   outer: {
-    paddingHorizontal: 8,
-    paddingTop: 6,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    margin: 0,
     backgroundColor: "transparent",
   },
   container: {
     flexDirection: "row",
-    borderRadius: 28,
-    padding: 6,
+    borderRadius: 24,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     borderWidth: 1,
     elevation: 10,
     shadowOpacity: 0.08,
@@ -142,24 +144,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
   },
   tab: {
-    flex: 1,
     borderRadius: 22,
     borderWidth: 1,
-    paddingVertical: 10,
-    marginHorizontal: 3,
-    minHeight: 52,
+    paddingVertical: 6,
+    marginHorizontal: 1,
+    minHeight: 46,
   },
   tabActive: {
     flexDirection: "row-reverse",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: 3,
   },
   tabInactive: {
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
   },
   pressed: {
     opacity: 0.96,
@@ -171,22 +172,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 13,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
   iconWrapActive: {
-    width: 34,
-    height: 34,
-    borderRadius: 14,
-  },
-  iconWrapInactive: {
     width: 32,
     height: 32,
     borderRadius: 13,
+  },
+  iconWrapInactive: {
+    width: 30,
+    height: 30,
+    borderRadius: 12,
   },
   badge: {
     position: "absolute",
@@ -216,11 +217,11 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     fontSize: 12,
-    marginRight: 8,
+    marginRight: 3,
   },
   labelInactive: {
     fontSize: 11,
-    marginTop: 4,
+    marginTop: 3,
   },
 });
 

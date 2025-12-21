@@ -13,6 +13,12 @@ type AuthContextValue = {
   permissions: RolePermissions | null;
   login: (username: string, password: string) => Promise<void>;
   register: (payload: { username: string; email: string; password: string; phone?: string }) => Promise<void>;
+  startPhoneRegistration: (payload: { username: string; phone: string; password: string }) => Promise<{
+    phone: string;
+    resend_seconds: number;
+    detail?: string;
+  }>;
+  verifyPhoneOtp: (phone: string, otp: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshPermissions: () => Promise<void>;
@@ -263,14 +269,50 @@ const fetchProfile = useCallback(
       setLoading(true);
       try {
         await api.post("auth/register/", { ...payload, role: "customer" });
-        await login(payload.username, payload.password);
       } catch (error) {
         throw new Error(parseApiError(error) || copy.messages.genericError);
       } finally {
         setLoading(false);
       }
     },
-    [login]
+    []
+  );
+
+  const startPhoneRegistration = useCallback(
+    async (payload: { username: string; phone: string; password: string }) => {
+      setLoading(true);
+      try {
+        const res = await api.post("auth/phone/register/", payload);
+        return res.data;
+      } catch (error) {
+        throw new Error(parseApiError(error) || copy.messages.genericError);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const verifyPhoneOtp = useCallback(
+    async (phone: string, otp: string) => {
+      setLoading(true);
+      try {
+        const res = await api.post("auth/phone/verify/", { phone, otp });
+        const { access, refresh } = res.data || {};
+        if (!access) throw new Error(copy.messages.genericError);
+
+        setAccessToken(access);
+        setRefreshToken(refresh || null);
+        setAuthToken(access);
+        await fetchProfile(access);
+        await fetchPermissions(access);
+      } catch (error) {
+        throw new Error(parseApiError(error) || copy.messages.genericError);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchProfile, fetchPermissions]
   );
 
   const logout = useCallback(async () => {
@@ -291,11 +333,26 @@ const fetchProfile = useCallback(
       permissions,
       login,
       register,
+      startPhoneRegistration,
+      verifyPhoneOtp,
       logout,
       refreshProfile: fetchProfile,
       refreshPermissions: fetchPermissions,
     }),
-    [user, accessToken, initializing, loading, permissions, login, register, logout, fetchProfile, fetchPermissions]
+    [
+      user,
+      accessToken,
+      initializing,
+      loading,
+      permissions,
+      login,
+      register,
+      startPhoneRegistration,
+      verifyPhoneOtp,
+      logout,
+      fetchProfile,
+      fetchPermissions,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -11,7 +11,6 @@ import OrderTimeline from "../../components/OrderTimeline";
 import { OrderDetails, OrderSummary } from "../../types";
 import { formatDateTime } from "../../utils/format";
 import { normalizeArabicText } from "../../utils/text";
-import { copy } from "../../config/copy";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import DashboardListItem from "../dashboard/components/DashboardListItem";
@@ -37,16 +36,19 @@ const OrderTrackingScreen: React.FC = () => {
   const fetchOrder = async (id: string) => {
     const trimmed = id.trim();
     if (!trimmed) {
-      setError(copy.orders.errorEmpty);
+      setError("يرجى إدخال رقم الطلب.");
       return;
     }
+
     setLoading(true);
     setError(null);
     setOrder(null);
     setInvoiceUrl(null);
+
     try {
       const res = await api.get(`orders/public/${trimmed}/`);
       setOrder(res.data);
+
       try {
         const invoice = await api.get(`invoices/public/by-order/${trimmed}/`);
         setInvoiceUrl(invoice.data?.pdf_url || null);
@@ -54,8 +56,8 @@ const OrderTrackingScreen: React.FC = () => {
         setInvoiceUrl(null);
       }
     } catch (err: any) {
-      if (err?.response?.status === 404) setError(copy.orders.notFound);
-      else setError(copy.orders.fetchError);
+      if (err?.response?.status === 404) setError("لم يتم العثور على طلب بهذا الرقم.");
+      else setError("تعذر جلب تفاصيل الطلب. حاول مرة أخرى.");
     } finally {
       setLoading(false);
     }
@@ -66,11 +68,13 @@ const OrderTrackingScreen: React.FC = () => {
       setMyOrders([]);
       return;
     }
+
     const loadOrders = async () => {
       setMyOrdersLoading(true);
       try {
         const res = await api.get("orders/my-orders/");
-        const normalized = (res.data || []).map((o: OrderSummary) => ({
+        const data = Array.isArray(res.data) ? res.data : res.data?.results || [];
+        const normalized = (data || []).map((o: OrderSummary) => ({
           ...o,
           status: normalizeArabicText((o as any).status),
         }));
@@ -81,6 +85,7 @@ const OrderTrackingScreen: React.FC = () => {
         setMyOrdersLoading(false);
       }
     };
+
     loadOrders();
   }, [user]);
 
@@ -93,9 +98,19 @@ const OrderTrackingScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route.params?.orderId]);
 
+  const screenTitle = user ? "طلباتي" : "تتبع الطلب";
+  const screenSubtitle = user
+    ? "استعرض آخر طلباتك وتتبع حالتها أو أدخل رقم طلب للتتبع."
+    : "أدخل رقم الطلب لمعرفة حالته وتحميل الفاتورة إن وجدت.";
+
+  const statusLabel =
+    normalizeArabicText((order as any)?.status_display) ||
+    normalizeArabicText((order as any)?.status) ||
+    "";
+
   return (
-    <DashboardShell title="تتبع الطلب" subtitle="أدخل رقم الطلب لمعرفة حالته وتحميل الفاتورة إن وجدت.">
-      <DashboardSection title="تتبع" subtitle="اكتب رقم الطلب ثم اضغط تتبع.">
+    <DashboardShell title={screenTitle} subtitle={screenSubtitle}>
+      <DashboardSection title="تتبع الطلب" subtitle="أدخل رقم الطلب ثم اضغط تتبع.">
         <Input
           label="رقم الطلب"
           value={orderId}
@@ -104,7 +119,8 @@ const OrderTrackingScreen: React.FC = () => {
           placeholder="مثال: 123"
         />
         <Button
-          title={loading ? "جارٍ التتبع..." : "تتبع"}
+          title="تتبع"
+          loading={loading}
           onPress={() => fetchOrder(orderId)}
           disabled={loading}
           style={styles.primaryBtn}
@@ -113,10 +129,13 @@ const OrderTrackingScreen: React.FC = () => {
       </DashboardSection>
 
       {!user ? (
-        <DashboardSection title={copy.orders.guestTitle} subtitle={copy.orders.guestDescription}>
-          <View style={{ gap: 8 }}>
+        <DashboardSection
+          title="سجّل دخولك للوصول إلى طلباتك"
+          subtitle="سجّل دخولك لعرض آخر الطلبات، حفظ العناوين، ونقاط الولاء."
+        >
+          <View style={styles.singleColTiles}>
             <DashboardTile
-              title={copy.orders.login}
+              title="تسجيل الدخول"
               subtitle="ادخل إلى حسابك"
               icon="log-in-outline"
               onPress={() => navigation.navigate("Login")}
@@ -124,7 +143,7 @@ const OrderTrackingScreen: React.FC = () => {
               style={{ width: "100%" }}
             />
             <DashboardTile
-              title={copy.orders.register}
+              title="إنشاء حساب"
               subtitle="أنشئ حساباً جديداً"
               icon="person-add-outline"
               onPress={() => navigation.navigate("Register")}
@@ -135,32 +154,39 @@ const OrderTrackingScreen: React.FC = () => {
         </DashboardSection>
       ) : (
         <DashboardSection
-          title="آخر الطلبات"
+          title="آخر طلباتي"
           subtitle={
             myOrdersLoading
-              ? copy.messages.loading
+              ? "جارٍ تحميل الطلبات..."
               : myOrders.length
-              ? "اضغط على طلب لتتبّع حالته."
-              : "لا توجد طلبات حتى الآن."
+              ? "اضغط على أي طلب لعرض التفاصيل."
+              : "لا توجد طلبات لديك حتى الآن."
           }
         >
           {myOrdersLoading ? (
-            <Text style={[styles.muted, { color: theme.palette.muted }]}>{copy.messages.loading}</Text>
+            <Text style={[styles.muted, { color: theme.palette.muted }]}>جارٍ التحميل...</Text>
           ) : myOrders.length === 0 ? (
-            <Text style={[styles.muted, { color: theme.palette.muted }]}>لا توجد طلبات.</Text>
+            <Text style={[styles.muted, { color: theme.palette.muted }]}>لا توجد طلبات لعرضها.</Text>
           ) : (
-            <View style={{ gap: 10 }}>
+            <View style={styles.listGap}>
               {myOrders.slice(0, 15).map((o) => (
                 <DashboardListItem
                   key={o.id}
                   title={`طلب #${o.id}`}
-                  subtitle={`${normalizeArabicText((o as any).status || "")} — ${formatDateTime((o as any).created_at)}`}
+                  subtitle={`${normalizeArabicText((o as any).status || "")} • ${formatDateTime((o as any).created_at)}`}
                   icon="receipt-outline"
                   onPress={() => {
                     setOrderId(String(o.id));
                     fetchOrder(String(o.id));
                   }}
-                  right={<CurrencyAmount value={(o as any).total} color={theme.palette.text} symbolSize={12} textStyle={styles.amount} />}
+                  right={
+                    <CurrencyAmount
+                      value={(o as any).total}
+                      color={theme.palette.text}
+                      symbolSize={12}
+                      textStyle={styles.amount}
+                    />
+                  }
                 />
               ))}
             </View>
@@ -170,20 +196,34 @@ const OrderTrackingScreen: React.FC = () => {
 
       <DashboardSection title="تفاصيل الطلب" subtitle={order ? "تم العثور على الطلب." : "لم يتم تحديد طلب بعد."}>
         {order ? (
-          <View style={{ gap: 12 }}>
+          <View style={styles.detailsWrap}>
+            <View style={styles.detailsHeader}>
+              <View style={{ alignItems: "flex-end", flex: 1, gap: 4 }}>
+                <Text style={styles.detailsTitle}>{`طلب #${order.id}`}</Text>
+                <Text style={[styles.detailsSub, { color: theme.palette.muted }]}>{formatDateTime((order as any).created_at)}</Text>
+              </View>
+              <View style={styles.statusPill}>
+                <Text style={[styles.statusText, { color: theme.palette.accent }]} numberOfLines={1}>
+                  {statusLabel || "—"}
+                </Text>
+              </View>
+            </View>
+
             <View style={styles.kv}>
               <Text style={[styles.k, { color: theme.palette.muted }]}>الإجمالي</Text>
-              <CurrencyAmount value={order.total} color={theme.palette.text} symbolSize={12} textStyle={styles.amount} />
+              <CurrencyAmount value={(order as any).total} color={theme.palette.text} symbolSize={12} textStyle={styles.amount} />
             </View>
-            <OrderTimeline status={order.status} />
+
+            <OrderTimeline status={(order as any).status} />
+
             {invoiceUrl ? (
               <Button title="تحميل الفاتورة" variant="secondary" onPress={() => Linking.openURL(invoiceUrl)} />
             ) : (
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>لا توجد فاتورة متاحة لهذا الطلب.</Text>
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>لا توجد فاتورة متاحة لهذا الطلب حتى الآن.</Text>
             )}
           </View>
         ) : (
-          <Text style={[styles.muted, { color: theme.palette.muted }]}>لا توجد بيانات لعرضها.</Text>
+          <Text style={[styles.muted, { color: theme.palette.muted }]}>أدخل رقم الطلب في الأعلى لمشاهدة التفاصيل.</Text>
         )}
       </DashboardSection>
     </DashboardShell>
@@ -195,6 +235,12 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     primaryBtn: {
       alignSelf: "stretch",
     },
+    singleColTiles: {
+      gap: 8,
+    },
+    listGap: {
+      gap: 10,
+    },
     error: {
       textAlign: "right",
       fontSize: 13,
@@ -205,6 +251,43 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       textAlign: "right",
       fontSize: 13,
       lineHeight: 18,
+      writingDirection: "rtl",
+    },
+    detailsWrap: {
+      gap: 12,
+    },
+    detailsHeader: {
+      flexDirection: "row-reverse",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      paddingVertical: 6,
+    },
+    detailsTitle: {
+      fontSize: 15,
+      fontWeight: "900",
+      textAlign: "right",
+      writingDirection: "rtl",
+      color: "#0f172a",
+    },
+    detailsSub: {
+      fontSize: 12,
+      textAlign: "right",
+      writingDirection: "rtl",
+    },
+    statusPill: {
+      maxWidth: 160,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      borderRadius: 999,
+      backgroundColor: "#ede9fe",
+      borderWidth: 1,
+      borderColor: "#ddd6fe",
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: "800",
+      textAlign: "right",
       writingDirection: "rtl",
     },
     kv: {
@@ -225,4 +308,3 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   });
 
 export default OrderTrackingScreen;
-

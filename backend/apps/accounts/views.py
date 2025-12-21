@@ -1,8 +1,9 @@
 # backend/apps/accounts/views.py
 from django.contrib.auth import get_user_model
-from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth import authenticate
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils import timezone
 from rest_framework import viewsets, generics, permissions, status, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -16,12 +17,19 @@ from .serializers import (
     ChangePasswordSerializer,
     RolePermissionSerializer,
     UserActivitySerializer, 
+    PhoneRegisterStartSerializer,
+    PhoneRegisterVerifySerializer,
 )
 from .models import Address, RolePermission, UserActivity
 from .emails import safe_send_mail, build_frontend_url
-from .tokens import password_reset_token
+from .tokens import account_activation_token, password_reset_token
 from .permissions import IsManager, CanManageUsers, CanViewUserActivity, get_role_permission
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import AuthenticationFailed
+
+from .authentica import AuthenticaError, send_otp as authentica_send_otp, verify_otp as authentica_verify_otp
+from .phone import normalize_phone
 
 User = get_user_model()
 
@@ -94,7 +102,7 @@ class VerifyEmailView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if not default_token_generator.check_token(user, token):
+        if not account_activation_token.check_token(user, token):
             return Response(
                 {"detail": "رمز التفعيل غير صالح أو منتهي."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -105,6 +113,114 @@ class VerifyEmailView(views.APIView):
             user.save()
 
         return Response({"detail": "تم تفعيل حسابك بنجاح. يمكنك الآن تسجيل الدخول."})
+
+
+class TokenObtainPairByIdentifierView(APIView):
+    """
+    POST /api/auth/token/
+      body: { "username": "<username|email|phone>", "password": "..." }
+
+    Backwards compatible with SimpleJWT while allowing email/phone login.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        identifier = (request.data.get("username") or "").strip()
+        password = request.data.get("password") or ""
+
+        if not identifier or not password:
+            raise AuthenticationFailed("No active account found with the given credentials")
+
+        user_obj = None
+        if "@" in identifier:
+            user_obj = User.objects.filter(email__iexact=identifier).first()
+        else:
+            normalized_phone = normalize_phone(identifier)
+            if normalized_phone.startswith("+") and len(normalized_phone) >= 8:
+                user_obj = User.objects.filter(phone=normalized_phone).first()
+
+        username = user_obj.username if user_obj else identifier
+        user = authenticate(request=request, username=username, password=password)
+        if user is None:
+            raise AuthenticationFailed("No active account found with the given credentials")
+
+        refresh = RefreshToken.for_user(user)
+        return Response({"refresh": str(refresh), "access": str(refresh.access_token)})
+
+
+class PhoneRegisterStartView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = PhoneRegisterStartSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+
+        resend_seconds = int(getattr(settings, "AUTHENTICA_OTP_RESEND_SECONDS", 60))
+        if user.phone_otp_sent_at and (timezone.now() - user.phone_otp_sent_at).total_seconds() < resend_seconds:
+            return Response(
+                {"detail": "OTP recently sent. Please wait before requesting again."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        try:
+            result = authentica_send_otp(phone=user.phone)
+        except AuthenticaError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        user.phone_otp_sent_at = timezone.now()
+        user.save(update_fields=["phone_otp_sent_at"])
+
+        return Response(
+            {"detail": result.message or "OTP sent.", "phone": user.phone, "resend_seconds": resend_seconds},
+            status=status.HTTP_200_OK,
+        )
+
+
+class PhoneRegisterVerifyView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = PhoneRegisterVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        phone = serializer.validated_data["phone"]
+        otp = serializer.validated_data["otp"]
+
+        try:
+            result = authentica_verify_otp(phone=phone, otp=otp)
+        except AuthenticaError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        if not result.ok:
+            return Response({"detail": result.message or "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(phone=phone).order_by("-date_joined").first()
+        if not user:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        changed_fields = []
+        if not user.is_phone_verified:
+            user.is_phone_verified = True
+            user.phone_verified_at = timezone.now()
+            changed_fields += ["is_phone_verified", "phone_verified_at"]
+        if not user.is_active:
+            user.is_active = True
+            changed_fields.append("is_active")
+
+        if changed_fields:
+            user.save(update_fields=changed_fields)
+
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "detail": result.message or "OTP verified.",
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                "user": UserSerializer(user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class PasswordResetRequestView(views.APIView):

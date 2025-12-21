@@ -70,7 +70,7 @@ const HomeScreen: React.FC = () => {
   const theme = useTheme();
   const { settings } = useStoreSettings();
   const { addItem, totalQuantity } = useCart();
-  const { user, permissions } = useAuth();
+  const { user } = useAuth();
 
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [addonProduct, setAddonProduct] = useState<Product | null>(null);
@@ -135,33 +135,44 @@ const HomeScreen: React.FC = () => {
     setHeroIndex(0);
   }, [heroSlides.length]);
 
-  const isEmployee = user?.role === "manager" || user?.role === "supervisor" || user?.role === "staff";
-  const canManageSupport = user?.role === "manager" || !!permissions?.can_manage_support;
-
   const quickActions: QuickAction[] = useMemo(() => {
-    const raw = (copy.home.quickActions || []) as any[];
-    return raw.map((item) => {
-      if (item.route !== "Orders") return item;
+    const actions: QuickAction[] = [];
+    const isGuest = !user;
 
-      if (!isEmployee) return item;
-      if (canManageSupport) {
-        return {
-          ...item,
-          route: "Support",
-          label: "الدعم",
-          helper: "متابعة تذاكر ومحادثات الدعم",
-          icon: "chatbubble-ellipses-outline",
-        };
+    if (isGuest) {
+      actions.push(
+        {
+          icon: "log-in-outline",
+          label: "تسجيل الدخول",
+          helper: "ادخل إلى حسابك",
+          route: "Login",
+        },
+        {
+          icon: "person-add-outline",
+          label: "إنشاء حساب",
+          helper: "حساب جديد خلال دقيقة",
+          route: "Register",
+        }
+      );
+    }
+
+    actions.push(
+      {
+        icon: "gift-outline",
+        label: "نقاط الولاء",
+        helper: "تابع نقاطك واستفد من العروض",
+        route: "Rewards",
+      },
+      {
+        icon: "call-outline",
+        label: "تواصل معنا",
+        helper: "الدعم وخدمة العملاء",
+        route: "Contact",
       }
-      return {
-        ...item,
-        route: "MyHR",
-        label: "طلباتي",
-        helper: "الحضور والانصراف وطلبات الموارد البشرية",
-        icon: "calendar-outline",
-      };
-    });
-  }, [isEmployee, canManageSupport]);
+    );
+
+    return actions;
+  }, [user]);
 
   const categoryCards: CategoryCard[] = useMemo(() => {
     if (!safeCategories.length) {

@@ -14,6 +14,9 @@ class User(AbstractUser):
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='customer')
     phone = models.CharField(max_length=32, blank=True, null=True)
+    is_phone_verified = models.BooleanField(default=False)
+    phone_verified_at = models.DateTimeField(null=True, blank=True)
+    phone_otp_sent_at = models.DateTimeField(null=True, blank=True)
 
     avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
     address = models.CharField(max_length=255, null=True, blank=True)

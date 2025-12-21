@@ -1,6 +1,7 @@
 # backend/apps/accounts/serializers.py
 import re
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from rest_framework import serializers
 from .models import Address, RolePermission
 from .emails import safe_send_mail, build_frontend_url
@@ -8,6 +9,9 @@ from .tokens import account_activation_token
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from .models import Address, RolePermission, UserActivity
+from django.utils import timezone
+
+from .phone import is_plausible_e164, normalize_phone
 
 
 User = get_user_model()
@@ -21,14 +25,23 @@ STRONG_PASSWORD_REGEX = re.compile(
 class DashboardUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "phone", "role", "is_active", "date_joined"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "phone",
+            "is_phone_verified",
+            "role",
+            "is_active",
+            "date_joined",
+        ]
         read_only_fields = ["id", "date_joined"]
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "role", "phone", "avatar", "address"]
+        fields = ["id", "username", "email", "role", "phone", "is_phone_verified", "avatar", "address"]
         read_only_fields = ["id", "role", "username"]
 
 
@@ -81,6 +94,25 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "email", "password", "phone"]
         read_only_fields = ["id"]
 
+    def validate(self, attrs):
+        email = (attrs.get("email") or "").strip()
+        phone = (attrs.get("phone") or "").strip()
+
+        if not email and not phone:
+            raise serializers.ValidationError({"detail": "Email or phone is required."})
+
+        # This endpoint is primarily email verification based; if no email was provided,
+        # require using the dedicated phone-OTP flow so the account can be activated.
+        if not email and phone:
+            raise serializers.ValidationError(
+                {"email": "Email is required for this registration endpoint. Use phone OTP registration instead."}
+            )
+
+        attrs["email"] = email
+        if phone:
+            attrs["phone"] = normalize_phone(phone)
+        return attrs
+
     def validate_password(self, value: str) -> str:
         # نطبق نفس الشروط القوية في الباك إند كطبقة أمان إضافية
         if not STRONG_PASSWORD_REGEX.match(value):
@@ -121,6 +153,74 @@ class RegisterSerializer(serializers.ModelSerializer):
             safe_send_mail(subject, message, [user.email])
 
         return user
+
+
+class PhoneRegisterStartSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150)
+    phone = serializers.CharField(max_length=32)
+    password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate_phone(self, value: str) -> str:
+        normalized = normalize_phone(value)
+        if not is_plausible_e164(normalized):
+            raise serializers.ValidationError("Invalid phone number.")
+        return normalized
+
+    def validate(self, attrs):
+        phone = attrs.get("phone")
+        username = (attrs.get("username") or "").strip()
+        if not username:
+            raise serializers.ValidationError({"username": "Required."})
+
+        # If phone already used by an active account, block.
+        if User.objects.filter(phone=phone, is_active=True).exists():
+            raise serializers.ValidationError({"phone": "Phone already in use."})
+
+        return attrs
+
+    def create(self, validated_data):
+        phone = validated_data["phone"]
+        username = validated_data["username"].strip()
+        password = validated_data["password"]
+
+        user = User.objects.filter(phone=phone).order_by("-date_joined").first()
+
+        if user and user.is_active:
+            raise serializers.ValidationError({"phone": "Phone already in use."})
+
+        if not user:
+            user = User(username=username, phone=phone, role="customer", is_active=False)
+        else:
+            user.username = username
+            user.phone = phone
+            user.role = user.role or "customer"
+            user.is_active = False
+
+        user.is_phone_verified = False
+        user.phone_verified_at = None
+        user.set_password(password)
+        user.save()
+        return user
+
+
+class PhoneRegisterVerifySerializer(serializers.Serializer):
+    phone = serializers.CharField(max_length=32)
+    otp = serializers.CharField(max_length=10)
+
+    def validate_phone(self, value: str) -> str:
+        normalized = normalize_phone(value)
+        if not is_plausible_e164(normalized):
+            raise serializers.ValidationError("Invalid phone number.")
+        return normalized
+
+    def validate_otp(self, value: str) -> str:
+        otp = (value or "").strip()
+        if not otp.isdigit():
+            raise serializers.ValidationError("OTP must be numeric.")
+        if not (4 <= len(otp) <= 10):
+            raise serializers.ValidationError("Invalid OTP length.")
+        return otp
+
 
 
 

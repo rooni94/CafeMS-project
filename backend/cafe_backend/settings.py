@@ -113,6 +113,17 @@ DATABASES = {
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
 
+# ================== Authentica OTP (Phone Verification) ==================
+# IMPORTANT: Do not hardcode API keys in source control. Configure via environment variables.
+AUTHENTICA_API_KEY = env("AUTHENTICA_API_KEY", default="").strip()
+AUTHENTICA_BASE_URL = env(
+    "AUTHENTICA_BASE_URL",
+    default="https://api.authentica.sa/api/v2",
+).rstrip("/")
+AUTHENTICA_OTP_METHOD = env("AUTHENTICA_OTP_METHOD", default="sms").strip().lower()
+AUTHENTICA_OTP_TEMPLATE_ID = env.int("AUTHENTICA_OTP_TEMPLATE_ID", default=1)
+AUTHENTICA_OTP_RESEND_SECONDS = env.int("AUTHENTICA_OTP_RESEND_SECONDS", default=60)
+
 # ================== DRF & Auth ==================
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

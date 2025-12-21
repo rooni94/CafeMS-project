@@ -12,10 +12,10 @@ import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 
 const DEFAULT_HIGHLIGHTS = [
-  "منتجات يومية بجودة عالية وطعم ثابت.",
-  "خيارات متنوعة تناسب جميع الأذواق.",
-  "طلب سريع وتجربة استخدام سهلة.",
-  "خدمة عملاء سريعة ومتابعة للطلبات.",
+  "خبز طازج وصلصات منزلية نحضّرها بشكل يومي لترافق كل لقمة.",
+  "محطة قهوة مختصة ومشروبات موسمية تكتمل بها استراحتك.",
+  "قائمة جانبية متوازنة بين الخفايف والسندوتشات السريعة.",
+  "طاقم بخبرة محلية يقدم الضيافة الخليجية بابتسامة دائمة.",
 ];
 
 const extractFirstUrlFromEmbed = (html?: string | null) => {
@@ -42,11 +42,12 @@ const AboutScreen: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { settings } = useStoreSettings();
 
-  const aboutTitle = normalizeArabicText((settings as any)?.about_title) || "من نحن";
-  const aboutSubtitle = normalizeArabicText((settings as any)?.about_subtitle) || "معلومات عن المتجر ورسالتنا.";
+  const aboutTitle = normalizeArabicText((settings as any)?.about_title) || "من نحن – CafeMS Demo";
+  const aboutSubtitle =
+    normalizeArabicText((settings as any)?.about_subtitle) || "نحن مساحة دافئة تحتضن شغف الطعام ونكهاته الأصيلة.";
   const aboutDescription =
     normalizeArabicText((settings as any)?.about_description) ||
-    "نقدّم لك تجربة مميزة من الساندوتشات والمشروبات والحلويات بجودة عالية وخدمة سريعة. هدفنا أن تكون عملية الطلب سهلة وواضحة من أول خطوة حتى استلام الطلب.";
+    "CafeMS Demo محطتكم اليومية للاستمتاع بسندوتشات طازجة، خفايف شهية، ومشروبات تعكس ذائقة الخليج. نؤمن بأن تجربة الطعام لا تكتمل دون خدمة مفعمة بالامتنان وسهولة في كل خطوة من الطلب حتى الاستلام.";
 
   const aboutImageUrl = (settings as any)?.about_image_url || (settings as any)?.hero_image_url || null;
   const highlights: string[] =
@@ -69,6 +70,15 @@ const AboutScreen: React.FC = () => {
       <DashboardSection title={aboutTitle} subtitle="نبذة سريعة عن المتجر">
         {aboutImageUrl ? <Image source={{ uri: aboutImageUrl }} style={styles.heroImage} resizeMode="cover" /> : null}
         <Text style={styles.body}>{aboutDescription}</Text>
+        <Text style={styles.body}>
+          تبدأ حكايتنا من المطبخ؛ حيث نستيقظ باكراً لتحميص الخبز، تقطيع الخضار، وتحضير خلطاتنا الخاصة قبل فتح الأبواب. كل طبق يمر عبر فريق
+          يضع معياراً للجودة ويهتم بإيصال الطعام سريعاً من دون التفريط بطعمه.
+        </Text>
+        <Text style={styles.body}>
+          رؤيتنا أن تكون CafeMS Demo محطةً يشعر فيها الضيف أنه يعرفنا منذ زمن: وصفات أصيلة بطابع عصري، سرعة في الخدمة، واهتمام بالتفاصيل
+          الصغيرة من اختيار التوابل وحتى نبرة الترحيب. نحدّث قائمتنا باستمرار ونراقب تعليقات عملائنا لنحافظ على هذا التوازن بين الأصالة
+          والتجربة الحديثة.
+        </Text>
         <Button title="اذهب إلى القائمة" onPress={() => goToTab(navigation, "Menu")} />
       </DashboardSection>
 

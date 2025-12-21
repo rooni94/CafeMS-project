@@ -7,6 +7,7 @@ export interface User {
   role: UserRole;
   hr_role?: "none" | "staff" | "supervisor" | "manager";
   phone?: string;
+  is_phone_verified?: boolean;
   address?: string;
   avatar?: string | null;
 }

@@ -169,7 +169,10 @@ const SupportChatWidget: React.FC = () => {
       const convId = conv.id as number;
       const token = (res.data.guest_token as string | undefined) || null;
       if (!token) {
-        throw new Error("Missing guest_token");
+        setGuestError(
+          "تم التحقق بنجاح لكن الخادم لم يُرجع guest_token. هذا يعني أن الباكند غير مُحدّث. حدّث الباكند وشغّل migrate ثم أعد المحاولة."
+        );
+        return;
       }
       setConversationId(convId);
       setGuestToken(token);
