@@ -132,10 +132,12 @@ const TabBar: React.FC<BottomTabBarProps> = ({
 
 const styles = StyleSheet.create({
   outer: {
-    position: "absolute",
+    paddingTop: 6,
+    marginTop: -46,
     left: 0,
     right: 0,
-    bottom: -35,
+    bottom: 0,
+    marginBottom:-33,
     paddingHorizontal: 0,
     paddingVertical: 0,
     margin: 0,
