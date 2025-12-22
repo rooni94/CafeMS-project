@@ -59,3 +59,30 @@ export const normalizeArabicText = (value?: string | null) => {
     return trimmed;
   }
 };
+
+export const decodeUnicodeEscapes = (value?: string | null) => {
+  if (value == null) return "";
+  const raw = String(value);
+
+  const decoded = raw
+    .replace(/\\u\{([0-9a-fA-F]+)\}/g, (_m, hex: string) => {
+      const codePoint = Number.parseInt(hex, 16);
+      if (!Number.isFinite(codePoint)) return _m;
+      try {
+        return String.fromCodePoint(codePoint);
+      } catch {
+        return _m;
+      }
+    })
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)))
+    .replace(/\\x([0-9a-fA-F]{2})/g, (_m, hex: string) => String.fromCharCode(Number.parseInt(hex, 16)))
+    .replace(/\\n/g, "\n")
+    .replace(/\\r/g, "\r")
+    .replace(/\\t/g, "\t")
+    .replace(/\\b/g, "\b")
+    .replace(/\\f/g, "\f")
+    .replace(/\\v/g, "\v")
+    .replace(/\\\\/g, "\\");
+
+  return normalizeArabicText(decoded);
+};

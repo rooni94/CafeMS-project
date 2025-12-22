@@ -12,6 +12,7 @@ import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import DashboardListItem from "../dashboard/components/DashboardListItem";
 import DashboardTile from "../dashboard/components/DashboardTile";
+import { decodeUnicodeEscapes } from "../../utils/text";
 
 type Address = { id: number; label: string; details: string; is_default?: boolean };
 type OrderRow = { id: number; status: string; total: number; created_at: string };
@@ -80,6 +81,7 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const t = decodeUnicodeEscapes;
   const { user, accessToken, permissions, logout } = useAuth();
 
   const isAuthenticated = !!user && !!accessToken;
@@ -257,7 +259,7 @@ const ProfileScreen: React.FC = () => {
     [isAuthenticated, isEmployee, canManageSupport, navigation, theme.palette]
   );
 
-  return (
+      return (
     <DashboardShell
       title="حسابي"
       subtitle={
@@ -320,6 +322,7 @@ const ProfileScreen: React.FC = () => {
               title="تسجيل الخروج"
               icon="logout"
               variant="ghost"
+              style={{ display: "none" }}
               color="transparent"
               textColor={theme.palette.danger}
               onPress={handleLogout}
@@ -417,6 +420,21 @@ const ProfileScreen: React.FC = () => {
             )}
           </DashboardSection>
         </>
+      ) : null}
+      
+      {isAuthenticated ? (
+        <DashboardSection
+          title={t("\\u062a\\u0633\\u062c\\u064a\\u0644 \\u0627\\u0644\\u062e\\u0631\\u0648\\u062c")}
+          subtitle={t("\\u0625\\u0646\\u0647\\u0627\\u0621 \\u0627\\u0644\\u062c\\u0644\\u0633\\u0629 \\u0627\\u0644\\u062d\\u0627\\u0644\\u064a\\u0629 \\u0628\\u0623\\u0645\\u0627\\u0646.")}
+        >
+          <Button
+            title={t("\\u062a\\u0633\\u062c\\u064a\\u0644 \\u0627\\u0644\\u062e\\u0631\\u0648\\u062c")}
+            icon="logout"
+            variant="danger"
+            onPress={handleLogout}
+            style={{ width: "100%" }}
+          />
+        </DashboardSection>
       ) : null}
     </DashboardShell>
   );
