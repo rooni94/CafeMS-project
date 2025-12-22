@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../../theme";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
   Home: "grid-outline",
@@ -20,8 +21,16 @@ const TabBar: React.FC<BottomTabBarProps> = ({
   navigation,
 }) => {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.outer}>
+    <View
+      style={[
+        styles.outer,
+        {
+          paddingBottom: Math.max(insets.bottom, 10),
+        },
+      ]}
+    >
       <View
         style={[
           styles.container,
@@ -126,7 +135,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 0,
+    bottom: -35,
     paddingHorizontal: 0,
     paddingVertical: 0,
     margin: 0,
