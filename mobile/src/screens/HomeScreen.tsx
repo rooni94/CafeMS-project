@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, ImageBackground, Dimensions, Pressable, FlatList, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Image, ImageBackground, Dimensions, Pressable, FlatList, ScrollView } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Carousel from "react-native-reanimated-carousel";
 import { useNavigation } from "@react-navigation/native";
@@ -17,7 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../theme";
 import { copy } from "../config/copy";
 import { resolveMediaUrl } from "../utils/media";
-import { normalizeArabicText } from "../utils/text";
+import { decodeUnicodeEscapes, normalizeArabicText } from "../utils/text";
 import { goToStack, goToTab } from "../navigation/helpers";
 import ProductAddonsModal from "../components/ProductAddonsModal";
 import DashboardSection from "./dashboard/components/DashboardSection";
@@ -25,6 +25,7 @@ import DashboardTile from "./dashboard/components/DashboardTile";
 
 const HERO_FALLBACK = copy.heroFallback;
 const HERO_PLAY_INTERVAL = 6500;
+const HERO_HEIGHT = 240;
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const HERO_WIDTH = SCREEN_WIDTH - 8;
 
@@ -146,14 +147,14 @@ const HomeScreen: React.FC = () => {
       actions.push(
         {
           icon: "log-in-outline",
-          label: "تسجيل الدخول",
-          helper: "ادخل إلى حسابك",
+          label: copy.orders.login,
+          helper: copy.orders.guestDescription,
           route: "Login",
         },
         {
           icon: "person-add-outline",
-          label: "إنشاء حساب",
-          helper: "حساب جديد خلال دقيقة",
+          label: copy.orders.register,
+          helper: copy.orders.guestDescription,
           route: "Register",
         }
       );
@@ -162,14 +163,14 @@ const HomeScreen: React.FC = () => {
     actions.push(
       {
         icon: "gift-outline",
-        label: "نقاط الولاء",
-        helper: "تابع نقاطك واستفد من العروض",
+        label: copy.home.quickActions[3]?.label || copy.home.quickActions[0]?.label,
+        helper: copy.home.quickActions[3]?.helper || copy.home.quickActions[0]?.helper,
         route: "Rewards",
       },
       {
         icon: "call-outline",
-        label: "تواصل معنا",
-        helper: "الدعم وخدمة العملاء",
+        label: copy.home.quickActions[4]?.label || copy.home.quickActions[0]?.label,
+        helper: copy.home.quickActions[4]?.helper || copy.home.quickActions[0]?.helper,
         route: "Contact",
       }
     );
@@ -191,6 +192,12 @@ const HomeScreen: React.FC = () => {
       image: resolveMediaUrl(category.image) || copy.categoryFallbacks[index % copy.categoryFallbacks.length].image,
     }));
   }, [safeCategories]);
+
+  const categoryNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    categoryCards.forEach((category) => map.set(category.id, category.name));
+    return map;
+  }, [categoryCards]);
 
   const visibleProducts = useMemo(() => {
     if (activeCategory == null) return safeProducts.slice(0, 6);
@@ -297,7 +304,7 @@ const HomeScreen: React.FC = () => {
           <View style={styles.heroClip}>
             <Carousel
               width={HERO_WIDTH}
-              height={320}
+              height={HERO_HEIGHT}
               data={heroSlides}
               autoPlay
               autoPlayInterval={HERO_PLAY_INTERVAL}
@@ -305,36 +312,23 @@ const HomeScreen: React.FC = () => {
               pagingEnabled
               onSnapToItem={(index) => setHeroIndex(index)}
               renderItem={({ item }) => (
-                <ImageBackground
-                  source={item.image ? { uri: item.image } : require("../../assets/adaptive-icon.png")}
-                  style={styles.heroSlide}
-                  imageStyle={styles.heroImage}
-                >
-                  <View style={styles.heroOverlay}>
-                    <View style={styles.heroTag}>
-                      <Text style={styles.heroTagText}>نكهة أصلية بلمسة امتنان</Text>
+                <Pressable onPress={() => handleHeroCta(item.button_link)} style={styles.heroSlide}>
+                  <ImageBackground
+                    source={item.image ? { uri: item.image } : require("../../assets/adaptive-icon.png")}
+                    style={styles.heroSlide}
+                    imageStyle={styles.heroImage}
+                  >
+                    <View style={styles.heroOverlay}>
+                      <View style={styles.heroGlass}>
+                        <View style={[styles.heroTag, { borderColor: theme.paper.colors.secondary }]}>
+                          <Text style={styles.heroTagText}>{copy.home.infoTags?.[0] || ""}</Text>
+                        </View>
+                        <Text style={styles.heroTitle}>{item.title}</Text>
+                        <Text style={styles.heroDescription}>{item.description}</Text>
+                      </View>
                     </View>
-                    <Text style={styles.heroTitle}>{item.title}</Text>
-                    <Text style={styles.heroDescription}>{item.description}</Text>
-                    <View style={styles.heroActions}>
-                      <Button
-                        title={item.button_text?.trim() || settings?.hero_button_text?.trim() || copy.home.heroExploreCta}
-                        onPress={() => handleHeroCta(item.button_link)}
-                        labelStyle={{ fontWeight: "800", fontSize: 14 }}
-                        style={[styles.heroActionButton, styles.heroPrimaryBtn]}
-                      />
-                      <Button
-                        title="ابدأ الطلب الآن"
-                        variant="ghost"
-                        color="transparent"
-                        textColor="#ffffff"
-                        labelStyle={{ fontWeight: "800", fontSize: 14 }}
-                        onPress={() => goToTab(navigation, "Menu")}
-                        style={[styles.heroActionButton, styles.heroGhostButton]}
-                      />
-                    </View>
-                  </View>
-                </ImageBackground>
+                  </ImageBackground>
+                </Pressable>
               )}
             />
           </View>
@@ -345,7 +339,10 @@ const HomeScreen: React.FC = () => {
           </View>
         </Card>
 
-        <DashboardSection title="اختصارات" subtitle={copy.home.quickIntro}>
+        <DashboardSection
+          title={decodeUnicodeEscapes("\\u0627\\u0644\\u0627\\u062e\\u062a\\u0635\\u0627\\u0631\\u0627\\u062a")}
+          subtitle={copy.home.quickIntro}
+        >
           <View style={styles.tileGrid}>
             {quickActions.map((item) => (
               <View key={`${item.route}-${item.label}`} style={styles.tileItem}>
@@ -362,7 +359,7 @@ const HomeScreen: React.FC = () => {
           </View>
         </DashboardSection>
 
-        <DashboardSection title={copy.home.categoriesTitle} subtitle="اختر القسم الذي تريده.">
+        <DashboardSection title={copy.home.categoriesTitle} subtitle={copy.home.quickIntro}>
           <View style={styles.categoryGrid}>
             {categoryCards.map((category) => (
               <View key={String(category.id)} style={styles.categoryItem}>
@@ -373,17 +370,14 @@ const HomeScreen: React.FC = () => {
                     goToTab(navigation, "Menu", { categoryId: category.id });
                   }}
                 >
-                  <ImageBackground
-                    source={{ uri: category.image }}
-                    style={styles.categoryImage}
-                    imageStyle={styles.categoryImageStyle}
-                  >
-                    <View style={styles.categoryOverlay}>
-                      <Text style={styles.categoryName} numberOfLines={2}>
-                        {category.name}
-                      </Text>
-                    </View>
-                  </ImageBackground>
+                  <View style={styles.categoryImageWrap}>
+                    <Image source={{ uri: category.image }} style={styles.categoryImage} resizeMode="cover" />
+                  </View>
+                  <View style={styles.categoryLabel}>
+                    <Text style={styles.categoryLabelText} numberOfLines={1}>
+                      {category.name}
+                    </Text>
+                  </View>
                 </Pressable>
               </View>
             ))}
@@ -391,7 +385,7 @@ const HomeScreen: React.FC = () => {
           <Button title={copy.home.categoriesCta} variant="secondary" onPress={() => goToTab(navigation, "Menu")} />
         </DashboardSection>
 
-        <DashboardSection title={copy.home.featuredTitle} subtitle="منتجات مختارة من القائمة.">
+        <DashboardSection title={copy.home.featuredTitle} subtitle={copy.home.quickIntro}>
           {visibleProducts.length === 0 ? (
             <Text style={styles.helperText}>{copy.home.featuredEmpty}</Text>
           ) : (
@@ -503,44 +497,57 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     overflow: "hidden",
     alignSelf: "center",
+    backgroundColor: "#ffffff",
   },
   heroSlide: {
     width: "100%",
-    height: 320,
+    height: HERO_HEIGHT,
     borderRadius: 22,
     overflow: "hidden",
     justifyContent: "flex-end",
   },
   heroImage: {
     borderRadius: 22,
+    backgroundColor: "#eef2f7",
   },
   heroOverlay: {
-    backgroundColor: "rgba(17, 24, 39, 0.55)",
-    padding: 18,
+    padding: 14,
     gap: 10,
     alignItems: "flex-end",
   },
+  heroGlass: {
+    alignSelf: "flex-end",
+    maxWidth: "78%",
+    backgroundColor: "rgba(255, 255, 255, 0.72)",
+    borderRadius: 18,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.9)",
+  },
   heroTag: {
-    backgroundColor: "rgba(0,0,0,0.35)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: "#ffffff",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#f59e0b",
+    alignSelf: "flex-end",
   },
   heroTagText: {
-    color: "#fefefe",
+    color: "#111827",
     fontSize: 12,
     textAlign: "right",
     writingDirection: "rtl",
   },
   heroTitle: {
-    color: "#fefcf7",
-    fontSize: 22,
-    fontWeight: "800",
+    color: "#111827",
+    fontSize: 24,
+    fontWeight: "900",
     textAlign: "right",
     writingDirection: "rtl",
   },
   heroDescription: {
-    color: "#f8fafc",
+    color: "#475569",
     fontSize: 13,
     lineHeight: 20,
     textAlign: "right",
@@ -559,14 +566,16 @@ const styles = StyleSheet.create({
   },
   heroGhostButton: {
     borderWidth: 1.4,
-    borderColor: "#ffffff",
+    borderColor: "#6138A1",
     borderRadius: 18,
-    backgroundColor: "rgba(255,255,255,0.10)",
+    backgroundColor: "rgba(97, 56, 161, 0.12)",
   },
   pagination: {
     flexDirection: "row-reverse",
     justifyContent: "center",
-    paddingVertical: 8,
+    paddingVertical: 0,
+    marginTop: -8,
+    marginBottom: 0,
     gap: 4,
   },
   dot: {
@@ -595,33 +604,47 @@ const styles = StyleSheet.create({
   },
   categoryItem: {
     width: "49.5%",
-    marginBottom: 6,
+    marginBottom: 10,
   },
   categoryCard: {
     width: "100%",
-    height: 136,
-    borderRadius: 18,
+    height: 170,
+    borderRadius: 20,
+    padding: 0,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    overflow: "hidden",
+  },
+  categoryImageWrap: {
+    flex: 1,
+    borderRadius: 20,
+    backgroundColor: "#f7f3ea",
+    alignItems: "center",
+    justifyContent: "center",
     overflow: "hidden",
   },
   categoryImage: {
-    flex: 1,
+    width: "100%",
+    height: "100%",
   },
-  categoryImageStyle: {
-    borderRadius: 18,
+  categoryLabel: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    right: 10,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.6)",
+    backgroundColor: "rgba(97, 56, 161, 0.35)",
   },
-  categoryOverlay: {
-    flex: 1,
-    borderRadius: 18,
-    backgroundColor: "rgba(24, 24, 27, 0.35)",
-    justifyContent: "flex-end",
-    padding: 12,
-  },
-  categoryName: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 16,
-    textAlign: "right",
-    writingDirection: "rtl",
+  categoryLabelText: {
+    color: "#ffffff",
+    fontWeight: "900",
+    fontSize: 14,
   },
   productGridList: {
     paddingTop: 4,
