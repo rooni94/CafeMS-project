@@ -6,6 +6,8 @@ type LoyaltySettings = {
   auto_reward_threshold: number;
   auto_reward_message: string;
   reward_discount_percent: string;
+  tier_one_max: number;
+  tier_two_max: number;
   qr_prefix: string;
   pass_primary_color: string;
   pass_secondary_color: string;
@@ -187,6 +189,34 @@ const DashboardLoyaltyPage: React.FC = () => {
                 />
               </label>
               <label className="space-y-1">
+                <span className="text-xs text-gray-500">الحد الأقصى للمستوى الأول (نقطة)</span>
+                <input
+                  type="number"
+                  value={settings.tier_one_max}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      tier_one_max: Number(e.target.value),
+                    })
+                  }
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs text-gray-500">الحد الأقصى للمستوى الثاني (نقطة)</span>
+                <input
+                  type="number"
+                  value={settings.tier_two_max}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      tier_two_max: Number(e.target.value),
+                    })
+                  }
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+              </label>
+              <label className="space-y-1">
                 <span className="text-xs text-gray-500">بادئة العضوية / QR</span>
                 <input
                   value={settings.qr_prefix}
@@ -354,11 +384,10 @@ const DashboardLoyaltyPage: React.FC = () => {
                     <tr key={txn.id} className="border-t">
                       <td className="px-2 py-1">{txn.source}</td>
                       <td
-                        className={`px-2 py-1 ${
-                          txn.points_delta >= 0
+                        className={`px-2 py-1 ${txn.points_delta >= 0
                             ? "text-emerald-600"
                             : "text-red-500"
-                        }`}
+                          }`}
                       >
                         {txn.points_delta > 0 ? "+" : ""}
                         {txn.points_delta}

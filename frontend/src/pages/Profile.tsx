@@ -44,6 +44,7 @@ type LoyaltyProfileData = {
   membership_id: string;
   qr_token: string;
   points_balance: number;
+  tier?: string;
   last_reward_at?: string;
   apple_wallet_pass_id?: string;
   google_wallet_pass_id?: string;
@@ -59,6 +60,8 @@ type LoyaltyResponse = {
     auto_reward_threshold: number;
     auto_reward_message: string;
     reward_discount_percent: string;
+    tier_one_max?: number;
+    tier_two_max?: number;
   };
 };
 
@@ -87,6 +90,12 @@ const statusLabel = (status: OrderStatus | string) => {
     default:
       return status;
   }
+};
+
+const TIER_LABELS: Record<string, string> = {
+  tier_1: "\u0627\u0644\u0645\u0633\u062a\u0648\u0649 1",
+  tier_2: "\u0627\u0644\u0645\u0633\u062a\u0648\u0649 2",
+  tier_3: "\u0627\u0644\u0645\u0633\u062a\u0648\u0649 3",
 };
 
 const strongPwRegex =
@@ -683,6 +692,17 @@ const Profile: React.FC = () => {
                 </p>
                 <p className="text-[11px] text-gray-500">
                   المكافأة التالية عند {loyalty.settings.auto_reward_threshold} نقطة
+                </p>
+              </div>
+              <div className="border rounded-lg px-3 py-2">
+                <p className="text-xs text-gray-500">المستوى</p>
+                <p className="text-sm font-semibold text-amber-600">
+                  {TIER_LABELS[loyalty.profile.tier || ""] || "-"}
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  {typeof loyalty.settings.tier_one_max === "number" && typeof loyalty.settings.tier_two_max === "number"
+                    ? `1- ${loyalty.settings.tier_one_max} أو 2- ${loyalty.settings.tier_two_max}`
+                    : "المستوى يعتمد على عدد النقاط."}
                 </p>
               </div>
               <div className="border rounded-lg px-3 py-2">

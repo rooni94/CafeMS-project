@@ -22,6 +22,8 @@ type LoyaltyProfile = {
 type LoyaltySettings = {
   earn_rate?: number;
   redeem_rate?: number;
+  tier_one_max?: number;
+  tier_two_max?: number;
 };
 
 type LoyaltyTransaction = {
@@ -69,12 +71,16 @@ const DashboardLoyalty: React.FC = () => {
 
   const [earnRate, setEarnRate] = useState("");
   const [redeemRate, setRedeemRate] = useState("");
+  const [tierOneMax, setTierOneMax] = useState("");
+  const [tierTwoMax, setTierTwoMax] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!settings) return;
     setEarnRate(settings.earn_rate != null ? String(settings.earn_rate) : "");
     setRedeemRate(settings.redeem_rate != null ? String(settings.redeem_rate) : "");
+    setTierOneMax(settings.tier_one_max != null ? String(settings.tier_one_max) : "");
+    setTierTwoMax(settings.tier_two_max != null ? String(settings.tier_two_max) : "");
   }, [settings]);
 
   if (!allowed) {
@@ -87,6 +93,8 @@ const DashboardLoyalty: React.FC = () => {
       await api.patch("loyalty/settings/", {
         earn_rate: earnRate.trim() ? Number(earnRate) : undefined,
         redeem_rate: redeemRate.trim() ? Number(redeemRate) : undefined,
+        tier_one_max: tierOneMax.trim() ? Number(tierOneMax) : undefined,
+        tier_two_max: tierTwoMax.trim() ? Number(tierTwoMax) : undefined,
       });
       qc.invalidateQueries({ queryKey: ["dashboard", "loyalty-settings"] });
       Alert.alert("تم الحفظ", "تم تحديث إعدادات برنامج الولاء.");
@@ -132,6 +140,20 @@ const DashboardLoyalty: React.FC = () => {
           onChangeText={setRedeemRate}
           keyboardType="decimal-pad"
           hint="مثال: 1 يعني ريال لكل نقطة (حسب إعدادك)."
+        />
+        <Input
+          label="\u062d\u062f \u0627\u0644\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u0623\u0648\u0644 (\u0646\u0642\u0637\u0629)"
+          value={tierOneMax}
+          onChangeText={setTierOneMax}
+          keyboardType="number-pad"
+          hint="\u0645\u062b\u0627\u0644: 299"
+        />
+        <Input
+          label="\u062d\u062f \u0627\u0644\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062b\u0627\u0646\u064a (\u0646\u0642\u0637\u0629)"
+          value={tierTwoMax}
+          onChangeText={setTierTwoMax}
+          keyboardType="number-pad"
+          hint="\u0645\u062b\u0627\u0644: 699"
         />
         <Button title={saving ? "جارٍ الحفظ..." : "حفظ الإعدادات"} onPress={saveSettings} disabled={saving} />
       </DashboardSection>

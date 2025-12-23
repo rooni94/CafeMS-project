@@ -11,6 +11,8 @@ class LoyaltySettingsSerializer(serializers.ModelSerializer):
             "auto_reward_threshold",
             "auto_reward_message",
             "reward_discount_percent",
+            "tier_one_max",
+            "tier_two_max",
             "qr_prefix",
             "pass_primary_color",
             "pass_secondary_color",
@@ -39,6 +41,7 @@ class LoyaltyProfileSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
     apple_wallet_pass_url = serializers.SerializerMethodField()
     google_wallet_pass_url = serializers.SerializerMethodField()
+    tier = serializers.SerializerMethodField()
 
     class Meta:
         model = LoyaltyProfile
@@ -52,8 +55,20 @@ class LoyaltyProfileSerializer(serializers.ModelSerializer):
             "user_name",
             "apple_wallet_pass_url",
             "google_wallet_pass_url",
+            "tier",
         ]
         read_only_fields = fields
+
+    def get_tier(self, obj):
+        settings_obj = LoyaltySettings.load()
+        points = obj.points_balance or 0
+        tier_one_max = settings_obj.tier_one_max or 0
+        tier_two_max = settings_obj.tier_two_max or tier_one_max
+        if points <= tier_one_max:
+            return "tier_1"
+        if points <= tier_two_max:
+            return "tier_2"
+        return "tier_3"
 
     def get_user_name(self, obj):
         full = obj.user.get_full_name()

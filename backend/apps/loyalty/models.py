@@ -30,6 +30,14 @@ class LoyaltySettings(models.Model):
         default=5,
         help_text="نسبة الخصم التلقائي عند بلوغ الحد.",
     )
+    tier_one_max = models.PositiveIntegerField(
+        default=299,
+        help_text="Tier 1 max points threshold.",
+    )
+    tier_two_max = models.PositiveIntegerField(
+        default=699,
+        help_text="Tier 2 max points threshold.",
+    )
     qr_prefix = models.CharField(
         max_length=20, default="CAFLOY", help_text="بادئة QR/ID لجميع الأعضاء."
     )
