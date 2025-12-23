@@ -5,6 +5,7 @@ import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { TrashIcon } from "@heroicons/react/16/solid";
 import CurrencyAmount from "../components/common/CurrencyAmount";
+import { useAuth } from "../context/AuthContext";
 
 type SavedAddress = {
   id: number;
@@ -20,6 +21,7 @@ type OrderSuccessState = {
 
 const Checkout: React.FC = () => {
   const { items, total, clearCart, removeItem } = useCart();
+  const { accessToken } = useAuth();
   const [deliveryType, setDeliveryType] = useState<"pickup" | "delivery">(
     "pickup"
   );
@@ -149,10 +151,20 @@ const Checkout: React.FC = () => {
     e.preventDefault();
     setError(null);
 
+    if (!accessToken) {
+      nav(`/login?next=${encodeURIComponent("/checkout")}`);
+      return;
+    }
+
     const invalid = items.some(
       (i) => !i || typeof i.id !== "number" || i.quantity <= 0
     );
     if (invalid) {
+      if (err?.response?.status === 401) {
+        nav(`/login?next=${encodeURIComponent("/checkout")}`);
+        return;
+      }
+
       setError(
         "هناك مشكلة في بيانات السلة، حاول إزالة العناصر وإضافتها من جديد."
       );

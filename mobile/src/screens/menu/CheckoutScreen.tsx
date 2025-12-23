@@ -89,6 +89,15 @@ const CheckoutScreen: React.FC = () => {
   );
 
   const handleSubmit = async () => {
+    if (!user) {
+      Alert.alert("تسجيل الدخول مطلوب", "يرجى تسجيل الدخول أو إنشاء حساب لإكمال الطلب.", [
+        { text: "تسجيل الدخول", onPress: () => navigation.navigate("Login") },
+        { text: "إنشاء حساب", onPress: () => navigation.navigate("Register") },
+        { text: "إلغاء", style: "cancel" },
+      ]);
+      return;
+    }
+
     if (!items.length) return;
     if (deliveryMode === "delivery" && (!selectedAddress || !selectedAddress.trim())) {
       setError("يرجى إدخال عنوان التوصيل.");

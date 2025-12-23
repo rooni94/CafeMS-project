@@ -1,11 +1,16 @@
 // src/pages/Login.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 
 const Login: React.FC = () => {
   const { login, loading } = useAuth();
   const nav = useNavigate();
+  const location = useLocation();
+  const nextPath = useMemo(() => {
+    const next = new URLSearchParams(location.search).get("next") || "/";
+    return next.startsWith("/") ? next : "/";
+  }, [location.search]);
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -17,7 +22,7 @@ const Login: React.FC = () => {
 
     try {
       await login(username, password);
-      nav("/");
+      nav(nextPath);
     } catch (error: any) {
       console.error(error);
       let msg = "بيانات الدخول غير صحيحة أو حدث خطأ في الخادم.";
@@ -84,7 +89,7 @@ const Login: React.FC = () => {
 
       <div className="text-xs text-center text-gray-500">
         ليس لديك حساب؟{" "}
-        <Link to="/register" className="text-amber-600">
+        <Link to={`/register?next=${encodeURIComponent(nextPath)}`} className="text-amber-600">
           إنشاء حساب جديد
         </Link>
       </div>

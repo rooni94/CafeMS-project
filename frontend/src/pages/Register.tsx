@@ -1,7 +1,7 @@
 // src/pages/Register.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const strongPwRegex =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}$/;
@@ -12,6 +12,11 @@ type PhoneStage = "form" | "otp";
 const Register: React.FC = () => {
   const { register, startPhoneRegistration, verifyPhoneOtp, loading } = useAuth();
   const nav = useNavigate();
+  const location = useLocation();
+  const nextPath = useMemo(() => {
+    const next = new URLSearchParams(location.search).get("next") || "/";
+    return next.startsWith("/") ? next : "/";
+  }, [location.search]);
 
   const [method, setMethod] = useState<Method>("email");
   const [phoneStage, setPhoneStage] = useState<PhoneStage>("form");
@@ -190,7 +195,7 @@ const Register: React.FC = () => {
     try {
       await verifyPhoneOtp(otpPhone || phone, otp.trim());
       setSuccess("تم تفعيل الحساب بنجاح.");
-      nav("/");
+      nav(nextPath);
     } catch (error: any) {
       console.error(error);
       setErr("رمز التحقق غير صحيح أو منتهي.");
@@ -338,7 +343,7 @@ const Register: React.FC = () => {
 
         <div className="text-xs text-center text-gray-500">
           لديك حساب بالفعل؟{" "}
-          <Link to="/login" className="text-amber-600">
+          <Link to={`/login?next=${encodeURIComponent(nextPath)}`} className="text-amber-600">
             تسجيل الدخول
           </Link>
         </div>
@@ -539,7 +544,7 @@ const Register: React.FC = () => {
 
       <div className="text-xs text-center text-gray-500">
         لديك حساب بالفعل؟{" "}
-        <Link to="/login" className="text-amber-600">
+        <Link to={`/login?next=${encodeURIComponent(nextPath)}`} className="text-amber-600">
           تسجيل الدخول
         </Link>
       </div>

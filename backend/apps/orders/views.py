@@ -200,10 +200,9 @@ class IsOwnerStaffOrManager(permissions.BasePermission):
 
     def has_permission(self, request, view):
         # السماح بإنشاء الطلب للجميع (حتى غير المسجلين)
-        if getattr(view, "action", None) == "create":
-            return True
-
         user = request.user
+        if getattr(view, "action", None) == "create":
+            return bool(user and user.is_authenticated)
         return bool(user and user.is_authenticated)
 
     def has_object_permission(self, request, view, obj: Order):
