@@ -112,16 +112,18 @@ const TabBar: React.FC<BottomTabBarProps> = ({
                   </View>
                 ) : null}
               </View>
-              <Text
-                numberOfLines={1}
-                style={[
-                  styles.label,
-                  isFocused ? styles.labelActive : styles.labelInactive,
-                  { color: isFocused ? "#ffffff" : theme.palette.muted },
-                ]}
-              >
-                {String(label)}
-              </Text>
+              {!isFocused ? (
+                <Text
+                  numberOfLines={1}
+                  style={[
+                    styles.label,
+                    styles.labelInactive,
+                    { color: theme.palette.muted },
+                  ]}
+                >
+                  {String(label)}
+                </Text>
+              ) : null}
             </Pressable>
           );
         })}
