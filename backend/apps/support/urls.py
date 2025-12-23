@@ -4,6 +4,7 @@ from .views import (
     MyConversationView,
     MyMessagesView,
     ConversationListView,
+    ConversationDetailView,
     ConversationMessagesView,
     CloseConversationView,
     MarkConversationReadView,
@@ -22,6 +23,7 @@ urlpatterns = [
     path("my-conversation/close/", MyCloseConversationView.as_view(), name="my_conversation_close"),
 
     path("conversations/", ConversationListView.as_view(), name="conversations"),
+    path("conversations/<int:pk>/", ConversationDetailView.as_view(), name="conversation-detail"),
     path("conversations/<int:pk>/messages/", ConversationMessagesView.as_view(), name="conversation-messages"),
     path("conversations/<int:pk>/close/", CloseConversationView.as_view(), name="conversation-close"),
     path("conversations/<int:pk>/mark-read/", MarkConversationReadView.as_view(), name="conversation-mark-read"),

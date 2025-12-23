@@ -99,7 +99,7 @@ export type AppStackParamList = {
   DashboardPOS: undefined;
   DashboardLoyalty: undefined;
   DashboardSupport: undefined;
-  DashboardSupportChat: { id: number; owner_name?: string; subject?: string } | undefined;
+  DashboardSupportChat: { id: number; owner_name?: string; subject?: string; is_guest?: boolean; guest_email?: string } | undefined;
   DashboardLogs: undefined;
   DashboardRolePermissions: undefined;
   DashboardHRDocuments: undefined;

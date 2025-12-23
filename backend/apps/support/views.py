@@ -173,6 +173,18 @@ class ConversationListView(generics.ListAPIView):
         return qs
 
 
+class ConversationDetailView(generics.RetrieveAPIView):
+    """
+    GET /api/support/conversations/<id>/
+    """
+
+    serializer_class = ConversationSerializer
+    permission_classes = [IsEmployeeOrManager]
+
+    def get_queryset(self):
+        return Conversation.objects.filter(is_deleted=False)
+
+
 class ConversationMessagesView(views.APIView):
     """
     GET  /api/support/conversations/<id>/messages/

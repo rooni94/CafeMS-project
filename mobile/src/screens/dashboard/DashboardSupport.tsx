@@ -3,24 +3,28 @@ import React, { useMemo } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
+
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
 import { useTheme } from "../../theme";
-import DashboardShell from "./components/DashboardShell";
 import DashboardAccessDenied from "./components/DashboardAccessDenied";
-import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
+import DashboardSection from "./components/DashboardSection";
+import DashboardShell from "./components/DashboardShell";
 import { has } from "./components/permissions";
 
 type Conversation = {
   id: number;
-  owner_name?: string;
-  subject?: string;
-  status?: string;
+  owner_name?: string | null;
+  customer_name?: string | null;
+  customer_email?: string | null;
+  is_guest?: boolean;
+  guest_name?: string | null;
+  guest_email?: string | null;
+  created_at?: string;
+  last_message_at?: string | null;
+  unread_for_support?: boolean;
   is_closed?: boolean;
-  updated_at?: string;
-  user?: { username?: string; first_name?: string; last_name?: string; email?: string };
-  customer_name?: string;
 };
 
 const DashboardSupport: React.FC = () => {
@@ -40,53 +44,62 @@ const DashboardSupport: React.FC = () => {
   });
 
   const getDisplayName = (c: Conversation) => {
-    if (c.owner_name && c.owner_name.trim()) return c.owner_name;
-    if (c.customer_name && c.customer_name.trim()) return c.customer_name;
-    if (c.user) {
-      const full = `${c.user.first_name || ""} ${c.user.last_name || ""}`.trim();
-      if (full) return full;
-      if (c.user.username) return c.user.username;
-      if (c.user.email) return c.user.email;
-    }
-    return "عميل";
+    if (c.is_guest) return c.guest_name?.trim() || c.customer_name?.trim() || c.guest_email?.trim() || "زائر";
+    return c.owner_name?.trim() || c.customer_name?.trim() || c.customer_email?.trim() || "مستخدم";
+  };
+
+  const getSubtitle = (c: Conversation) => {
+    const email = c.is_guest ? (c.guest_email || c.customer_email) : c.customer_email;
+    const when = c.last_message_at || c.created_at;
+    const parts = [
+      email ? (c.is_guest ? `ضيف: ${email}` : `البريد: ${email}`) : null,
+      when ? new Date(when).toLocaleString() : null,
+      `#${c.id}`,
+      c.is_closed ? "مغلقة" : null,
+    ].filter(Boolean) as string[];
+    return parts.join(" • ");
   };
 
   if (!allowed) {
-    return <DashboardAccessDenied title="الدعم الفني" subtitle="متابعة محادثات وتذاكر الدعم." />;
+    return <DashboardAccessDenied title="محادثات الدعم" subtitle="لا تملك صلاحية الوصول لمحادثات الدعم." />;
   }
 
   return (
-    <DashboardShell title="الدعم الفني" subtitle="متابعة محادثات وتذاكر الدعم من لوحة التحكم.">
-      <DashboardSection
-        title="التذاكر"
-        subtitle={isLoading ? "جاري التحميل..." : "اضغط على تذكرة لفتح المحادثة."}
-      >
+    <DashboardShell title="محادثات الدعم" subtitle="تابع محادثات الدعم مع العملاء والضيوف.">
+      <DashboardSection title="المحادثات" subtitle={isLoading ? "جاري تحميل المحادثات..." : "اضغط على محادثة لفتحها والرد."}>
         {isLoading ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator size="small" color={theme.palette.accent} />
             <Text style={[styles.loadingText, { color: theme.palette.muted }]}>جاري التحميل...</Text>
           </View>
         ) : conversations.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد تذاكر.</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد محادثات حالياً.</Text>
         ) : (
           <View style={{ gap: 10 }}>
-            {conversations.slice(0, 60).map((c) => (
-              <DashboardListItem
-                key={c.id}
-                title={getDisplayName(c)}
-                subtitle={`${c.subject?.trim() ? c.subject : "بدون عنوان"} • #${c.id}${
-                  c.updated_at ? ` • ${new Date(c.updated_at).toLocaleString()}` : ""
-                }`}
-                icon="chatbubbles-outline"
-                onPress={() =>
-                  navigation.navigate("DashboardSupportChat", {
-                    id: c.id,
-                    owner_name: getDisplayName(c),
-                    subject: c.subject,
-                  })
-                }
-              />
-            ))}
+            {conversations.slice(0, 80).map((c) => {
+              const displayName = getDisplayName(c);
+              return (
+                <DashboardListItem
+                  key={c.id}
+                  title={displayName}
+                  subtitle={getSubtitle(c)}
+                  icon="chatbubbles-outline"
+                  onPress={() =>
+                    navigation.navigate("DashboardSupportChat", {
+                      id: c.id,
+                      owner_name: displayName,
+                      is_guest: !!c.is_guest,
+                      guest_email: c.is_guest ? c.guest_email || c.customer_email || undefined : undefined,
+                    })
+                  }
+                  right={
+                    c.unread_for_support ? (
+                      <View style={[styles.dot, { backgroundColor: theme.palette.danger }]} />
+                    ) : undefined
+                  }
+                />
+              );
+            })}
           </View>
         )}
       </DashboardSection>
@@ -99,6 +112,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     empty: {
       textAlign: "right",
       fontSize: 13,
+      writingDirection: "rtl",
     },
     loadingRow: {
       flexDirection: "row-reverse",
@@ -109,7 +123,14 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     loadingText: {
       fontSize: 13,
       textAlign: "right",
+      writingDirection: "rtl",
+    },
+    dot: {
+      width: 10,
+      height: 10,
+      borderRadius: 999,
     },
   });
 
 export default DashboardSupport;
+

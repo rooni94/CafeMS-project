@@ -45,7 +45,7 @@ const DashboardSupportChat: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const qc = useQueryClient();
-  const { id, owner_name, subject } = route.params || {};
+  const { id, owner_name, subject, guest_email, is_guest } = route.params || {};
   const [reply, setReply] = useState("");
 
   const { data: conversation } = useQuery({
@@ -105,7 +105,10 @@ const DashboardSupportChat: React.FC = () => {
     onError: (err) => Alert.alert("خطأ", parseApiError(err) || "تعذر حذف المحادثة."),
   });
 
-  const chatTitle = useMemo(() => conversation?.owner_name || owner_name || subject || `محادثة #${id}`, [conversation?.owner_name, owner_name, subject, id]);
+  const chatTitle = useMemo(
+    () => conversation?.owner_name || owner_name || subject || `محادثة #${id}`,
+    [conversation?.owner_name, owner_name, subject, id]
+  );
 
   return (
     <Screen scrollable={false} style={{ backgroundColor: "#f5f7fb" }}>
@@ -123,6 +126,7 @@ const DashboardSupportChat: React.FC = () => {
             <View style={{ flex: 1, alignItems: "flex-end" }}>
               <Text style={styles.chatTitle}>{chatTitle}</Text>
               <Text style={styles.helper}>{subject || "دردشة دعم"}</Text>
+              {is_guest && guest_email ? <Text style={styles.helper}>بريد الضيف: {guest_email}</Text> : null}
             </View>
 
             <View style={{ flexDirection: "row", gap: 8 }}>
