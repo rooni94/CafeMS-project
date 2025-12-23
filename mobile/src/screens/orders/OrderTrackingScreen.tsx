@@ -9,6 +9,7 @@ import { api } from "../../services/api";
 import { Button, Input } from "../../components/ui";
 import CurrencyAmount from "../../components/CurrencyAmount";
 import OrderTimeline from "../../components/OrderTimeline";
+import FloatingCart from "../../components/FloatingCart";
 import { OrderDetails, OrderSummary } from "../../types";
 import { formatDateTime } from "../../utils/format";
 import { decodeUnicodeEscapes, normalizeArabicText } from "../../utils/text";
@@ -190,7 +191,8 @@ const OrderTrackingScreen: React.FC = () => {
   );
 
   return (
-    <DashboardShell title={screenTitle} subtitle={screenSubtitle}>
+    <View style={{ flex: 1 }}>
+      <DashboardShell title={screenTitle} subtitle={screenSubtitle}>
       <DashboardSection title={t.trackTitle} subtitle={t.trackSectionSubtitle}>
         <Input
           label={t.orderIdLabel}
@@ -288,7 +290,10 @@ const OrderTrackingScreen: React.FC = () => {
           <Text style={[styles.muted, { color: theme.palette.muted }]}>{t.enterToSee}</Text>
         )}
       </DashboardSection>
+
     </DashboardShell>
+      <FloatingCart />
+    </View>
   );
 };
 

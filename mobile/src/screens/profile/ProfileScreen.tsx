@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../theme";
 import { Button, Input } from "../../components/ui";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import FloatingCart from "../../components/FloatingCart";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import DashboardListItem from "../dashboard/components/DashboardListItem";
@@ -259,8 +260,9 @@ const ProfileScreen: React.FC = () => {
     [isAuthenticated, isEmployee, canManageSupport, navigation, theme.palette]
   );
 
-      return (
-    <DashboardShell
+  return (
+    <View style={{ flex: 1 }}>
+      <DashboardShell
       title="حسابي"
       subtitle={
         isAuthenticated
@@ -436,7 +438,10 @@ const ProfileScreen: React.FC = () => {
           />
         </DashboardSection>
       ) : null}
+
     </DashboardShell>
+      <FloatingCart />
+    </View>
   );
 };
 

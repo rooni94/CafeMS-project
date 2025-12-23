@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, ImageBackground, Dimensions, Pressable, FlatList, ScrollView } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Carousel from "react-native-reanimated-carousel";
@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import Screen from "../components/Screen";
 import { Button, Card } from "../components/ui";
+import FloatingCart from "../components/FloatingCart";
 import ProductGridCard from "../components/ProductGridCard";
 import { api } from "../services/api";
 import { Category, Product, ProductAddon } from "../types";
@@ -75,6 +76,8 @@ const HomeScreen: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [addonProduct, setAddonProduct] = useState<Product | null>(null);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [showFloatingCart, setShowFloatingCart] = useState(false);
+  const showFloatingCartRef = useRef(false);
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ["categories"],
@@ -258,7 +261,18 @@ const HomeScreen: React.FC = () => {
 
   return (
     <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.container}
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset?.y ?? 0;
+          const next = y > 80;
+          if (showFloatingCartRef.current === next) return;
+          showFloatingCartRef.current = next;
+          setShowFloatingCart(next);
+        }}
+      >
         <DashboardSection style={styles.headerSection}>
           <View style={styles.headerRow}>
             <Pressable style={styles.cartBadge} onPress={() => goToStack(navigation, "Cart")}>
@@ -410,6 +424,8 @@ const HomeScreen: React.FC = () => {
         onClose={() => setAddonProduct(null)}
         onConfirm={handleConfirmAddons}
       />
+
+      {showFloatingCart ? <FloatingCart /> : null}
     </Screen>
   );
 };
