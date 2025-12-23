@@ -31,6 +31,34 @@ type SupportMessage = {
   created_at: string;
 };
 
+const normalizeDisplayText = (val?: string | null) => {
+  const text = (val || "").trim();
+  if (!text) return null;
+  if (text === "زائر" || text === "ضيف") return null;
+  return text;
+};
+
+const resolveConversationName = (c: Conversation) => {
+  if (c.is_guest) {
+    return (
+      normalizeDisplayText(c.guest_name) ||
+      normalizeDisplayText(c.customer_name) ||
+      normalizeDisplayText(c.guest_email) ||
+      normalizeDisplayText(c.customer_email) ||
+      "ضيف"
+    );
+  }
+  return (
+    normalizeDisplayText(c.customer_name) ||
+    normalizeDisplayText(c.owner_name) ||
+    normalizeDisplayText(c.customer_email) ||
+    `مستخدم #${c.customer_id ?? c.id}`
+  );
+};
+
+const resolveConversationEmail = (c: Conversation) =>
+  (c.is_guest ? c.guest_email || c.customer_email : c.customer_email) || null;
+
 const DashboardSupportChat: React.FC = () => {
   const { user, accessToken } = useAuth();
 
@@ -224,18 +252,16 @@ const DashboardSupportChat: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="font-semibold">
-                    {c.is_guest
-                      ? c.guest_name || c.customer_name || "ضيف"
-                      : c.customer_name || `مستخدم #${c.customer_id ?? c.id}`}
+                    {resolveConversationName(c)}
                   </span>
                   {c.unread_for_support && (
                     <span className="w-2 h-2 rounded-full bg-red-500"></span>
                   )}
                 </div>
 
-                {c.is_guest && c.guest_email && (
+                {c.is_guest && resolveConversationEmail(c) && (
                   <div className="text-[10px] text-gray-400 truncate">
-                    {c.guest_email}
+                    {resolveConversationEmail(c)}
                   </div>
                 )}
 
@@ -260,18 +286,16 @@ const DashboardSupportChat: React.FC = () => {
           <>
 <div className="px-4 py-2 border-b flex items-center justify-between">
   <div>
-    <h3 className="text-sm font-semibold">
-      المحادثة مع{" "}
-      {selectedConv.is_guest
-        ? selectedConv.guest_name || "ضيف"
-        : selectedConv.customer_name || `مستخدم #${selectedConv.customer_id}`}
-    </h3>
+      <h3 className="text-sm font-semibold">
+        المحادثة مع{" "}
+        {resolveConversationName(selectedConv)}
+      </h3>
     <div className="text-[11px] text-gray-500">
       بدأ الحوار: {new Date(selectedConv.created_at).toLocaleString()}
     </div>
-    {selectedConv.is_guest && selectedConv.guest_email && (
+    {selectedConv.is_guest && resolveConversationEmail(selectedConv) && (
       <div className="text-[11px] text-gray-500">
-        بريد الضيف: {selectedConv.guest_email}
+        بريد الضيف: {resolveConversationEmail(selectedConv)}
       </div>
     )}
     {selectedConv.is_closed && (

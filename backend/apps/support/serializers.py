@@ -6,6 +6,31 @@ from .models import Conversation, SupportMessage, SupportStaffActivity
 
 User = get_user_model()
 
+_PLACEHOLDER_NAMES = {
+    "زائر",
+    "ضيف",
+    "guest",
+    "Guest",
+    "visitor",
+    "Visitor",
+    # legacy/encoding variants that exist in this codebase
+    "OýOOÝOñ",
+    "OUSU?",
+}
+
+
+def _pick_display_name(*values: object) -> str | None:
+    for val in values:
+        if val is None:
+            continue
+        text = str(val).strip()
+        if not text:
+            continue
+        if text in _PLACEHOLDER_NAMES:
+            continue
+        return text
+    return None
+
 
 class SupportMessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.SerializerMethodField()
@@ -40,7 +65,11 @@ class SupportMessageSerializer(serializers.ModelSerializer):
         if obj.sender_type == "bot":
             return "روبوت الدعم"
         if obj.sender_type == "guest":
-            return obj.conversation.guest_name or obj.conversation.customer_name or "زائر"
+            return _pick_display_name(
+                obj.conversation.guest_name,
+                obj.conversation.customer_name,
+                getattr(obj.conversation, "guest_email", None),
+            ) or "زائر"
         return "مستخدم"
 
 
@@ -78,7 +107,7 @@ class ConversationSerializer(serializers.ModelSerializer):
             full = obj.customer.get_full_name()
             return full or obj.customer.username
 
-        return obj.guest_name or obj.customer_name or obj.guest_email or "زائر"
+        return _pick_display_name(obj.guest_name, obj.customer_name, obj.guest_email) or "زائر"
 
     def get_customer_id(self, obj: Conversation):
         return obj.customer_id if obj.customer_id else None

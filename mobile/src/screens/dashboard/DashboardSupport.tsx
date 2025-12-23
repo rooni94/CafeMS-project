@@ -43,9 +43,29 @@ const DashboardSupport: React.FC = () => {
     },
   });
 
+  const normalizeDisplayText = (val?: string | null) => {
+    const text = (val || "").trim();
+    if (!text) return null;
+    if (text === "زائر" || text === "ضيف") return null;
+    return text;
+  };
+
   const getDisplayName = (c: Conversation) => {
-    if (c.is_guest) return c.guest_name?.trim() || c.customer_name?.trim() || c.guest_email?.trim() || "زائر";
-    return c.owner_name?.trim() || c.customer_name?.trim() || c.customer_email?.trim() || "مستخدم";
+    if (c.is_guest) {
+      return (
+        normalizeDisplayText(c.guest_name) ||
+        normalizeDisplayText(c.customer_name) ||
+        normalizeDisplayText(c.guest_email) ||
+        normalizeDisplayText(c.customer_email) ||
+        "ضيف"
+      );
+    }
+    return (
+      normalizeDisplayText(c.owner_name) ||
+      normalizeDisplayText(c.customer_name) ||
+      normalizeDisplayText(c.customer_email) ||
+      "مستخدم"
+    );
   };
 
   const getSubtitle = (c: Conversation) => {
@@ -133,4 +153,3 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   });
 
 export default DashboardSupport;
-
