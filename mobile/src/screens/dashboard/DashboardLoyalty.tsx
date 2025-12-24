@@ -105,6 +105,8 @@ const DashboardLoyalty: React.FC = () => {
     }
   };
 
+// ... (الجزء العلوي من الملف بدون تغيير) ...
+
   return (
     <DashboardShell title="برنامج الولاء" subtitle="إدارة إعدادات الولاء ومتابعة العمليات.">
       <DashboardSection title="الملف" subtitle="معلومات العضوية الحالية.">
@@ -142,18 +144,18 @@ const DashboardLoyalty: React.FC = () => {
           hint="مثال: 1 يعني ريال لكل نقطة (حسب إعدادك)."
         />
         <Input
-          label="\u062d\u062f \u0627\u0644\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u0623\u0648\u0644 (\u0646\u0642\u0637\u0629)"
+          label="الحد الأقصى للمستوى الأول (نقطة)"
           value={tierOneMax}
           onChangeText={setTierOneMax}
           keyboardType="number-pad"
-          hint="\u0645\u062b\u0627\u0644: 299"
+          hint="مثال: 299"
         />
         <Input
-          label="\u062d\u062f \u0627\u0644\u0645\u0633\u062a\u0648\u0649 \u0627\u0644\u062b\u0627\u0646\u064a (\u0646\u0642\u0637\u0629)"
+          label="الحد الأقصى للمستوى الثاني (نقطة)"
           value={tierTwoMax}
           onChangeText={setTierTwoMax}
           keyboardType="number-pad"
-          hint="\u0645\u062b\u0627\u0644: 699"
+          hint="مثال: 699"
         />
         <Button title={saving ? "جارٍ الحفظ..." : "حفظ الإعدادات"} onPress={saveSettings} disabled={saving} />
       </DashboardSection>
@@ -177,6 +179,8 @@ const DashboardLoyalty: React.FC = () => {
     </DashboardShell>
   );
 };
+
+// ... (باقي الكود بدون تغيير) ...
 
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
@@ -207,3 +211,4 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default DashboardLoyalty;
+

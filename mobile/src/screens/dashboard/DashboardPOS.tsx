@@ -245,10 +245,12 @@ const DashboardPOS: React.FC = () => {
     return <DashboardAccessDenied title="الكاشير (POS)" subtitle="لا تمتلك صلاحية الوصول للكاشير." />;
   }
 
+// ... (الجزء العلوي من الملف بدون تغيير) ...
+
   return (
     <DashboardShell title="الكاشير (POS)" subtitle="إنشاء طلبات مباشرة من الكاشير.">
       <View style={styles.sectionsGrid}>
-        <DashboardSection style={styles.half} title="إعدادات الطلب" subtitle="حدد نوع الطلب والطاولة إن لزم.">
+        <DashboardSection title="إعدادات الطلب" subtitle="حدد نوع الطلب والطاولة إن لزم."> {/* أزلت style={styles.half} */}
           <View style={styles.chipsRow}>
             <Button title="في الصالة" size="sm" variant={orderType === "dine_in" ? "primary" : "ghost"} onPress={() => setOrderType("dine_in")} />
             <Button title="سفري" size="sm" variant={orderType === "takeaway" ? "primary" : "ghost"} onPress={() => setOrderType("takeaway")} />
@@ -303,7 +305,7 @@ const DashboardPOS: React.FC = () => {
           ) : null}
         </DashboardSection>
 
-        <DashboardSection style={styles.half} title="المنتجات" subtitle="اختر من القائمة لإضافته للسلة.">
+        <DashboardSection title="المنتجات" subtitle="اختر من القائمة لإضافته للسلة."> {/* أزلت style={styles.half} */}
           <View style={styles.statsRow}>
             <StatBadge label="النتائج" value={filteredProducts.length} color={theme.palette.success} />
             <StatBadge label="المعروض" value={Math.min(visibleProducts, filteredProducts.length)} color={theme.status.info} />
@@ -359,7 +361,7 @@ const DashboardPOS: React.FC = () => {
           )}
         </DashboardSection>
 
-        <DashboardSection style={styles.half} title="السلة" subtitle="راجع المحتوى وعدّل الكميات.">
+        <DashboardSection title="السلة" subtitle="راجع المحتوى وعدّل الكميات."> {/* أزلت style={styles.half} */}
           {cart.length === 0 ? (
             <Text style={[styles.empty, { color: theme.palette.muted }]}>السلة فارغة.</Text>
           ) : (
@@ -390,7 +392,7 @@ const DashboardPOS: React.FC = () => {
           )}
         </DashboardSection>
 
-        <DashboardSection style={styles.half} title="الدفع" subtitle="حدد الخصم وطريقة الدفع ثم أكد الطلب.">
+        <DashboardSection title="الدفع" subtitle="حدد الخصم وطريقة الدفع ثم أكد الطلب."> {/* أزلت style={styles.half} */}
           <View style={styles.statsRow}>
             <StatBadge label="في السلة" value={cartCount} color={theme.status.info} />
             <StatBadge label="الإجمالي" value={total.toFixed(2)} color={theme.palette.accent} />
@@ -447,7 +449,7 @@ const DashboardPOS: React.FC = () => {
           </View>
         </DashboardSection>
 
-        <DashboardSection style={styles.half} title="تنبيهات المخزون" subtitle="عناصر قليلة الكمية.">
+        <DashboardSection title="تنبيهات المخزون" subtitle="عناصر قليلة الكمية."> {/* أزلت style={styles.half} */}
           {inventory?.low_stock?.length ? (
             <View style={styles.list}>
               {inventory.low_stock.slice(0, 10).map((it) => (
@@ -468,8 +470,7 @@ const DashboardPOS: React.FC = () => {
             <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد تنبيهات.</Text>
           )}
         </DashboardSection>
-
-        <DashboardSection style={styles.half} title="نقاط الولاء" subtitle="تعديل نقاط العميل برقم العضوية.">
+        <DashboardSection title="نقاط الولاء" subtitle="تعديل نقاط العميل برقم العضوية."> {/* أزلت style={styles.half} */}
           <Input label="رقم العضوية" value={membershipId} onChangeText={setMembershipId} placeholder="123456" />
           <Input label="تغيير النقاط" value={pointsDelta} onChangeText={setPointsDelta} keyboardType="number-pad" placeholder="10" />
           <Button title="تحديث نقاط الولاء" onPress={() => adjustLoyalty.mutate()} loading={adjustLoyalty.isPending} />
@@ -478,6 +479,7 @@ const DashboardPOS: React.FC = () => {
     </DashboardShell>
   );
 };
+
 
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
