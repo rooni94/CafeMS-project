@@ -1,4 +1,5 @@
 # backend/apps/support/views.py
+import logging
 from django.utils import timezone
 from django.db import transaction
 from django.utils.crypto import get_random_string
@@ -22,9 +23,47 @@ from .serializers import (
     SupportStaffActivitySerializer,
 )
 from .permissions import IsEmployeeOrManager
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 from .bot import generate_bot_reply, should_handover_to_human
+from .voice import (
+    VoiceProcessingError,
+    encode_audio_base64,
+    text_to_speech,
+    transcribe_audio,
+)
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
+
+
+def _broadcast_message(conversation_id: int, message_data: dict | None):
+    if not message_data:
+        return
+    layer = get_channel_layer()
+    if not layer:
+        return
+    try:
+        async_to_sync(layer.group_send)(
+            f"support_{conversation_id}",
+            {"type": "chat.message", "message": message_data},
+        )
+    except Exception:
+        logger.exception("Failed to broadcast support message to WS")
+
+
+def _get_or_create_user_conversation(user):
+    conv = (
+        Conversation.objects.filter(
+            customer=user, is_closed=False, is_deleted=False
+        )
+        .order_by("-created_at")
+        .first()
+    )
+    if not conv:
+        conv = Conversation.objects.create(customer=user, is_guest=False)
+    return conv
 
 
 class MyConversationView(views.APIView):
@@ -148,6 +187,102 @@ class MyMessagesView(views.APIView):
             {
                 "customer_message": SupportMessageSerializer(msg).data,
                 "bot_reply": auto_reply_data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class MyVoiceMessageView(views.APIView):
+    """
+    POST /api/support/my-voice/
+      body: multipart/form-data { audio: <file> }
+      -> STT -> create customer message -> bot reply -> TTS audio (base64) + broadcast to WS
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        audio_file = request.FILES.get("audio")
+        if not audio_file:
+            return Response(
+                {"detail": "Audio file is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        conv = _get_or_create_user_conversation(request.user)
+
+        try:
+            transcript = transcribe_audio(audio_file)
+        except VoiceProcessingError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logger.exception("Unexpected voice transcription error")
+            return Response(
+                {"detail": "Voice transcription failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        msg = SupportMessage.objects.create(
+            conversation=conv,
+            sender=request.user,
+            sender_type="customer",
+            content=transcript,
+            is_read_by_support=False,
+            is_read_by_customer=True,
+        )
+        conv.last_message_at = timezone.now()
+        conv.save(update_fields=["last_message_at"])
+
+        customer_data = SupportMessageSerializer(msg).data
+        _broadcast_message(conv.id, customer_data)
+
+        auto_text: str | None = None
+        if should_handover_to_human(transcript):
+            if not conv.bot_disabled:
+                conv.bot_disabled = True
+                conv.save(update_fields=["bot_disabled"])
+                auto_text = (
+                    "سيتم تحويلك إلى موظف دعم بشري.\n"
+                    "تم إيقاف الرد الآلي وسيتم متابعة المحادثة من فريق الدعم."
+                )
+        elif not conv.bot_disabled:
+            auto_text = generate_bot_reply(request.user, transcript)
+
+        auto_reply_data = None
+        bot_audio_b64 = None
+        bot_audio_mime = None
+
+        if auto_text:
+            auto_reply = SupportMessage.objects.create(
+                conversation=conv,
+                sender=None,
+                sender_type="bot",
+                content=auto_text,
+                is_read_by_customer=False,
+                is_read_by_support=True,
+            )
+            conv.last_message_at = timezone.now()
+            conv.save(update_fields=["last_message_at"])
+            auto_reply_data = SupportMessageSerializer(auto_reply).data
+
+            _broadcast_message(conv.id, auto_reply_data)
+
+            try:
+                audio_bytes, audio_mime = text_to_speech(auto_text)
+                bot_audio_b64 = encode_audio_base64(audio_bytes)
+                bot_audio_mime = audio_mime
+            except VoiceProcessingError as exc:
+                logger.warning("TTS failed: %s", exc)
+            except Exception:
+                logger.exception("TTS unexpected failure")
+
+        return Response(
+            {
+                "customer_message": customer_data,
+                "bot_reply": auto_reply_data,
+                "transcription_text": transcript,
+                "bot_audio_base64": bot_audio_b64,
+                "bot_audio_mime": bot_audio_mime,
             },
             status=status.HTTP_201_CREATED,
         )
@@ -528,6 +663,120 @@ class GuestConversationMessagesView(APIView):
             {
                 "guest_message": SupportMessageSerializer(msg).data,
                 "bot_reply": auto_reply_data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class GuestVoiceMessageView(APIView):
+    """
+    POST /api/support/guest-conversations/<id>/voice/
+      header: X-Guest-Token
+      body: multipart/form-data { audio: <file> }
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, pk, *args, **kwargs):
+        guest_token = (request.headers.get("X-Guest-Token") or "").strip()
+        if not guest_token:
+            return Response(
+                {"detail": "Guest token required."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        try:
+            conv = Conversation.objects.get(
+                pk=pk,
+                is_guest=True,
+                guest_token=guest_token,
+                is_deleted=False,
+            )
+        except Conversation.DoesNotExist:
+            return Response(
+                {"detail": "Unauthorized or conversation not found."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        audio_file = request.FILES.get("audio")
+        if not audio_file:
+            return Response(
+                {"detail": "Audio file is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            transcript = transcribe_audio(audio_file)
+        except VoiceProcessingError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logger.exception("Unexpected guest voice transcription error")
+            return Response(
+                {"detail": "Voice transcription failed."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        guest_msg = SupportMessage.objects.create(
+            conversation=conv,
+            sender=None,
+            sender_type="guest",
+            content=transcript,
+            is_read_by_customer=True,
+            is_read_by_support=False,
+        )
+        conv.last_message_at = timezone.now()
+        conv.save(update_fields=["last_message_at"])
+
+        guest_data = SupportMessageSerializer(guest_msg).data
+        _broadcast_message(conv.id, guest_data)
+
+        auto_text: str | None = None
+        if should_handover_to_human(transcript):
+            if not conv.bot_disabled:
+                conv.bot_disabled = True
+                conv.save(update_fields=["bot_disabled"])
+                auto_text = (
+                    "سيتم تحويلك إلى موظف دعم بشري.\n"
+                    "تم إيقاف الرد الآلي وسيتم متابعة المحادثة من فريق الدعم."
+                )
+        elif not conv.bot_disabled:
+            auto_text = generate_bot_reply(None, transcript)
+
+        auto_reply_data = None
+        bot_audio_b64 = None
+        bot_audio_mime = None
+
+        if auto_text:
+            auto_reply = SupportMessage.objects.create(
+                conversation=conv,
+                sender=None,
+                sender_type="bot",
+                content=auto_text,
+                is_read_by_customer=True,
+                is_read_by_support=False,
+            )
+            conv.last_message_at = timezone.now()
+            conv.save(update_fields=["last_message_at"])
+            auto_reply_data = SupportMessageSerializer(auto_reply).data
+
+            _broadcast_message(conv.id, auto_reply_data)
+
+            try:
+                audio_bytes, audio_mime = text_to_speech(auto_text)
+                bot_audio_b64 = encode_audio_base64(audio_bytes)
+                bot_audio_mime = audio_mime
+            except VoiceProcessingError as exc:
+                logger.warning("Guest TTS failed: %s", exc)
+            except Exception:
+                logger.exception("Guest TTS unexpected failure")
+
+        return Response(
+            {
+                "guest_message": guest_data,
+                "bot_reply": auto_reply_data,
+                "transcription_text": transcript,
+                "bot_audio_base64": bot_audio_b64,
+                "bot_audio_mime": bot_audio_mime,
             },
             status=status.HTTP_201_CREATED,
         )

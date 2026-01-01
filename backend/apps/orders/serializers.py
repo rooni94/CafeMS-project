@@ -67,6 +67,7 @@ class OrderSerializer(serializers.ModelSerializer):
         source="get_status_display",
         read_only=True,
     )
+    user_name = serializers.SerializerMethodField()
     table = TableSerializer(read_only=True)
     table_id = serializers.PrimaryKeyRelatedField(
         queryset=Table.objects.all(),
@@ -82,6 +83,7 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "user",
+            "user_name",
             "status",
             "status_display",
             "payment_method",
@@ -114,6 +116,15 @@ class OrderSerializer(serializers.ModelSerializer):
             "served_by",
             "served_by_name",
         ]
+
+    def get_user_name(self, obj: Order):
+        user = getattr(obj, "user", None)
+        if not user:
+            return None
+        full = user.get_full_name()
+        if full:
+            return full
+        return user.username or None
 
     def get_served_by_name(self, obj):
         if obj.served_by:

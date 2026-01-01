@@ -14,6 +14,8 @@ from .views import (
     DeleteConversationView,      
     MyCloseConversationView, 
     SupportStaffActivityListView,
+    MyVoiceMessageView,
+    GuestVoiceMessageView,
 
 )
 
@@ -21,6 +23,7 @@ urlpatterns = [
     path("my-conversation/", MyConversationView.as_view(), name="my-conversation"),
     path("my-messages/", MyMessagesView.as_view(), name="my-messages"),
     path("my-conversation/close/", MyCloseConversationView.as_view(), name="my_conversation_close"),
+    path("my-voice/", MyVoiceMessageView.as_view(), name="my-voice"),
 
     path("conversations/", ConversationListView.as_view(), name="conversations"),
     path("conversations/<int:pk>/", ConversationDetailView.as_view(), name="conversation-detail"),
@@ -41,5 +44,10 @@ urlpatterns = [
         "guest-conversations/<int:pk>/messages/",
         GuestConversationMessagesView.as_view(),
         name="guest-conversation-messages",
+    ),
+    path(
+        "guest-conversations/<int:pk>/voice/",
+        GuestVoiceMessageView.as_view(),
+        name="guest-conversation-voice",
     ),
 ]

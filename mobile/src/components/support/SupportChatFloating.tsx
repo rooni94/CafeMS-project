@@ -3,6 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, Pressable, Modal, TextInput, ScrollView, ActivityIndicator, Platform, Keyboard } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
 import { ENV } from "../../config/env";
@@ -58,9 +60,12 @@ const SupportChatFloating: React.FC = () => {
   const [guestError, setGuestError] = useState<string | null>(null);
   const [guestSubmitting, setGuestSubmitting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [sendingAudio, setSendingAudio] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   const wsBase = useMemo(() => getWsBaseUrl(), []);
   const styles = useMemo(() => createStyles(), []);
@@ -218,6 +223,18 @@ const SupportChatFloating: React.FC = () => {
     };
   }, [open]);
 
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => undefined);
+      }
+      if (recording) {
+        recording.stopAndUnloadAsync().catch(() => undefined);
+      }
+    };
+  }, [recording]);
+
+
   const handleGuestRequestCode = async () => {
     setGuestError(null);
     if (!guestName.trim() || !guestEmail.trim()) {
@@ -287,6 +304,7 @@ const SupportChatFloating: React.FC = () => {
   const handleSend = async () => {
     const text = input.trim();
     if (!text) return;
+    if (sendingAudio) return;
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: "message", content: text }));
@@ -320,10 +338,133 @@ const SupportChatFloating: React.FC = () => {
     }
   };
 
+  const playBotAudio = async (audioBase64?: string | null, mime?: string | null) => {
+    if (!audioBase64) return;
+    try {
+      const ext = mime && mime.includes("wav") ? "wav" : "mp3";
+      const fileUri = `${FileSystem.cacheDirectory}bot-reply.${ext}`;
+      await FileSystem.writeAsStringAsync(fileUri, audioBase64, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+      }
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: fileUri },
+        { shouldPlay: true }
+      );
+      soundRef.current = sound;
+    } catch {
+      // ignore playback errors
+    }
+  };
+
+  const sendVoice = async (uri: string) => {
+    if (sendingAudio) return;
+    if (isGuest && guestStep !== "chat") {
+      setGuestError("ابدأ المحادثة ثم أرسل التسجيل الصوتي.");
+      return;
+    }
+
+    setSendingAudio(true);
+    const form = new FormData();
+    form.append("audio", {
+      uri,
+      name: "voice.m4a",
+      type: "audio/m4a",
+    } as any);
+
+    let endpoint = "";
+    const headers: Record<string, string> = { "Content-Type": "multipart/form-data" };
+
+    if (user && accessToken) {
+      endpoint = "support/my-voice/";
+    } else if (isGuest && conversationId) {
+      endpoint = `support/guest-conversations/${conversationId}/voice/`;
+      if (guestToken) headers["X-Guest-Token"] = guestToken;
+    } else {
+      setSendingAudio(false);
+      return;
+    }
+
+    try {
+      const res = await api.post(endpoint, form, { headers });
+      const customerMsg = res.data.customer_message as SupportMessage | undefined;
+      const guestMsg = res.data.guest_message as SupportMessage | undefined;
+      const botReply = res.data.bot_reply as SupportMessage | null | undefined;
+      const collected = [customerMsg, guestMsg, botReply].filter(Boolean) as SupportMessage[];
+      if (collected.length) {
+        setMessages((prev) => [...prev, ...collected]);
+      }
+      if (res.data.bot_audio_base64) {
+        await playBotAudio(
+          res.data.bot_audio_base64 as string,
+          (res.data.bot_audio_mime as string | undefined) || "audio/mpeg"
+        );
+      }
+    } catch (err: any) {
+      setGuestError(err?.response?.data?.detail || "تعذّر إرسال التسجيل الصوتي.");
+    } finally {
+      setSendingAudio(false);
+    }
+  };
+
+  const startVoiceRecording = async () => {
+    if (recording || sendingAudio) return;
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        setGuestError("يلزم منح إذن الميكروفون للتسجيل الصوتي.");
+        return;
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+      });
+      const rec = new Audio.Recording();
+      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await rec.startAsync();
+      setRecording(rec);
+    } catch {
+      setGuestError("تعذّر بدء التسجيل الصوتي.");
+    }
+  };
+
+  const stopVoiceRecording = async () => {
+    if (!recording) return;
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+      if (uri) {
+        await sendVoice(uri);
+      }
+    } catch {
+      setRecording(null);
+    }
+  };
+
   const handleEndChat = async () => {
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
+    }
+    if (recording) {
+      try {
+        await recording.stopAndUnloadAsync();
+      } catch {
+        // ignore
+      }
+      setRecording(null);
+    }
+    if (soundRef.current) {
+      try {
+        await soundRef.current.unloadAsync();
+      } catch {
+        // ignore
+      }
+      soundRef.current = null;
     }
     if (user && accessToken) {
       try {
@@ -429,16 +570,42 @@ const SupportChatFloating: React.FC = () => {
                   <View style={styles.chatInputRow}>
                     <TextInput
                       style={styles.chatInput}
-                      placeholder="اكتب رسالتك..."
+                      placeholder="???? ??????..."
                       value={input}
                       onChangeText={setInput}
-                      editable={!loading && !connecting}
+                      editable={!loading && !connecting && !sendingAudio}
                       returnKeyType="send"
                       onSubmitEditing={handleSend}
                       blurOnSubmit={false}
                     />
-                    <Pressable style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]} onPress={handleSend} disabled={!input.trim()}>
-                      <Text style={styles.sendButtonText}>إرسال</Text>
+                    <Pressable
+                      style={[
+                        styles.micButton,
+                        recording ? styles.micButtonRecording : styles.micButtonIdle,
+                        (sendingAudio || (isGuest && guestStep !== "chat")) && styles.micButtonDisabled,
+                      ]}
+                      onPress={recording ? stopVoiceRecording : startVoiceRecording}
+                      disabled={sendingAudio || (isGuest && guestStep !== "chat")}
+                    >
+                      {sendingAudio ? (
+                        <ActivityIndicator size="small" color={recording ? "#fff" : "#f59e0b"} />
+                      ) : (
+                        <Ionicons
+                          name={recording ? "stop" : "mic"}
+                          size={16}
+                          color={recording ? "#fff" : "#f59e0b"}
+                        />
+                      )}
+                    </Pressable>
+                    <Pressable
+                      style={[
+                        styles.sendButton,
+                        (!input.trim() || sendingAudio || (isGuest && guestStep !== "chat")) && styles.sendButtonDisabled,
+                      ]}
+                      onPress={handleSend}
+                      disabled={!input.trim() || sendingAudio || (isGuest && guestStep !== "chat")}
+                    >
+                      <Text style={styles.sendButtonText}>?????</Text>
                     </Pressable>
                   </View>
                 </>
@@ -662,6 +829,24 @@ const createStyles = () =>
       textAlign: "right",
       backgroundColor: "#fff",
       color: "#0f172a",
+    },
+    micButton: {
+      borderWidth: 1,
+      borderColor: "#fbbf24",
+      borderRadius: 999,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      backgroundColor: "#fff",
+    },
+    micButtonIdle: {
+      backgroundColor: "#fff",
+    },
+    micButtonRecording: {
+      backgroundColor: "#ef4444",
+      borderColor: "#ef4444",
+    },
+    micButtonDisabled: {
+      opacity: 0.5,
     },
     sendButton: {
       backgroundColor: "#f59e0b",

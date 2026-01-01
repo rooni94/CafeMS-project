@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     "apps.loyalty.apps.LoyaltyConfig",
 ]
 
+from corsheaders.defaults import default_headers
+
 
 
 AUTH_USER_MODEL = "accounts.User"
@@ -156,6 +158,11 @@ CORS_ALLOWED_ORIGINS = env.list(
     ],
 )
 
+# Allow custom headers used by the support guest flow.
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-guest-token",
+]
+
 # للسماح بإرسال الكوكيز / Authorization من الفرونت
 CORS_ALLOW_CREDENTIALS = True
 
@@ -174,6 +181,18 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
+
+# ================== Voice (STT/TTS) ==================
+# Configure via environment variables; do not hardcode secrets.
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="").strip()
+ELEVENLABS_API_KEY = env("ELEVENLABS_API_KEY", default="").strip()
+ELEVENLABS_VOICE_ID = env("ELEVENLABS_VOICE_ID", default="").strip()
+VOICE_MAX_DURATION_SECONDS = env.int("VOICE_MAX_DURATION_SECONDS", default=90)
+VOICE_MAX_FILE_MB = env.int("VOICE_MAX_FILE_MB", default=15)
+VOSK_MODEL_PATH = env(
+    "VOSK_MODEL_PATH",
+    default=str(BASE_DIR / "vosk_models" / "vosk-model-ar-mgb2-0.4"),
+)
 
 # ================== التحقق من كلمة المرور ==================
 AUTH_PASSWORD_VALIDATORS = [

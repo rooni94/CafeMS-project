@@ -51,6 +51,8 @@ const SupportChatWidget: React.FC = () => {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [sendingAudio, setSendingAudio] = useState(false);
+  const [recording, setRecording] = useState(false);
 
   const [input, setInput] = useState("");
 
@@ -68,6 +70,9 @@ const SupportChatWidget: React.FC = () => {
 
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const botAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // تحميل بيانات محتملة للضيف من localStorage
   useEffect(() => {
@@ -259,7 +264,133 @@ const SupportChatWidget: React.FC = () => {
 };
 
   // عند فتح الشات
-  useEffect(() => {
+  
+  const b64ToBlob = (b64: string, mime = "audio/mpeg") => {
+    const byteChars = atob(b64);
+    const byteNumbers = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) {
+      byteNumbers[i] = byteChars.charCodeAt(i);
+    }
+    return new Blob([new Uint8Array(byteNumbers)], { type: mime });
+  };
+
+  const playBotAudio = (audioBase64?: string | null, mime?: string | null) => {
+    if (!audioBase64) return;
+    try {
+      const blob = b64ToBlob(audioBase64, mime || "audio/mpeg");
+      const url = URL.createObjectURL(blob);
+      if (botAudioRef.current) {
+        botAudioRef.current.pause();
+        URL.revokeObjectURL(botAudioRef.current.src);
+      }
+      const audio = new Audio(url);
+      botAudioRef.current = audio;
+      audio.onended = () => URL.revokeObjectURL(url);
+      audio.play().catch(() => {
+        // ignore autoplay failures
+      });
+    } catch (err) {
+      console.error("Audio playback failed", err);
+    }
+  };
+
+  const sendVoiceBlob = async (blob: Blob) => {
+    if (sendingAudio) return;
+
+    if (isGuest && guestStep !== "chat") {
+      alert("ابدأ المحادثة ثم أرسل التسجيل الصوتي.");
+      return;
+    }
+
+    setSendingAudio(true);
+    const formData = new FormData();
+    formData.append("audio", blob, "voice.webm");
+
+    let endpoint = "";
+    const headers: Record<string, string> = {};
+
+    if (user && accessToken) {
+      endpoint = "support/my-voice/";
+    } else if (isGuest && conversationId) {
+      endpoint = `support/guest-conversations/${conversationId}/voice/`;
+      if (guestToken) headers["X-Guest-Token"] = guestToken;
+    } else {
+      alert("لا يوجد محادثة مفتوحة لإرسال تسجيل صوتي.");
+      setSendingAudio(false);
+      return;
+    }
+
+    try {
+      const res = await api.post(endpoint, formData, {
+        headers: { ...headers, "Content-Type": "multipart/form-data" },
+      });
+
+      const customerMsg = res.data.customer_message as SupportMessage | undefined;
+      const guestMsg = res.data.guest_message as SupportMessage | undefined;
+      const botReply = res.data.bot_reply as SupportMessage | null | undefined;
+      const collected = [customerMsg, guestMsg, botReply].filter(Boolean) as SupportMessage[];
+
+      if (collected.length) {
+        setMessages((prev) => [...prev, ...collected]);
+      }
+
+      if (res.data.bot_audio_base64) {
+        playBotAudio(
+          res.data.bot_audio_base64 as string,
+          (res.data.bot_audio_mime as string | undefined) || "audio/mpeg"
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      alert("تعذّر إرسال الرسالة الصوتية.");
+    } finally {
+      setSendingAudio(false);
+    }
+  };
+
+const startRecording = async () => {
+    if (recording || sendingAudio) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        audioChunksRef.current = [];
+        if (blob.size > 0) {
+          sendVoiceBlob(blob);
+        }
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setRecording(true);
+    } catch (err) {
+      console.error(err);
+      alert("تعذّر الوصول للمايكروفون. تأكد من صلاحيات المتصفح.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (!recording || !mediaRecorderRef.current) return;
+    try {
+      mediaRecorderRef.current.stop();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRecording(false);
+    }
+  };
+
+useEffect(() => {
     if (!open) return;
 
     setMessages([]);
@@ -314,8 +445,8 @@ const SupportChatWidget: React.FC = () => {
  const handleSend = async () => {
   const text = input.trim();
   if (!text) return;
+  if (sendingAudio) return;
 
-  // لو WebSocket جاهز نستعمله
   if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
     wsRef.current.send(
       JSON.stringify({
@@ -327,10 +458,8 @@ const SupportChatWidget: React.FC = () => {
     return;
   }
 
-  // في حال WS غير جاهز → نستخدم REST
   try {
     if (user && accessToken) {
-      // مستخدم مسجّل
       const res = await api.post("support/my-messages/", { content: text });
       const customerMsg = res.data.customer_message as SupportMessage;
       const botReply = res.data.bot_reply as SupportMessage;
@@ -367,6 +496,25 @@ const SupportChatWidget: React.FC = () => {
       wsRef.current = null;
     }
 
+    if (mediaRecorderRef.current && recording) {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch (err) {
+        console.error(err);
+      }
+      setRecording(false);
+      audioChunksRef.current = [];
+    }
+    if (botAudioRef.current) {
+      try {
+        botAudioRef.current.pause();
+      } catch {
+        // ignore
+      }
+      URL.revokeObjectURL(botAudioRef.current.src);
+      botAudioRef.current = null;
+    }
+
     // لو مستخدم مسجّل → نغلق المحادثة من الباكند
     if (user && accessToken) {
       try {
@@ -389,6 +537,40 @@ const SupportChatWidget: React.FC = () => {
     }
   };
 
+
+
+  useEffect(() => {
+    if (!open && recording && mediaRecorderRef.current) {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // ignore
+      }
+      audioChunksRef.current = [];
+      setRecording(false);
+    }
+  }, [open, recording]);
+
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch {
+          // ignore
+        }
+      }
+      if (botAudioRef.current) {
+        try {
+          botAudioRef.current.pause();
+        } catch {
+          // ignore
+        }
+        URL.revokeObjectURL(botAudioRef.current.src);
+        botAudioRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="fixed bottom-4 left-4 z-40">
@@ -533,7 +715,7 @@ const SupportChatWidget: React.FC = () => {
                   </div>
                 )}
 
-                {messages.map((m) => {
+                {messages.map((m, idx) => {
                   const isMe =
                     (!isGuest && m.sender_type === "customer") ||
                     (isGuest && m.sender_type === "guest");
@@ -541,7 +723,7 @@ const SupportChatWidget: React.FC = () => {
 
                   return (
                     <div
-                      key={m.id}
+                      key={`${m.id}-${idx}`}
                       className={`flex ${
                         isMe ? "justify-end" : "justify-start"
                       }`}
@@ -573,7 +755,7 @@ const SupportChatWidget: React.FC = () => {
                 <div ref={messagesEndRef} />
               </div>
 
-              <div className="border-t px-2 py-2 flex items-center gap-1">
+                            <div className="border-t px-2 py-2 flex items-center gap-1">
                 <input
                   className="flex-1 border rounded-full px-3 py-1.5 text-xs"
                   placeholder="اكتب رسالتك..."
@@ -585,14 +767,38 @@ const SupportChatWidget: React.FC = () => {
                       handleSend();
                     }
                   }}
-                  disabled={loading || connecting || (isGuest && guestStep !== "chat")}
+                  disabled={
+                    loading ||
+                    connecting ||
+                    sendingAudio ||
+                    (isGuest && guestStep !== "chat")
+                  }
                 />
+                <button
+                  onClick={recording ? stopRecording : startRecording}
+                  disabled={
+                    loading ||
+                    connecting ||
+                    sendingAudio ||
+                    (isGuest && guestStep !== "chat") ||
+                    (isGuest && !conversationId)
+                  }
+                  className={`px-3 py-1.5 rounded-full border text-xs ${
+                    recording
+                      ? "bg-red-500 text-white border-red-500"
+                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                  }`}
+                  title={recording ? "إيقاف التسجيل" : "تسجيل صوت"}
+                >
+                  {recording ? "إيقاف" : "🎤"}
+                </button>
                 <button
                   onClick={handleSend}
                   disabled={
                     !input.trim() ||
                     loading ||
                     connecting ||
+                    sendingAudio ||
                     (isGuest && guestStep !== "chat")
                   }
                   className="px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs hover:bg-amber-600 disabled:opacity-60"

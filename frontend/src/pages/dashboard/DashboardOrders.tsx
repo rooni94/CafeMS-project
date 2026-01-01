@@ -7,6 +7,7 @@ type DashboardOrder = {
   total: number;
   created_at: string;
   payment_method: string;
+  user_name?: string | null;
 };
 
 const DashboardOrders: React.FC = () => {
@@ -19,7 +20,7 @@ const DashboardOrders: React.FC = () => {
     setLoading(true);
     api
       .get("orders/")
-      .then((res) => setOrders(res.data))
+      .then((res) => setOrders(res.data?.results || res.data || []))
       .catch((error) => {
         console.error(error);
         setErr("تعذر تحميل الطلبات.");
@@ -44,7 +45,7 @@ const DashboardOrders: React.FC = () => {
     }
   };
 
-  if (loading) return <div>جاري تحميل الطلبات...</div>;
+  if (loading) return <div>جارٍ تحميل الطلبات...</div>;
   if (err) return <div className="text-sm text-red-500">{err}</div>;
   if (!orders.length) return <div>لا توجد طلبات حالياً.</div>;
 
@@ -65,34 +66,30 @@ const DashboardOrders: React.FC = () => {
           <thead>
             <tr className="bg-gray-50 text-gray-600">
               <th className="px-3 py-2 text-right">#</th>
+              <th className="px-3 py-2 text-right">العميل</th>
               <th className="px-3 py-2 text-right">الحالة</th>
-              <th className="px-3 py-2 text-right">إجمالي</th>
-              <th className="px-3 py-2 text-right">الدفع</th>
-              <th className="px-3 py-2 text-right">التاريخ</th>
-              <th className="px-3 py-2 text-right">إجراء</th>
+              <th className="px-3 py-2 text-right">الإجمالي</th>
+              <th className="px-3 py-2 text-right">طريقة الدفع</th>
+              <th className="px-3 py-2 text-right">تاريخ الإنشاء</th>
+              <th className="px-3 py-2 text-right">تحديث الحالة</th>
             </tr>
           </thead>
           <tbody>
             {orders.map((o) => (
               <tr key={o.id} className="border-t">
                 <td className="px-3 py-2">#{o.id}</td>
+                <td className="px-3 py-2">{o.user_name || "زائر"}</td>
                 <td className="px-3 py-2">
-                  <span className="inline-block px-2 py-1 rounded-full bg-gray-100 text-xs">
-                    {o.status}
-                  </span>
+                  <span className="inline-block px-2 py-1 rounded-full bg-gray-100 text-xs">{o.status}</span>
                 </td>
-                <td className="px-3 py-2">{o.total} ريال</td>
+                <td className="px-3 py-2">{o.total} ر.س</td>
                 <td className="px-3 py-2 text-xs">{o.payment_method}</td>
-                <td className="px-3 py-2 text-xs">
-                  {new Date(o.created_at).toLocaleString()}
-                </td>
+                <td className="px-3 py-2 text-xs">{new Date(o.created_at).toLocaleString()}</td>
                 <td className="px-3 py-2">
                   <select
                     className="border rounded px-2 py-1 text-xs"
                     value={o.status}
-                    onChange={(e) =>
-                      handleStatusChange(o.id, e.target.value)
-                    }
+                    onChange={(e) => handleStatusChange(o.id, e.target.value)}
                     disabled={updatingId === o.id}
                   >
                     {statusOptions.map((s) => (

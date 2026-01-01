@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -32,6 +32,7 @@ type OrderRow = {
   total: number;
   status: string;
   status_display?: string;
+  user_name?: string | null;
   created_at: string;
   payment_method?: string;
   order_type?: string;
@@ -44,6 +45,7 @@ type OrderDetailsRow = {
   total: number;
   status: string;
   status_display?: string;
+  user_name?: string | null;
   created_at: string;
   payment_method?: string;
   payment_status?: string;
@@ -65,13 +67,13 @@ type OrderDetailsRow = {
 };
 
 const STATUS_OPTIONS: Array<{ value: OrderStatusValue | null; label: string }> = [
-  { value: null, label: "الكل" },
-  { value: "pending", label: "قيد المراجعة" },
-  { value: "confirmed", label: "تم التأكيد" },
-  { value: "preparing", label: "قيد التحضير" },
-  { value: "ready", label: "جاهز للاستلام" },
-  { value: "completed", label: "مكتمل" },
-  { value: "cancelled", label: "ملغي" },
+  { value: null, label: "Ø§Ù„ÙƒÙ„" },
+  { value: "pending", label: "Ù‚ÙŠØ¯ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©" },
+  { value: "confirmed", label: "ØªÙ… Ø§Ù„ØªØ£ÙƒÙŠØ¯" },
+  { value: "preparing", label: "Ù‚ÙŠØ¯ Ø§Ù„ØªØ­Ø¶ÙŠØ±" },
+  { value: "ready", label: "Ø¬Ø§Ù‡Ø² Ù„Ù„Ø§Ø³ØªÙ„Ø§Ù…" },
+  { value: "completed", label: "Ù…ÙƒØªÙ…Ù„" },
+  { value: "cancelled", label: "Ù…Ù„ØºÙŠ" },
 ];
 
 const statusLabel = (value?: string | null, display?: string | null) =>
@@ -79,17 +81,17 @@ const statusLabel = (value?: string | null, display?: string | null) =>
 
 const orderTypeLabel = (value?: string | null) => {
   if (!value) return "";
-  if (value === "dine_in") return "داخل الصالة";
-  if (value === "takeaway") return "سفري";
-  if (value === "delivery") return "توصيل";
+  if (value === "dine_in") return "Ø¯Ø§Ø®Ù„ Ø§Ù„ØµØ§Ù„Ø©";
+  if (value === "takeaway") return "Ø³ÙØ±ÙŠ";
+  if (value === "delivery") return "ØªÙˆØµÙŠÙ„";
   return value;
 };
 
 const paymentMethodLabel = (value?: string | null) => {
   if (!value) return "";
-  if (value === "cash") return "نقداً";
-  if (value === "card") return "بطاقة";
-  if (value === "wallet") return "محفظة";
+  if (value === "cash") return "Ù†Ù‚Ø¯Ø§Ù‹";
+  if (value === "card") return "Ø¨Ø·Ø§Ù‚Ø©";
+  if (value === "wallet") return "Ù…Ø­ÙØ¸Ø©";
   return value;
 };
 
@@ -176,7 +178,7 @@ const DashboardOrders: React.FC = () => {
       qc.invalidateQueries({ queryKey: ["dashboard", "orders-stats"] });
       qc.invalidateQueries({ queryKey: ["dashboard", "order-details", orderId] });
     } catch {
-      Alert.alert("تعذر تحديث الطلب", "حدث خطأ أثناء تحديث حالة الطلب. حاول مرة أخرى.");
+      Alert.alert("ØªØ¹Ø°Ø± ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø·Ù„Ø¨", "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨. Ø­Ø§ÙˆÙ„ Ù…Ø±Ø© Ø£Ø®Ø±Ù‰.");
     } finally {
       setUpdating(false);
     }
@@ -187,17 +189,17 @@ const DashboardOrders: React.FC = () => {
       const invoice = await api.get(`invoices/public/by-order/${orderId}/`);
       const url = invoice.data?.pdf_url;
       if (!url) {
-        Alert.alert("الفاتورة غير متاحة", "لا توجد فاتورة لهذا الطلب حالياً.");
+        Alert.alert("Ø§Ù„ÙØ§ØªÙˆØ±Ø© ØºÙŠØ± Ù…ØªØ§Ø­Ø©", "Ù„Ø§ ØªÙˆØ¬Ø¯ ÙØ§ØªÙˆØ±Ø© Ù„Ù‡Ø°Ø§ Ø§Ù„Ø·Ù„Ø¨ Ø­Ø§Ù„ÙŠØ§Ù‹.");
         return;
       }
       await Linking.openURL(url);
     } catch {
-      Alert.alert("تعذر فتح الفاتورة", "حدث خطأ أثناء محاولة فتح الفاتورة.");
+      Alert.alert("ØªØ¹Ø°Ø± ÙØªØ­ Ø§Ù„ÙØ§ØªÙˆØ±Ø©", "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ù…Ø­Ø§ÙˆÙ„Ø© ÙØªØ­ Ø§Ù„ÙØ§ØªÙˆØ±Ø©.");
     }
   };
 
   if (!allowed) {
-    return <DashboardAccessDenied title="إدارة الطلبات" subtitle="لا تملك صلاحية الوصول لإدارة طلبات العملاء." />;
+    return <DashboardAccessDenied title="Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø·Ù„Ø¨Ø§Øª" subtitle="Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© Ø§Ù„ÙˆØµÙˆÙ„ Ù„Ø¥Ø¯Ø§Ø±Ø© Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡." />;
   }
 
   const chipProps = {
@@ -207,25 +209,25 @@ const DashboardOrders: React.FC = () => {
   } as const;
 
   return (
-    <DashboardShell title="إدارة الطلبات" subtitle="متابعة طلبات العملاء وتحديث حالتها بسرعة.">
-      <DashboardSection title="ملخص سريع" subtitle="إحصائيات مختصرة عن الطلبات.">
+    <DashboardShell title="Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø·Ù„Ø¨Ø§Øª" subtitle="Ù…ØªØ§Ø¨Ø¹Ø© Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„ØªÙ‡Ø§ Ø¨Ø³Ø±Ø¹Ø©.">
+      <DashboardSection title="Ù…Ù„Ø®Øµ Ø³Ø±ÙŠØ¹" subtitle="Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª Ù…Ø®ØªØµØ±Ø© Ø¹Ù† Ø§Ù„Ø·Ù„Ø¨Ø§Øª.">
         <View style={styles.statsRow}>
-          <StatBadge label="الإجمالي" value={stats?.total_orders ?? "-"} color={theme.palette.accentSoft} />
-          <StatBadge label="قيد المراجعة" value={stats?.pending_orders ?? "-"} color={theme.palette.accent} />
-          <StatBadge label="قيد التحضير" value={stats?.preparing_orders ?? "-"} color="#3b82f6" />
+          <StatBadge label="Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ" value={stats?.total_orders ?? "-"} color={theme.palette.accentSoft} />
+          <StatBadge label="Ù‚ÙŠØ¯ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©" value={stats?.pending_orders ?? "-"} color={theme.palette.accent} />
+          <StatBadge label="Ù‚ÙŠØ¯ Ø§Ù„ØªØ­Ø¶ÙŠØ±" value={stats?.preparing_orders ?? "-"} color="#3b82f6" />
         </View>
         <View style={styles.statsRow}>
-          <StatBadge label="جاهز" value={stats?.ready_orders ?? "-"} color="#10b981" />
-          <StatBadge label="مكتمل" value={stats?.completed_orders ?? "-"} color={theme.palette.success} />
+          <StatBadge label="Ø¬Ø§Ù‡Ø²" value={stats?.ready_orders ?? "-"} color="#10b981" />
+          <StatBadge label="Ù…ÙƒØªÙ…Ù„" value={stats?.completed_orders ?? "-"} color={theme.palette.success} />
           <View style={[styles.revenueBadge, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
             <CurrencyAmount value={stats?.revenue ?? "-"} color={theme.palette.text} symbolSize={14} textStyle={styles.revenueValue} />
-            <Text style={[styles.revenueLabel, { color: theme.palette.muted }]}>الإيراد</Text>
+            <Text style={[styles.revenueLabel, { color: theme.palette.muted }]}>Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯</Text>
           </View>
         </View>
       </DashboardSection>
 
-      <DashboardSection title="بحث وتصفية" subtitle="ابحث برقم الطلب أو صفِّ حسب الحالة.">
-        <Input label="بحث" value={search} onChangeText={setSearch} placeholder="مثال: 123 أو جاهز أو نقداً" />
+      <DashboardSection title="Ø¨Ø­Ø« ÙˆØªØµÙÙŠØ©" subtitle="Ø§Ø¨Ø­Ø« Ø¨Ø±Ù‚Ù… Ø§Ù„Ø·Ù„Ø¨ Ø£Ùˆ ØµÙÙ‘Ù Ø­Ø³Ø¨ Ø§Ù„Ø­Ø§Ù„Ø©.">
+        <Input label="Ø¨Ø­Ø«" value={search} onChangeText={setSearch} placeholder="Ù…Ø«Ø§Ù„: 123 Ø£Ùˆ Ø¬Ø§Ù‡Ø² Ø£Ùˆ Ù†Ù‚Ø¯Ø§Ù‹" />
         <View style={styles.filtersRow}>
           {STATUS_OPTIONS.map((s) => (
             <Button
@@ -239,27 +241,28 @@ const DashboardOrders: React.FC = () => {
         </View>
       </DashboardSection>
 
-      <DashboardSection title="طلبات العملاء" subtitle={isLoading ? "جاري تحميل الطلبات..." : "اضغط على الطلب لعرض التفاصيل وتحديث الحالة."}>
+      <DashboardSection title="Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡" subtitle={isLoading ? "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª..." : "Ø§Ø¶ØºØ· Ø¹Ù„Ù‰ Ø§Ù„Ø·Ù„Ø¨ Ù„Ø¹Ø±Ø¶ Ø§Ù„ØªÙØ§ØµÙŠÙ„ ÙˆØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©."}>
         {ordersError ? (
-          <Text style={[styles.emptyText, { color: theme.palette.danger }]}>تعذر تحميل الطلبات.</Text>
+          <Text style={[styles.emptyText, { color: theme.palette.danger }]}>ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª.</Text>
         ) : filteredOrders.length === 0 ? (
-          <Text style={[styles.emptyText, { color: theme.palette.muted }]}>لا توجد طلبات مطابقة للبحث/التصفية الحالية.</Text>
+          <Text style={[styles.emptyText, { color: theme.palette.muted }]}>Ù„Ø§ ØªÙˆØ¬Ø¯ Ø·Ù„Ø¨Ø§Øª Ù…Ø·Ø§Ø¨Ù‚Ø© Ù„Ù„Ø¨Ø­Ø«/Ø§Ù„ØªØµÙÙŠØ© Ø§Ù„Ø­Ø§Ù„ÙŠØ©.</Text>
         ) : (
           <View style={styles.listGap}>
             {filteredOrders.slice(0, 40).map((order) => {
               const isExpanded = expandedId === order.id;
               const subtitleParts = [
+                order.user_name ? `العميل: ${order.user_name}` : null,
                 statusLabel(order.status, order.status_display) || order.status,
                 order.order_type ? orderTypeLabel(order.order_type) : null,
-                order.payment_method ? `الدفع: ${paymentMethodLabel(order.payment_method)}` : null,
+                order.payment_method ? `Ø§Ù„Ø¯ÙØ¹: ${paymentMethodLabel(order.payment_method)}` : null,
                 new Date(order.created_at).toLocaleString(),
               ].filter(Boolean) as string[];
 
               return (
                 <View key={order.id} style={styles.orderWrap}>
                   <DashboardListItem
-                    title={`طلب #${order.id}`}
-                    subtitle={subtitleParts.join(" • ")}
+                    title={`Ø·Ù„Ø¨ #${order.id}`}
+                    subtitle={subtitleParts.join(" â€¢ ")}
                     icon="receipt-outline"
                     onPress={() => setExpandedId((prev) => (prev === order.id ? null : order.id))}
                     right={<CurrencyAmount value={order.total} color={theme.palette.text} symbolSize={12} textStyle={styles.totalText} />}
@@ -277,41 +280,41 @@ const DashboardOrders: React.FC = () => {
                           </View>
                           <View style={styles.detailRight}>
                             <Text style={[styles.detailTitle, { color: theme.palette.text }]} numberOfLines={1}>
-                              {order.order_type ? orderTypeLabel(order.order_type) : "—"}
+                              {order.order_type ? orderTypeLabel(order.order_type) : "â€”"}
                             </Text>
                             <Text style={[styles.detailMuted, { color: theme.palette.muted }]} numberOfLines={1}>
-                              {order.payment_method ? `الدفع: ${paymentMethodLabel(order.payment_method)}` : "—"}
+                              {order.payment_method ? `Ø§Ù„Ø¯ÙØ¹: ${paymentMethodLabel(order.payment_method)}` : "â€”"}
                             </Text>
                           </View>
                         </View>
 
                         <OrderTimeline status={(orderDetails?.status || order.status) as any} />
-
+                        <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>{`العميل: ${orderDetails?.user_name || order.user_name || "زائر"}`}</Text>
                         {orderDetails?.table ? (
                           <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>
-                            طاولة: {orderDetails.table.label}
+                            Ø·Ø§ÙˆÙ„Ø©: {orderDetails.table.label}
                             {orderDetails.table.number != null ? ` (#${orderDetails.table.number})` : ""}
                           </Text>
                         ) : null}
 
                         {orderDetails?.note ? (
                           <Text style={[styles.note, { color: theme.palette.text }]} numberOfLines={3}>
-                            ملاحظة: {normalizeArabicText(orderDetails.note)}
+                            Ù…Ù„Ø§Ø­Ø¸Ø©: {normalizeArabicText(orderDetails.note)}
                           </Text>
                         ) : null}
 
                         {!detailsLoading && Array.isArray(orderDetails?.items) && orderDetails!.items!.length ? (
                           <View style={styles.itemsList}>
                             {orderDetails!.items!.slice(0, 20).map((it) => {
-                              const itemName = normalizeArabicText(it.product?.name) || `عنصر #${it.id}`;
+                              const itemName = normalizeArabicText(it.product?.name) || `Ø¹Ù†ØµØ± #${it.id}`;
                               const addons = (it.addons || []).map((a) => normalizeArabicText(a.name)).filter(Boolean);
-                              const addonsText = addons.length ? ` • إضافات: ${addons.join("، ")}` : "";
+                              const addonsText = addons.length ? ` â€¢ Ø¥Ø¶Ø§ÙØ§Øª: ${addons.join("ØŒ ")}` : "";
                               const lineTotal = safeNumber(it.price) * Number(it.quantity || 1);
                               return (
                                 <DashboardListItem
                                   key={it.id}
                                   title={itemName}
-                                  subtitle={`الكمية: ${it.quantity}${addonsText}`}
+                                  subtitle={`Ø§Ù„ÙƒÙ…ÙŠØ©: ${it.quantity}${addonsText}`}
                                   icon="fast-food-outline"
                                   right={<CurrencyAmount value={lineTotal} color={theme.palette.text} symbolSize={12} textStyle={styles.totalText} />}
                                 />
@@ -319,21 +322,21 @@ const DashboardOrders: React.FC = () => {
                             })}
                           </View>
                         ) : detailsLoading ? (
-                          <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>جاري تحميل تفاصيل العناصر...</Text>
+                          <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø¹Ù†Ø§ØµØ±...</Text>
                         ) : (
-                          <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>لا توجد عناصر لعرضها.</Text>
+                          <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¹Ù†Ø§ØµØ± Ù„Ø¹Ø±Ø¶Ù‡Ø§.</Text>
                         )}
 
                         <View style={styles.actionRow}>
-                          <Button title="فتح الفاتورة" variant="secondary" onPress={() => openInvoice(order.id)} {...chipProps} />
-                          <Button title="إخفاء" variant="ghost" onPress={() => setExpandedId(null)} {...chipProps} />
+                          <Button title="ÙØªØ­ Ø§Ù„ÙØ§ØªÙˆØ±Ø©" variant="secondary" onPress={() => openInvoice(order.id)} {...chipProps} />
+                          <Button title="Ø¥Ø®ÙØ§Ø¡" variant="ghost" onPress={() => setExpandedId(null)} {...chipProps} />
                         </View>
                       </View>
 
                       <View style={[styles.statusCard, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
-                        <Text style={[styles.statusTitle, { color: theme.palette.text }]}>تحديث الحالة</Text>
+                        <Text style={[styles.statusTitle, { color: theme.palette.text }]}>ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©</Text>
                         <Text style={[styles.statusHint, { color: theme.palette.muted }]}>
-                          {canManageOrders ? "اختر حالة جديدة للطلب." : "لا تملك صلاحية تعديل حالات الطلبات."}
+                          {canManageOrders ? "Ø§Ø®ØªØ± Ø­Ø§Ù„Ø© Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù„Ø·Ù„Ø¨." : "Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© ØªØ¹Ø¯ÙŠÙ„ Ø­Ø§Ù„Ø§Øª Ø§Ù„Ø·Ù„Ø¨Ø§Øª."}
                         </Text>
                         <View style={styles.statusWrap}>
                           {STATUS_OPTIONS.filter((s) => s.value != null).map((s) => (
@@ -505,4 +508,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default DashboardOrders;
-
