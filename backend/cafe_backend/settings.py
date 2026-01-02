@@ -189,10 +189,9 @@ ELEVENLABS_API_KEY = env("ELEVENLABS_API_KEY", default="").strip()
 ELEVENLABS_VOICE_ID = env("ELEVENLABS_VOICE_ID", default="").strip()
 VOICE_MAX_DURATION_SECONDS = env.int("VOICE_MAX_DURATION_SECONDS", default=90)
 VOICE_MAX_FILE_MB = env.int("VOICE_MAX_FILE_MB", default=15)
-VOSK_MODEL_PATH = env(
-    "VOSK_MODEL_PATH",
-    default=str(BASE_DIR / "vosk_models" / "vosk-model-ar-mgb2-0.4"),
-)
+WHISPER_MODEL_NAME = env("WHISPER_MODEL_NAME", default="large-v3").strip()
+WHISPER_MODEL_DIR = env("WHISPER_MODEL_DIR", default="").strip()
+WHISPER_COMPUTE_TYPE = env("WHISPER_COMPUTE_TYPE", default="int8_float16").strip()
 
 # ================== التحقق من كلمة المرور ==================
 AUTH_PASSWORD_VALIDATORS = [

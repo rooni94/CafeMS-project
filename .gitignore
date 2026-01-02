@@ -27,3 +27,4 @@ dist.zip
 node_modules/
 dist/
 .vite/
+.whisper_cache/

@@ -1,16 +1,18 @@
 import re
+from difflib import get_close_matches
 from typing import Optional
+
 from django.contrib.auth import get_user_model
 
-from apps.products.models import Product
 from apps.orders.models import Order
+from apps.products.models import Product
 
 User = get_user_model()
 
 
+# ---------- Utilities ----------
 def _extract_int(text: str) -> Optional[int]:
-    """يرجع أول رقم صحيح موجود في النص (لو فيه)"""
-    m = re.search(r"\d+", text)
+    m = re.search(r"\d+", text or "")
     if not m:
         return None
     try:
@@ -19,261 +21,342 @@ def _extract_int(text: str) -> Optional[int]:
         return None
 
 
-def generate_bot_reply(user: Optional[User], content: str) -> str:
-    """
-    من هنا نجاوب الأسئلة التقليدية آليًا:
-    - حالة الطلب: 'طلب 15' أو 'order 15'
-    - الأسعار: 'سعر كابتشينو'
-    - التوفر: 'هل كابتشينو متوفر؟'
-    - أسئلة عامة عن التوصيل / أوقات العمل / المشاكل المتكررة
-    """
-    original = content or ""
-    text = original.strip()
-    lower = text.lower()
+def _normalize_text(text: str) -> str:
+    if not text:
+        return ""
+    cleaned = re.sub(r"[!?.,؛،]", " ", text)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned.strip()
 
-    # 0) رد عام افتراضي + fallback (لهجة سعودية)
-    default_reply = (
-        "شكرًا لرسالتك 🌟\n"
-        "أنا مساعد CafeMS Demo الآلي 🤖، أقدر أساعدك في أشياء كثيرة، من ضمنها:\n"
-        "• متابعة حالة طلبك: اكتب مثلاً: «وش حالة الطلب 15؟»\n"
-        "• معرفة الأسعار: «كم سعر ساندويتش دجاج مكسيكي؟»\n"
-        "• التحقق من توفر منتج: «هل شاي كرك متوفر؟»\n"
-        "• الاستفسار عن أوقات العمل أو التوصيل.\n\n"
-        "ولو حسّيت إن ردودي ما كفت، قل بس: «أبغى أكلم موظف» وراح نحول محادثتك للدعم البشري بأقرب وقت 🤍"
+
+def _normalize_variants(text: str) -> str:
+    if not text:
+        return ""
+    normalized = text
+    # توحيد كتابة ساندويتش
+    normalized = re.sub(r"ساند[وي]تش", "ساندويتش", normalized, flags=re.IGNORECASE)
+    normalized = normalized.replace("صندويتش", "ساندويتش")
+
+    # مرادفات/اختصارات شائعة
+    variant_map = {
+        "بيبسي": "مشروب غازي",
+        "سفن": "مشروب غازي",
+        "سفن أب": "مشروب غازي",
+        "شبس": "صحن بطاطس",
+        "شيبس": "صحن بطاطس",
+        "مويا": "ماء",
+        "موية": "ماء",
+        "موى": "ماء",
+        "لاتيه": "Latte",
+        "لتيه": "Latte",
+        "قهوه": "قهوة",
+        "قهوة": "Latte",  # لو القهوة الأساسية لاتيه
+    }
+    for k, v in variant_map.items():
+        normalized = re.sub(k, v, normalized, flags=re.IGNORECASE)
+
+    return normalized
+
+
+def _strip_stopwords(query: str) -> str:
+    # كلمات ربط/حشو شائعة باللهجة السعودية والخليجية
+    stopwords = {
+        "كم",
+        "بكم",
+        "ايش",
+        "وش",
+        "في",
+        "فيه",
+        "هل",
+        "عن",
+        "به",
+        "مع",
+        "على",
+        "ابي",
+        "أبي",
+        "ابغى",
+        "أبغى",
+        "ابغا",
+        "ابا",
+        "اللي",
+        "هذا",
+        "هذي",
+        "ذا",
+        "ذاك",
+        "منيو",
+        "القائمة",
+        "لو",
+        "لو سمحت",
+        "تكفى",
+        "تكفا",
+        "تكفئ",
+        "ممكن",
+        "احس",
+        "ودي",
+        "ابي اطلب",
+        "ابغى اطلب",
+    }
+    parts = [w for w in query.split() if w and w.lower() not in stopwords]
+    return " ".join(parts).strip()
+
+
+def _best_product(query: str) -> Optional[Product]:
+    query = (query or "").strip()
+    if not query:
+        return None
+
+    # مرادفات مبنية على المنيو
+    alias_map = {
+        "بطاطس": "صحن بطاطس",
+        "بطاتس": "صحن بطاطس",
+        "بطابس": "صحن بطاطس",
+        "بطماطس": "صحن بطاطس",
+        "ببابس": "صحن بطاطس",
+        "فلافل": "فلافل عادي",
+        "فلافل عادي": "فلافل عادي",
+        "فلافل جبن": "فلافل جبن",
+        "برجر": "برجر دجاج",
+        "برقر": "برجر دجاج",
+        "مطبق جبن": "مطبق جبن",
+        "مطبق": "مطبق",
+        "latte": "Latte",
+        "قهوة": "Latte",
+        "مويا": "ماء",
+        "موية": "ماء",
+    }
+
+    products = list(Product.objects.all())
+    names = [p.name for p in products]
+    names_lower = [n.lower() for n in names]
+    name_tokens = [set(n.split()) for n in names_lower]
+
+    q_norm = _normalize_variants(_normalize_text(query)).lower()
+    q_strip = _strip_stopwords(q_norm)
+    q_tokens = set(q_strip.split())
+
+    # alias مباشر
+    if q_strip in alias_map:
+        target = alias_map[q_strip].lower()
+        if target in names_lower:
+            return products[names_lower.index(target)]
+
+    # alias على مستوى كلمة واحدة
+    for token in list(q_tokens):
+        if token in alias_map:
+            target = alias_map[token].lower()
+            if target in names_lower:
+                return products[names_lower.index(target)]
+
+    # مطابقة tokens فرعية
+    if q_tokens:
+        for idx, toks in enumerate(name_tokens):
+            if q_tokens.issubset(toks):
+                return products[idx]
+
+    # substring matching
+    for cand in [q_strip, q_norm, query.lower()]:
+        if not cand:
+            continue
+        for i, n in enumerate(names_lower):
+            if cand in n:
+                return products[i]
+
+    # fuzzy matching
+    close = get_close_matches(q_strip or q_norm, names_lower, n=1, cutoff=0.55)
+    if close:
+        idx = names_lower.index(close[0])
+        return products[idx]
+
+    return None
+
+
+def _format_price_reply(p: Product) -> str:
+    available = getattr(p, "available", True)
+    available_text = "المنتج متوفر حاليًا ✅" if available else "المنتج غير متوفر حاليًا ❌"
+    return f"سعر {p.name} {p.price} ريال. {available_text}"
+
+
+def _default_reply() -> str:
+    return (
+        "هلا! أقدر أساعدك في الأسعار، التوفر، تتبع/تعديل الطلب، أو إرسال القائمة. "
+        "اسألني مثلاً: «كم سعر ساندويتش دجاج مكسيكي؟» أو «عندكم مويا باردة؟» أو «أبغى أضيف برجر»."
     )
 
-    # ========== 1) تحيات وسواليف عامة ==========
-    greetings_keywords = [
-        "السلام عليكم",
-        "وعليكم السلام",
+
+# ---------- Main bot ----------
+def generate_bot_reply(user: Optional[User], content: str) -> str:
+    original = content or ""
+    text = _normalize_variants(_normalize_text(original))
+    lower = text.lower()
+
+    greeting_tail = (
+        "هلا والله 👋، نوَّرت CafeMS Demo! "
+"وش حاب نساعدك فيه؟ تقدر تسأل عن الأسعار، حالة الطلب، توُّفر منتج، أو أي استفسار عن التطبيق أو الموقع."
+    )
+
+    # تحية سلام
+    salam_keywords = ["السلام عليكم", "سلام عليكم", "سلام", "السلام", "عليكم السلام"]
+    if any(k in text for k in salam_keywords):
+        return f"وعليكم السلام! {greeting_tail}"
+
+    # صباح/مساء
+    if "صباح الخير" in text:
+        return f"صباح النور 🌅، {greeting_tail}"
+    if "مساء الخير" in text:
+        return f"مساء النور 🌆، {greeting_tail}"
+
+    greetings = [
         "مرحبا",
         "مرحباً",
         "هلا",
         "هلا والله",
-        "صباح الخير",
-        "مساء الخير",
         "هاي",
-        "هَي",
-        "شلونكم",
-        "كيف الحال",
-        "كيفكم",
-        "شلونك",
-        "شلونج",
         "الو",
         "ألو",
     ]
-    if any(k in text for k in greetings_keywords):
-        return (
-            "هلا والله 👋، نورت CafeMS Demo!\n"
-            "وش حاب نساعدك فيه؟ تقدر تسأل عن الأسعار، حالة طلبك، توفر منتج، أو أي استفسار عن التطبيق أو الموقع 🌿"
-        )
+    if any(k in text for k in greetings):
+        return greeting_tail
 
-    # ========== 2) حالة الطلب ==========
-    if "طلب" in text or "order" in lower:
+    # حالة الطلب
+    if any(k in text for k in ["طلب", "طلبي", "طربي", "وين الطلب", "وين طلبي"]) or "order" in lower:
         order_id = _extract_int(text)
         if order_id is None:
-            return (
-                "عشان أقدر أشيّك على طلبك، اكتب رقم الطلب بالشكل هذا مثلاً:\n"
-                "«وش حالة الطلب 15؟» أو «ما حالة الطلب 15»"
-            )
-
-        # الطلبات نربطها بحساب المستخدم فقط – الضيف ما عنده Orders عادة
+            return "عشان أشيّك على طلبك، اكتب رقم الطلب بهذا الشكل: «وش حالة الطلب 15؟»"
         if not user or not getattr(user, "is_authenticated", False):
-            return (
-                "لمتابعة حالة الطلب برقم **{}** لازم تكون داخل بحسابك اللي طلبت منه 😊\n"
-                "سجّل دخولك من التطبيق أو الموقع، وبعدها اسألني: «وش حالة الطلب {}؟»".format(
-                    order_id, order_id
-                )
-            )
-
+            return f"لمتابعة حالة الطلب #{order_id} لازم تكون مسجّل دخول بحسابك اللي طلبت منه."
         try:
             order = Order.objects.get(id=order_id, user=user)
         except Order.DoesNotExist:
-            return (
-                f"ما لقيت طلب برقم {order_id} مرتبط بحسابك الحالي.\n"
-                "تأكد من رقم الطلب أو من إنك داخل بنفس الحساب اللي سويت منه الطلب 🙏"
-            )
-
+            return f"ما لقيت طلب برقم {order_id} مرتبط بحسابك الحالي."
         status_display = getattr(order, "get_status_display", lambda: order.status)()
         total = getattr(order, "total", 0)
-
         return (
-            f"تفاصيل طلبك رقم {order_id} 📦:\n"
-            f"• الحالة الحالية: {status_display}\n"
-            f"• الإجمالي: {total} ر.س\n"
-            "إذا حاب تغيّر أو تلغي الطلب، كلمنا وقول: «أبغى أكلم موظف بشأن الطلب» 🤝"
+            f"تفاصيل طلبك #{order_id}: الحالة «{status_display}»، الإجمالي {total} ريال. "
+            "لو حاب تعدّل أو تلغي قول لي وش المطلوب."
         )
 
-    # ========== 3) أسئلة عن الأسعار ==========
-    if "سعر" in text or "price" in lower or "كم" in text and "ريال" in text:
-        qs = Product.objects.filter(name__icontains=text).order_by("name")
+    # سؤال عن السعر
+    if any(k in lower for k in ["سعر", "price", "بكم", "كم سعر", "كم قيمه", "كم قيمة"]):
+        q = re.sub(r"^(سعر|price|بكم|كم سعر|كم قيمه|كم قيمة)\s*", "", text, flags=re.IGNORECASE).strip() or text
+        p = _best_product(q)
+        if p:
+            return _format_price_reply(p)
+        return "ما قدرت أحدد المنتج. اكتب اسمه كامل، مثلاً: «كم سعر ساندويتش دجاج مكسيكي مع جبن؟»"
 
-        if not qs.exists():
-            # نحاول بجزء بعد كلمة "سعر" أو "price"
-            parts = re.split(r"سعر|price", text, flags=re.IGNORECASE)
-            keyword = ""
-            if len(parts) > 1:
-                keyword = parts[1].strip()
-            if keyword:
-                qs = Product.objects.filter(name__icontains=keyword).order_by("name")
+    # التوفر
+    if any(k in lower for k in ["متوفر", "availability", "available", "فيه", "موجود"]):
+        p = _best_product(text)
+        if p:
+            available = getattr(p, "available", True)
+            stock = getattr(p, "stock", None)
+            if available:
+                stock_text = f"الكمية المتبقية تقريبًا: {stock}" if stock is not None else "متوفر الآن."
+                return f"إيه، {p.name} متوفر ✅. {stock_text}"
+            return f"للأسف {p.name} غير متوفر حاليًا ❌."
+        return "ما لقيت منتج مطابق. جرّب تكتب اسم المنتج بشكل أوضح."
 
-        if qs.exists():
-            p = qs.first()
-            available_text = "متوفر حاليًا ✅" if getattr(p, "available", True) else "غير متوفر حاليًا 🚫"
-            return (
-                f"سعر **{p.name}** هو **{p.price} ر.س**.\n"
-                f"حالة المنتج الآن: {available_text}\n"
-                "تقدر تضيفه للسلة من القائمة في التطبيق أو الموقع 😉"
-            )
-
-        return (
-            "ما قدرت أحدد أي منتج تقصد 🙏\n"
-            "اكتب اسم الساندويتش أو المشروب كامل، مثلاً:\n"
-            "«كم سعر ساندويتش دجاج مكسيكي؟» أو «كم سعر شاي الكرك؟»"
-        )
-
-    # ========== 4) التوفر ==========
-    if "متوفر" in text or "availability" in lower or "available" in lower or "فيه" in text:
-        qs = Product.objects.filter(name__icontains=text)
-        if qs.exists():
-            p = qs.first()
-            if getattr(p, "available", True):
-                stock = getattr(p, "stock", None)
-                if stock is not None:
-                    return (
-                        f"إيه متوفر 🙌\n"
-                        f"**{p.name}** موجود حاليًا في المخزون، الكمية المتبقية تقريبًا: {stock}.\n"
-                        "تقدر تطلبه مباشرة من القائمة 🎉"
-                    )
-                return (
-                    f"إيه متوفر 🙌\n"
-                    f"**{p.name}** موجود حاليًا في القائمة.\n"
-                    "لو ودك نضمن لك، سو الطلب من بدري قبل الزحمة 😉"
-                )
-            else:
-                return (
-                    f"للأسف **{p.name}** حاليًا غير متوفر 🚫\n"
-                    "جرّب تشيك على خيارات ثانية في القائمة، أو اسألنا عن بديل نقترحه لك 🌿"
-                )
-
-        return (
-            "ما لقيت منتج مطابق للي كتبته.\n"
-            "جرب تكتب اسم المنتج بشكل أوضح، مثل:\n"
-            "«هل شاي كرك متوفر؟» أو «فيه ساندويتش حلوم اليوم؟»"
-        )
-
-    # ========== 5) التوصيل، مدة التجهيز، التأخير ==========
-    delivery_keywords = [
-        "توصيل", "الديلفري", "يوصل الطلب", "متى يوصل", "مدة التوصيل",
-        "التأخير", "تأخر", "ما وصل", "وين الطلب", "تأخر الطلب",
-    ]
-    if any(k in text for k in delivery_keywords):
-        return (
-            "بالنسبة للتوصيل 🚗:\n"
-            "• داخل النطاق القريب عادةً يوصل الطلب خلال **25–45 دقيقة** حسب الزحمة والطلبات قبلك.\n"
-            "• في أوقات الذروة (الصباح قبل الدوام / الفطور) ممكن تطول المدة شوي.\n\n"
-            "لو حاس إن طلبك تأخر كثير، اكتب رقم الطلب أو قل: «أبغى أكلم موظف عن تأخير الطلب» "
-            "وعيال الدعم يتابعونه لك مباشرة 🙏"
-        )
-
-    # ========== 6) أوقات العمل / الفروع ==========
-    if (
-        "مواعيد" in text
-        or "ساعات" in text
-        or "الدوام" in text
-        or "open" in lower
-        or "مفتوح" in text
-        or "متى تفتحون" in text
-        or "متى تقفلون" in text
+    # القائمة / المنيو
+    if any(
+        k in lower
+        for k in [
+            "قائمة",
+            "منيو",
+            "المنيو",
+            "وش عندكم",
+            "وش عندكم فطور",
+            "ارسل المنيو",
+            "ساندويتشات",
+            "مشروبات",
+        ]
     ):
         return (
-            "ساعات العمل الحالية ⏰:\n"
-            "• نفتح يوميًا من **٦ صباحًا** إلى **١١ مساءً**.\n"
-            "• أوقات الذروة غالبًا من ٦–٩ صباحًا ومن ٧–٩ مساءً.\n\n"
-            "لو حاب تتأكد من فرع معيّن أو يوم معيّن، قل لنا وش الفرع ونسعد نساعدك 🌿"
+            "قائمة CafeMS Demo كاملة تقدر تشوفها من صفحة «القائمة» في التطبيق أو الموقع. "
+            "لو حاب ترشيح سريع، قل لي تحب دجاج أو لحم أو فلافل؟ وسبايسي أو عادي؟"
         )
 
-    # ========== 7) مشاكل في التطبيق / الموقع ==========
-    app_problem_keywords = [
-        "ما يشتغل", "علق", "يعلق", "الموقع", "التطبيق", "ما يرضى", "خطأ", "error",
-        "ما قدرت", "ما أقدر", "ما اقدر", "تسجيل الدخول", "ما يفتح", "كراش",
-    ]
-    if any(k in text for k in app_problem_keywords):
+    # الترشيحات / أفضل شيء
+    if any(
+        k in lower
+        for k in ["وش تنصح", "تنصحني", "افضل شي", "أفضل شي", "أكثر شيء مبيع", "الاكثر مبيع", "top"]
+    ):
         return (
-            "معلش على الإزعاج اللي صار لك 🙏\n"
-            "جرب هذي الخطوات السريعة:\n"
-            "1. تأكد من اتصال الإنترنت.\n"
-            "2. اقفل التطبيق بالكامل وافتحه من جديد.\n"
-            "3. لو المشكلة في تسجيل الدخول، جرّب خيار «نسيت كلمة المرور».\n\n"
-            "ولو استمرت المشكلة، ارسل لنا وصف قصير للمشكلة (مع نوع الجوال إن أمكن)، "
-            "أو قل: «أبغى أكلم موظف عن مشكلة في التطبيق»، ونحوّل محادثتك للدعم الفني 👨‍💻"
+            "من الأشياء اللي يمشون كثير عندنا: ساندوتش دجاج مكسيكي مع جبن، "
+            "وبرجر دجاج جبن، ومعهم شاي كرك أو لاتيه. "
+            "تبي أرشح لك حسب ذوقك؟ قل لي تحب دجاج/لحم وسبايسي أو عادي."
         )
 
-    # ========== 8) إلغاء الطلب / تعديل الطلب ==========
-    cancel_keywords = [
-        "ألغي", "الغاء", "إلغاء", "تعديل الطلب", "أغيّر الطلب", "أغير الطلب",
-        "أزيد الطلب", "أشيل من الطلب",
-    ]
-    if any(k in text for k in cancel_keywords):
+    # أوقات العمل
+    if any(
+        k in lower
+        for k in ["متى تفتحون", "متى تفتح", "متى تسكرون", "أوقات العمل", "دوامكم", "مواعيد العمل"]
+    ):
         return (
-            "لو حاب **تلغي أو تعدل طلب**، نقدر نساعدك 👍\n"
-            "• إذا كان الطلب لسه تحت التجهيز، غالبًا نقدر نعدّل أو نلغيه.\n"
-            "• إذا بدأ التجهيز أو خرج مع عامل التوصيل، ممكن ما نلحق نلغيه بالكامل.\n\n"
-            "اكتب لنا رقم الطلب + وش التعديل اللي تبيه، أو قل: «أبغى أكلم موظف بخصوص إلغاء الطلب» "
-            "وراح يتابعون معك مباشرة 🤝"
+            "دوام CafeMS Demo عادة من الصباح إلى الليل (قد يختلف حسب الفرع). "
+            "تقدر تشوف أوقات العمل الدقيقة من صفحة «اتصل بنا» أو من إعدادات الفرع في التطبيق."
         )
 
-    # ========== 9) شكاوى عامة / ملاحظات ==========
-    complaint_keywords = [
-        "ملاحظة", "شكوى", "سيئة", "سيء", "سئ", "بردان", "بارد", "ناقص", "ناقصه",
-        "مو زين", "مو جيد", "خاطئة", "خطأ في الطلب", "خاب أملي", "جودة",
-    ]
-    if any(k in text for k in complaint_keywords):
+    # الموقع / الفروع
+    if any(
+        k in lower
+        for k in ["وين موقعكم", "وين الفرع", "عنوانكم", "موقع الكافتيريا", "الموقع", "العنوان"]
+    ):
         return (
-            "آسفين جدًا لو التجربة ما كانت بالمستوى اللي تطمح له 🙏💔\n"
-            "رضاك يهمنا، وودنا نسمع منك أكثر عشان نصحّح الوضع.\n"
-            "اكتب لنا تفاصيل بسيطة عن المشكلة (وقت الطلب، رقم الطلب إن وجد، ونوع الملاحظة)، "
-            "ولو حاب دعم بشري قل: «أبغى أكلم موظف عن شكوى» وراح نحول محادثتك مباشرة 🌿"
+            "نستقبل الطلبات عن طريق الموقع/التطبيق مع خدمة توصيل في نطاق محدد. "
+            "تقدر تشوف موقعنا ومعلومات التواصل من صفحة «اتصل بنا» في الموقع."
         )
 
-    # ========== 10) شكر / مدح ==========
-    thanks_keywords = [
-        "شكرا", "شكراً", "مشكور", "يعطيكم العافية", "يعطيك العافية",
-        "الله يعطيكم العافية", "تسلم", "سلمت", "مرّة حلو", "مرة حلو", "الأكل لذيذ",
-        "الأكل خطير", "الاكل لذيذ",
-    ]
-    if any(k in text for k in thanks_keywords):
+    # إنشاء طلب
+    if any(
+        k in lower
+        for k in ["أبغى أطلب", "ابي اطلب", "ابغى اطلب", "سو لي طلب", "سوّي لي طلب", "أضف", "اضف", "أبي أضيف", "ابغى اضيف"]
+    ):
         return (
-            "الله يعافيك ويسعدك 🤍\n"
-            "كلامك هذا يهمنا كثير ويدفعنا نركز أكثر على الجودة.\n"
-            "إذا عندك اقتراحات لأطباق جديدة أو تحسينات في الخدمة، نسمع لك بكل سرور 🌟"
+            "تمام، خل نضبط طلبك ✅\n"
+            "اكتب لي اسم المنتج والعدد، مثلاً: «ساندوتش دجاج مكسيكي مع جبن ٢» أو «فلافل عادي وحبتين موية».\n"
+            "بعدها أرسل لك ملخص الطلب قبل التأكيد."
         )
 
-    # ========== 11) معلومات عامة عن القائمة ==========
-    if "قائمة" in text or "المنيو" in text or "menu" in lower or "وش عندكم" in text:
+    # تعديل طلب
+    if any(k in lower for k in ["عدل", "تعديل", "شيل", "احذف", "زود", "زوّد", "غير", "غيّر"]):
         return (
-            "قائمة CafeMS Demo فيها تشكيلة ساندويتشات وفطور ومشروبات 😋\n"
-            "تقدر تشوف كل الأصناف بالتفصيل والصور من صفحة «القائمة» في التطبيق أو الموقع.\n"
-            "ولو حاب ترشيح شخصي، قل لنا:\n"
-            "• تحب سبايسي أو لا؟ 🌶️\n"
-            "• تفضل لحم ولا دجاج ولا جبن؟ 🧀\n"
-            "ونقترح لك شيء يناسب ذوقك 😉"
+            "وش التعديل اللي حاب تسويه؟ اكتب المنتج والتغيير المطلوب، "
+            "مثلاً: «زود جبن على ساندويتش الدجاج»، أو «شيل مويا من الطلب»."
         )
 
-    # ========== 12) fallback ==========
-    return default_reply
+    # الشروط والأحكام
+    if any(k in lower for k in ["شروط", "أحكام", "احكام", "سياسة الموقع", "الشروط والاحكام", "الشروط والأحكام"]):
+        return (
+            "مختصر الشروط: بعد تأكيد الطلب لازم تستلمه وتدفع المبلغ المستحق. "
+            "ممكن يتم إلغاء الطلب لو المنتج غير متوفر أو فيه خطأ واضح بالسعر، أو لو ما قدرنا نتواصل معك. "
+            "تقدر تطلع على الشروط كاملة من صفحة «الشروط والأحكام» في الموقع."
+        )
+
+    # الخصوصية
+    if any(k in lower for k in ["الخصوصية", "بياناتي", "سياسة الخصوصية", "privacy"]):
+        return (
+            "نحترم خصوصيتك، ونستخدم بياناتك مثل الاسم ورقم الجوال وعناوين التوصيل لإدارة الطلبات والتواصل معك فقط. "
+            "ما نبيع بياناتك لأي طرف ثالث، ونشارك جزء بسيط مع شركات التوصيل أو الدفع بالقدر اللازم لتنفيذ الخدمة، "
+            "مع تطبيق إجراءات لحماية بياناتك."
+        )
+
+    # الشكاوى / الملاحظات
+    if any(k in lower for k in ["شكوى", "ملاحظة", "ناقص", "غلط", "بارد", "سيئ", "سيء", "تأخر", "تأخير"]):
+        return (
+            "آسفين على التجربة 🙏 خلنا نصلحها لك. "
+            "اكتب رقم الطلب ووصف بسيط للمشكلة (مثلاً: ناقص مشروب، التوصيل تأخر، الأكل بارد). "
+            "نقدر بعد كذا نحولك لموظف لو حاب متابعة مباشرة."
+        )
+
+    # شكر / ختام
+    if any(k in lower for k in ["شكرا", "شكراً", "يعطيك العافية", "يعطيكم العافية", "تسلم", "يعطيك", "مشكور"]):
+        return "الله يعافيك ويسعدك 🤍، متى ما احتجت شي أنا حاضر. تحب أرسل لك المنيو أو حالة طلبك؟"
+
+    # رد افتراضي
+    return _default_reply()
 
 
 def should_handover_to_human(content: str) -> bool:
-    """
-    يكتشف جُمل من نوع:
-    - أبي أكلم موظف
-    - ابغى موظف
-    - احتاج رد بشري
-    - human / real person / agent
-    """
     text = (content or "").strip().lower()
-
     trigger_phrases = [
         "اكلم موظف",
         "أكلم موظف",
@@ -281,35 +364,16 @@ def should_handover_to_human(content: str) -> bool:
         "أبي موظف",
         "ابغى موظف",
         "أبغى موظف",
-        "ابغى اكلم احد",
-        "أبغى أكلم أحد",
+        "ابغى اكلم",
+        "أبغى أكلم",
         "احتاج موظف",
         "محتاج موظف",
-        "محتاج اكلم احد",
-        "أحتاج أكلم أحد",
-        "ممكن بشر",
-        "ممكن بشري",
-        "أبغى بشري",
-        "أبغى بشر",
-        "ابغى بشري",
-        "ابغى بشر",
-        "ابي بشري",
-        "أبي بشري",
         "رد بشري",
         "رد انساني",
         "رد إنساني",
-        "موظف دعم",
-        "موظف",
-        "ما احتاج رد الي",
-        "ما أحتاج رد آلي",
-        "شخص حقيقي",
-        "بشري يرد",
         "human",
         "real person",
-        "real agent",
         "talk to human",
-        "talk to agent",
         "support agent",
     ]
-
     return any(p in text for p in trigger_phrases)

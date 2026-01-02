@@ -5,7 +5,6 @@ autobahn==24.4.2
 Automat==25.4.16
 cbor2==5.7.1
 certifi==2025.11.12
-cffi==2.0.0
 channels==4.3.1
 channels_redis==4.3.0
 charset-normalizer==3.4.4
@@ -52,4 +51,4 @@ ujson==5.11.0
 urllib3==2.5.0
 user-agents==2.2.0
 zope.interface==8.1.1
-vosk==0.3.45
+# faster-whisper installed manually on Windows to avoid PyAV build (see README/setup notes)

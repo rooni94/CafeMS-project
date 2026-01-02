@@ -72,7 +72,17 @@ const SupportChatWidget: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const sendingAudioRef = useRef(false);
   const botAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const addMessagesUnique = (incoming: SupportMessage[]) => {
+    if (!incoming.length) return;
+    setMessages((prev) => {
+      const seen = new Set(prev.map((m) => m.id));
+      const fresh = incoming.filter((m) => !seen.has(m.id));
+      return fresh.length ? [...prev, ...fresh] : prev;
+    });
+  };
 
   // تحميل بيانات محتملة للضيف من localStorage
   useEffect(() => {
@@ -107,7 +117,7 @@ const SupportChatWidget: React.FC = () => {
       setConversationId(convId);
 
       const msgRes = await api.get<SupportMessage[]>("support/my-messages/");
-      setMessages(msgRes.data);
+      addMessagesUnique(msgRes.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -197,7 +207,7 @@ const SupportChatWidget: React.FC = () => {
         `support/guest-conversations/${convId}/messages/`,
         { headers: { "X-Guest-Token": token } }
       );
-      setMessages(msgRes.data);
+      addMessagesUnique(msgRes.data);
     } catch (err: any) {
       console.error(err);
       const msg =
@@ -246,7 +256,7 @@ const SupportChatWidget: React.FC = () => {
   ws.onmessage = (event) => {
     try {
       const data = JSON.parse(event.data) as SupportMessage;
-      setMessages((prev) => [...prev, data]);
+      addMessagesUnique([data]);
     } catch (err) {
       console.error("WS message parse error", err);
     }
@@ -330,9 +340,7 @@ const SupportChatWidget: React.FC = () => {
       const botReply = res.data.bot_reply as SupportMessage | null | undefined;
       const collected = [customerMsg, guestMsg, botReply].filter(Boolean) as SupportMessage[];
 
-      if (collected.length) {
-        setMessages((prev) => [...prev, ...collected]);
-      }
+        addMessagesUnique(collected);
 
       if (res.data.bot_audio_base64) {
         playBotAudio(
@@ -361,14 +369,17 @@ const startRecording = async () => {
         }
       };
 
-      recorder.onstop = () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        audioChunksRef.current = [];
-        if (blob.size > 0) {
-          sendVoiceBlob(blob);
-        }
-      };
+        recorder.onstop = () => {
+          stream.getTracks().forEach((t) => t.stop());
+          const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+          audioChunksRef.current = [];
+          if (blob.size > 0 && !sendingAudioRef.current) {
+            sendingAudioRef.current = true;
+            sendVoiceBlob(blob).finally(() => {
+              sendingAudioRef.current = false;
+            });
+          }
+        };
 
       recorder.start();
       mediaRecorderRef.current = recorder;
