@@ -11,13 +11,11 @@ from .views import (
     GuestRequestCodeView,
     GuestVerifyCodeView,
     GuestConversationMessagesView,
-    DeleteConversationView,      
-    MyCloseConversationView, 
+    DeleteConversationView,
+    MyCloseConversationView,
     SupportStaffActivityListView,
     MyVoiceMessageView,
     GuestVoiceMessageView,
-    my_voice_view,
-
 )
 
 urlpatterns = [
@@ -25,7 +23,6 @@ urlpatterns = [
     path("my-messages/", MyMessagesView.as_view(), name="my-messages"),
     path("my-conversation/close/", MyCloseConversationView.as_view(), name="my_conversation_close"),
     path("my-voice/", MyVoiceMessageView.as_view(), name="my-voice"),
-    path("my-voice/", my_voice_view, name="my-voice"),
     path("conversations/", ConversationListView.as_view(), name="conversations"),
     path("conversations/<int:pk>/", ConversationDetailView.as_view(), name="conversation-detail"),
     path("conversations/<int:pk>/messages/", ConversationMessagesView.as_view(), name="conversation-messages"),
