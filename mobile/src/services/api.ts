@@ -13,8 +13,11 @@ export const api = axios.create({
 export const setAuthToken = (token?: string | null) => {
   if (token) {
     api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    // Backup header if a proxy strips Authorization.
+    api.defaults.headers.common["X-Access-Token"] = token;
   } else {
     delete api.defaults.headers.common["Authorization"];
+    delete api.defaults.headers.common["X-Access-Token"];
   }
 };
 

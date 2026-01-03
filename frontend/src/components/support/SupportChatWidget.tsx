@@ -60,7 +60,7 @@ const SupportChatWidget: React.FC = () => {
   const [connecting, setConnecting] = useState(false);
   const [input, setInput] = useState("");
 
-  // guest
+  // guest flow
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestToken, setGuestToken] = useState<string | null>(null);
@@ -75,13 +75,14 @@ const SupportChatWidget: React.FC = () => {
   const [recording, setRecording] = useState(false);
   const [sendingAudio, setSendingAudio] = useState(false);
 
+  // refs
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const botAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  // silence detection
+  // audio graph for VAD
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
@@ -117,7 +118,7 @@ const SupportChatWidget: React.FC = () => {
     audio.play().catch(() => undefined);
   };
 
-  // ---------- Guest storage ----------
+  // guest storage
   useEffect(() => {
     if (!isGuest) return;
     try {
@@ -139,7 +140,7 @@ const SupportChatWidget: React.FC = () => {
     }
   }, [isGuest]);
 
-  // ---------- Init ----------
+  // init logged user
   const initForLoggedUser = async () => {
     if (!user || !accessToken) return;
     setLoading(true);
@@ -157,6 +158,7 @@ const SupportChatWidget: React.FC = () => {
     }
   };
 
+  // init guest with existing conversation
   const initForGuestIfHasConversation = async (convId: number, token: string) => {
     setLoading(true);
     try {
@@ -172,7 +174,7 @@ const SupportChatWidget: React.FC = () => {
     }
   };
 
-  // ---------- Guest flows ----------
+  // guest request code
   const handleGuestRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setGuestError(null);
@@ -190,13 +192,14 @@ const SupportChatWidget: React.FC = () => {
       setGuestStep("code");
       localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify({ name: guestName.trim(), email: guestEmail.trim() }));
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || "تعذر إرسال كود التحقق. حاول لاحقاً.";
+      const msg = err?.response?.data?.detail || "تعذر إرسال الكود. حاول لاحقاً.";
       setGuestError(msg);
     } finally {
       setGuestSubmitting(false);
     }
   };
 
+  // guest verify code
   const handleGuestVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setGuestError(null);
@@ -206,7 +209,7 @@ const SupportChatWidget: React.FC = () => {
       return;
     }
     if (!guestCode.trim()) {
-      setGuestError("يرجى إدخال كود التحقق.");
+      setGuestError("أدخل كود التحقق.");
       return;
     }
     setGuestSubmitting(true);
@@ -218,7 +221,7 @@ const SupportChatWidget: React.FC = () => {
       const convId = res.data.conversation.id as number;
       const token = (res.data.guest_token as string | undefined) || null;
       if (!token) {
-        setGuestError("تم التحقق لكن الخادم لم يرجع guest_token. حدّث الباكند ثم أعد المحاولة.");
+        setGuestError("تم التحقق لكن لم يصل guest_token. حدّث الباكند ثم حاول مجدداً.");
         return;
       }
       setConversationId(convId);
@@ -230,14 +233,14 @@ const SupportChatWidget: React.FC = () => {
       );
       await initForGuestIfHasConversation(convId, token);
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || "كود غير صحيح أو منتهي. حاول مرة أخرى.";
+      const msg = err?.response?.data?.detail || "كود غير صحيح أو منتهي.";
       setGuestError(msg);
     } finally {
       setGuestSubmitting(false);
     }
   };
 
-  // ---------- WebSocket ----------
+  // websocket
   const connectWebSocket = (convId: number) => {
     const base = getWsBaseUrl();
     const qs = accessToken
@@ -309,12 +312,12 @@ const SupportChatWidget: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // ---------- Send text ----------
+  // send text
   const sendText = async () => {
     const text = input.trim();
     if (!text) return;
     if (!conversationId) {
-      alert("يرجى إكمال خطوات التحقق أولاً.");
+      alert("ابدأ المحادثة أولاً قبل الإرسال.");
       return;
     }
 
@@ -356,7 +359,7 @@ const SupportChatWidget: React.FC = () => {
     }
   };
 
-  // ---------- Voice ----------
+  // audio graph helpers
   const clearAudioGraph = () => {
     if (silenceTimerRef.current) {
       window.clearTimeout(silenceTimerRef.current);
@@ -407,11 +410,12 @@ const SupportChatWidget: React.FC = () => {
     requestAnimationFrame(check);
   };
 
+  // start recording (auto-stop on silence)
   const startRecording = async () => {
     setVoiceOverlay(true);
     if (sendingAudio || recording) return;
     if (!conversationId) {
-      alert("يرجى إكمال خطوات التحقق قبل التسجيل.");
+      alert("ابدأ المحادثة قبل التسجيل الصوتي.");
       return;
     }
     stopBotAudio();
@@ -483,22 +487,22 @@ const SupportChatWidget: React.FC = () => {
       playBotAudio(res.data);
     } catch (err) {
       console.error(err);
-      alert("تعذر إرسال الرسالة الصوتية.");
+      alert("تعذر إرسال التسجيل الصوتي.");
     } finally {
       setSendingAudio(false);
     }
   };
 
-  // ---------- UI ----------
+  // overlays
   const renderVoiceOverlay = () => {
     if (!voiceOverlay) return null;
     return (
       <div className="absolute inset-0 z-30 flex items-center justify-center px-4 bg-black/50">
         <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border border-amber-200 bg-gradient-to-b from-white via-amber-50 to-amber-100">
           <div className="px-4 pt-4 pb-2 text-center">
-            <div className="text-xs text-amber-600 font-semibold">يستمع الآن...</div>
+            <div className="text-xs text-amber-600 font-semibold">الاستماع قيد التشغيل...</div>
             <div className="text-sm font-bold text-gray-800 mt-1">
-              نسجل تلقائياً، وسنرسل الرد حالما تتوقف عن الكلام. لا حاجة للضغط على إرسال.
+              سجّل سؤالك وتوقف عن الكلام، سنرسل الرد صوتياً فوراً. يمكنك البدء مرة أخرى بدون إغلاق اللوحة.
             </div>
           </div>
           <div className="px-4 pb-4">
@@ -516,8 +520,8 @@ const SupportChatWidget: React.FC = () => {
             </div>
             <div className="mt-3 text-[12px] text-gray-700 text-center">
               {recording
-                ? "سيتم الإيقاف والإرسال عند الصمت أو بعد 15 ثانية، ثم نبدأ تسجيل جديد تلقائياً ما دامت اللوحة مفتوحة."
-                : "جاري التحضير للتسجيل..."}
+                ? "التسجيل يعمل الآن وسيُرسل تلقائياً عند الصمت أو بعد 15 ثانية."
+                : "جاري تهيئة الميكروفون..."}
             </div>
             <div className="flex flex-wrap gap-2 justify-center mt-3">
               <button
@@ -525,7 +529,7 @@ const SupportChatWidget: React.FC = () => {
                 disabled={!recording || sendingAudio}
                 className="px-3 py-2 rounded-full bg-amber-500 text-white text-xs font-semibold disabled:opacity-50"
               >
-                إيقاف مؤقت
+                إيقاف وإرسال
               </button>
               <button
                 onClick={() => {
@@ -537,7 +541,7 @@ const SupportChatWidget: React.FC = () => {
                 إغلاق
               </button>
             </div>
-            {sendingAudio && <div className="text-[11px] text-gray-500 text-center mt-1">يتم إرسال الصوت...</div>}
+            {sendingAudio && <div className="text-[11px] text-gray-500 text-center mt-1">يتم إرسال الرسالة الصوتية...</div>}
           </div>
         </div>
       </div>
@@ -580,7 +584,7 @@ const SupportChatWidget: React.FC = () => {
         {guestStep === "code" && (
           <form onSubmit={handleGuestVerifyCode} className="w-full max-w-xs space-y-3 text-right text-sm">
             <div className="font-semibold text-gray-800">أدخل كود التحقق</div>
-            <div className="text-[12px] text-gray-600">راجع بريدك وأدخل الكود للمتابعة.</div>
+            <div className="text-[12px] text-gray-600">تم إرسال كود من 6 أرقام إلى بريدك الإلكتروني.</div>
             <input
               className="w-full border rounded-lg px-3 py-2 text-center tracking-[0.3em] text-sm"
               placeholder="123456"
@@ -614,8 +618,14 @@ const SupportChatWidget: React.FC = () => {
     );
   };
 
+  const widgetWidth = "min(420px, 92vw)";
+  const widgetHeight = "min(70vh, 520px)";
+
   return (
-    <div className="fixed bottom-4 left-4 z-40" style={{ fontFamily: "inherit" }}>
+    <div
+      className="fixed bottom-3 left-3 z-40"
+      style={{ fontFamily: "inherit", bottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}
+    >
       {!open && (
         <button
           onClick={handleOpen}
@@ -627,11 +637,11 @@ const SupportChatWidget: React.FC = () => {
 
       {open && (
         <div
-          className="w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-amber-100 flex flex-col overflow-hidden relative"
-          style={{ height: "540px", maxHeight: "80vh" }}
+          className="bg-white rounded-2xl shadow-xl border border-amber-100 flex flex-col overflow-hidden relative"
+          style={{ width: widgetWidth, height: widgetHeight }}
         >
           <div className="px-3 py-2 bg-amber-500 text-white flex items-center justify-between sticky top-0 z-10">
-            <span className="text-sm font-semibold">دعم CafeMS Demo</span>
+            <span className="text-sm font-semibold">دعم كافيتريا الخليج</span>
             <div className="flex items-center gap-2">
               {(user || (isGuest && guestStep === "chat")) && (
                 <button
@@ -665,7 +675,9 @@ const SupportChatWidget: React.FC = () => {
             )}
 
             {!loading && !connecting && messages.length === 0 && guestStep === "chat" && (
-              <div className="text-center text-gray-500 text-xs py-3">ابدأ برسالة نصية أو صوتية للمتابعة مع الدعم.</div>
+              <div className="text-center text-gray-500 text-xs py-3">
+                اكتب رسالتك أو سجّل صوتياً للبدء.
+              </div>
             )}
 
             <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2 text-xs">
@@ -684,7 +696,7 @@ const SupportChatWidget: React.FC = () => {
                       }`}
                     >
                       {!isMe && (
-                        <div className="text-[10px] text-gray-500 mb-0.5">{isBot ? "دعم آلي" : m.sender_name || "الدعم"}</div>
+                        <div className="text-[10px] text-gray-500 mb-0.5">{isBot ? "رد تلقائي" : m.sender_name || "الدعم"}</div>
                       )}
                       <div>{m.content}</div>
                       <div className="text-[9px] text-gray-400 mt-1 text-left">{new Date(m.created_at).toLocaleTimeString()}</div>
@@ -699,7 +711,10 @@ const SupportChatWidget: React.FC = () => {
             {renderGuestGate()}
           </div>
 
-          <div className="border-t px-2 py-2 flex items-center gap-2 sticky bottom-0 bg-white">
+          <div
+            className="border-t px-2 py-2 flex items-center gap-2 sticky bottom-0 bg-white"
+            style={{ paddingBottom: "calc(0.5rem + env(safe-area-inset-bottom, 0px))" }}
+          >
             <input
               className="flex-1 border rounded-full px-3 py-1.5 text-xs"
               placeholder="اكتب رسالتك..."

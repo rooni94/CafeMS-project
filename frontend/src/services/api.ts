@@ -19,11 +19,16 @@ api.interceptors.request.use((config) => {
   if (token && config.headers) {
     if (looksLikeJwt(token)) {
       config.headers.Authorization = `Bearer ${token}`;
+      // Backup header in case a reverse proxy strips Authorization.
+      config.headers["X-Access-Token"] = token;
     } else {
       localStorage.removeItem("access");
       localStorage.removeItem("refresh");
       delete config.headers.Authorization;
+      delete config.headers["X-Access-Token"];
     }
+  } else if (config.headers) {
+    delete config.headers["X-Access-Token"];
   }
   return config;
 });

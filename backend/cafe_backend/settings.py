@@ -129,7 +129,7 @@ AUTHENTICA_OTP_RESEND_SECONDS = env.int("AUTHENTICA_OTP_RESEND_SECONDS", default
 # ================== DRF & Auth ==================
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.accounts.authentication.FlexibleJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
@@ -161,6 +161,8 @@ CORS_ALLOWED_ORIGINS = env.list(
 # Allow custom headers used by the support guest flow.
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "x-guest-token",
+    "x-access-token",
+    "x-authorization",
 ]
 
 # للسماح بإرسال الكوكيز / Authorization من الفرونت
