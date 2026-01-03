@@ -1,10 +1,22 @@
-// mobile/src/components/support/SupportChatFloating.tsx
+﻿// mobile/src/components/support/SupportChatFloating.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Modal, TextInput, ScrollView, ActivityIndicator, Platform, Keyboard } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Modal,
+  TextInput,
+  ScrollView,
+  ActivityIndicator,
+  Platform,
+  Keyboard,
+} from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system";
+
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
 import { ENV } from "../../config/env";
@@ -17,6 +29,10 @@ type SupportMessage = {
   sender_name?: string;
   content: string;
   created_at: string;
+  bot_audio_base64?: string | null;
+  tts_audio_base64?: string | null;
+  audio_base64?: string | null;
+  bot_audio_mime?: string | null;
 };
 
 type GuestProfile = {
@@ -40,6 +56,14 @@ const getWsBaseUrl = () => {
   }
 };
 
+const b64ToUri = async (base64?: string | null, mime = "audio/mpeg") => {
+  if (!base64) return null;
+  const ext = mime.includes("wav") ? "wav" : "mp3";
+  const fileUri = `${FileSystem.cacheDirectory}bot-reply-${Date.now()}.${ext}`;
+  await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+  return fileUri;
+};
+
 const SupportChatFloating: React.FC = () => {
   const { user, accessToken } = useAuth();
   const isGuest = !user;
@@ -51,6 +75,11 @@ const SupportChatFloating: React.FC = () => {
   const [connecting, setConnecting] = useState(false);
   const [input, setInput] = useState("");
 
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [sendingAudio, setSendingAudio] = useState(false);
+  const [voiceOverlay, setVoiceOverlay] = useState(false);
+  const voiceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestToken, setGuestToken] = useState<string | null>(null);
@@ -60,8 +89,6 @@ const SupportChatFloating: React.FC = () => {
   const [guestError, setGuestError] = useState<string | null>(null);
   const [guestSubmitting, setGuestSubmitting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [sendingAudio, setSendingAudio] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
@@ -69,6 +96,40 @@ const SupportChatFloating: React.FC = () => {
 
   const wsBase = useMemo(() => getWsBaseUrl(), []);
   const styles = useMemo(() => createStyles(), []);
+
+  const addMessagesUnique = (incoming: SupportMessage[]) => {
+    if (!incoming.length) return;
+    setMessages((prev) => {
+      const seen = new Set(prev.map((m) => m.id));
+      const fresh = incoming.filter((m) => !seen.has(m.id));
+      return fresh.length ? [...prev, ...fresh] : prev;
+    });
+  };
+
+  const playBotAudio = async (payload: any) => {
+    const base64 = payload?.bot_audio_base64 || payload?.tts_audio_base64 || payload?.audio_base64;
+    if (!base64) return;
+    const uri = await b64ToUri(base64, payload?.bot_audio_mime || payload?.audio_mime || "audio/mpeg");
+    if (!uri) return;
+    try {
+      if (soundRef.current) await soundRef.current.unloadAsync();
+      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
+      soundRef.current = sound;
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const stopBotAudio = async () => {
+    if (soundRef.current) {
+      try {
+        await soundRef.current.unloadAsync();
+      } catch {
+        /* ignore */
+      }
+      soundRef.current = null;
+    }
+  };
 
   const loadGuestProfile = async () => {
     try {
@@ -83,7 +144,7 @@ const SupportChatFloating: React.FC = () => {
         setGuestStep("chat");
       }
     } catch {
-      // ignore
+      /* ignore */
     }
   };
 
@@ -95,9 +156,10 @@ const SupportChatFloating: React.FC = () => {
       const convId = convRes.data.conversation.id as number;
       setConversationId(convId);
       const msgRes = await api.get<SupportMessage[]>("support/my-messages/");
-      setMessages(msgRes.data || []);
+      addMessagesUnique(msgRes.data || []);
+      setGuestStep("chat");
     } catch {
-      // ignore
+      /* ignore */
     } finally {
       setLoading(false);
     }
@@ -106,13 +168,12 @@ const SupportChatFloating: React.FC = () => {
   const initForGuestIfHasConversation = async (convId: number, token: string) => {
     setLoading(true);
     try {
-      const msgRes = await api.get<SupportMessage[]>(
-        `support/guest-conversations/${convId}/messages/`,
-        { headers: { "X-Guest-Token": token } }
-      );
-      setMessages(msgRes.data || []);
+      const msgRes = await api.get<SupportMessage[]>(`support/guest-conversations/${convId}/messages/`, {
+        headers: { "X-Guest-Token": token },
+      });
+      addMessagesUnique(msgRes.data || []);
     } catch {
-      // ignore
+      /* ignore */
     } finally {
       setLoading(false);
     }
@@ -126,26 +187,205 @@ const SupportChatFloating: React.FC = () => {
       ? `?guest=1&guest_token=${encodeURIComponent(guestToken)}`
       : "?guest=1";
     const wsUrl = `${wsBase}/ws/support/${convId}/${qs}`;
+    if (wsRef.current) wsRef.current.close();
     setConnecting(true);
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
-
     ws.onopen = () => setConnecting(false);
+    ws.onclose = () => setConnecting(false);
+    ws.onerror = () => setConnecting(false);
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as SupportMessage;
-        setMessages((prev) => [...prev, data]);
+        addMessagesUnique([data]);
+        if (data.sender_type === "bot") playBotAudio(data);
       } catch {
-        // ignore
+        /* ignore */
       }
     };
-    ws.onclose = () => {
-      setConnecting(false);
-      wsRef.current = null;
+  };
+
+  const handleGuestRequestCode = async () => {
+    setGuestError(null);
+    if (!guestName.trim() || !guestEmail.trim()) {
+      setGuestError("يرجى إدخال الاسم والبريد الإلكتروني.");
+      return;
+    }
+    setGuestSubmitting(true);
+    try {
+      const res = await api.post("support/guest-request-code/", {
+        name: guestName.trim(),
+        email: guestEmail.trim(),
+      });
+      setGuestRequestId(res.data.request_id);
+      setGuestStep("code");
+      await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify({ name: guestName.trim(), email: guestEmail.trim() }));
+    } catch (err: any) {
+      setGuestError(err?.response?.data?.detail || "تعذر إرسال الكود. حاول لاحقاً.");
+    } finally {
+      setGuestSubmitting(false);
+    }
+  };
+
+  const handleGuestVerifyCode = async () => {
+    setGuestError(null);
+    if (!guestRequestId) {
+      setGuestError("انتهت صلاحية الطلب. أعد إدخال بياناتك.");
+      setGuestStep("form");
+      return;
+    }
+    if (!guestCode.trim()) {
+      setGuestError("أدخل كود التحقق.");
+      return;
+    }
+    setGuestSubmitting(true);
+    try {
+      const res = await api.post("support/guest-verify-code/", {
+        request_id: guestRequestId,
+        code: guestCode.trim(),
+      });
+      const convId = res.data.conversation.id as number;
+      const token = (res.data.guest_token as string | undefined) || null;
+      if (!token) {
+        setGuestError("تم التحقق لكن لم نستلم guest_token. حدّث الباكند ثم أعد المحاولة.");
+        return;
+      }
+      setConversationId(convId);
+      setGuestToken(token);
+      setGuestStep("chat");
+      await AsyncStorage.setItem(
+        GUEST_STORAGE_KEY,
+        JSON.stringify({ name: guestName.trim(), email: guestEmail.trim(), conversation_id: convId, guest_token: token }),
+      );
+      await initForGuestIfHasConversation(convId, token);
+    } catch (err: any) {
+      setGuestError(err?.response?.data?.detail || "كود غير صحيح أو منتهي.");
+    } finally {
+      setGuestSubmitting(false);
+    }
+  };
+
+  const clearVoiceTimer = () => {
+    if (voiceTimeoutRef.current) {
+      clearTimeout(voiceTimeoutRef.current);
+      voiceTimeoutRef.current = null;
+    }
+  };
+
+  const startVoiceRecording = async () => {
+    setVoiceOverlay(true);
+    if (recording || sendingAudio) return;
+    if (!conversationId) {
+      setGuestError("أكمل خطوات التحقق أولاً ثم ابدأ التسجيل.");
+      return;
+    }
+    await stopBotAudio();
+    clearVoiceTimer();
+    try {
+      const perm = await Audio.requestPermissionsAsync();
+      if (!perm.granted) {
+        setGuestError("يجب منح إذن الميكروفون للتسجيل الصوتي.");
+        return;
+      }
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
+        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
+        shouldDuckAndroid: true,
+      });
+      const rec = new Audio.Recording();
+      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await rec.startAsync();
+      setRecording(rec);
+      voiceTimeoutRef.current = setTimeout(() => stopVoiceRecording(true), 15000);
+    } catch {
+      setRecording(null);
+      setGuestError("تعذر بدء التسجيل. تأكد من الأذونات وحاول مرة أخرى.");
+    }
+  };
+
+  const stopVoiceRecording = async (autoStop = false) => {
+    clearVoiceTimer();
+    if (!recording) return;
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+      if (uri) await sendVoice(uri);
+      if (voiceOverlay && !sendingAudio) {
+        setTimeout(() => startVoiceRecording(), 350);
+      }
+    } catch {
+      setRecording(null);
+    }
+  };
+
+  const sendVoice = async (uri: string) => {
+    if (!conversationId) return;
+    setSendingAudio(true);
+    try {
+      const form = new FormData();
+      form.append("audio", { uri, name: "voice.m4a", type: "audio/m4a" } as any);
+      const url = isGuest ? `support/guest-conversations/${conversationId}/voice/` : "support/my-voice/";
+      const headers = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
+      const res = await api.post(url, form, { headers: { ...(headers || {}), "Content-Type": "multipart/form-data" } });
+      addMessagesUnique(
+        [res.data.customer_message, res.data.guest_message, res.data.bot_reply].filter(Boolean) as SupportMessage[],
+      );
+      await playBotAudio(res.data);
+    } catch (err: any) {
+      setGuestError(err?.response?.data?.detail || "تعذر إرسال الرسالة الصوتية.");
+    } finally {
+      setSendingAudio(false);
+    }
+  };
+
+  const handleOpen = async () => {
+    setOpen(true);
+    setMessages([]);
+    if (user && accessToken) {
+      setGuestStep("chat");
+      await initForLoggedUser();
+    } else {
+      await loadGuestProfile();
+      if (!guestToken || !conversationId) {
+        setGuestStep("form");
+      }
+    }
+  };
+
+  const handleClose = async () => {
+    setOpen(false);
+    await stopBotAudio();
+    wsRef.current?.close();
+  };
+
+  const sendText = async () => {
+    if (!conversationId || !input.trim() || sendingAudio) return;
+    const text = input.trim();
+    setInput("");
+    const temp: SupportMessage = {
+      id: -Date.now(),
+      conversation: conversationId,
+      sender_type: isGuest ? "guest" : "customer",
+      sender_name: isGuest ? guestName || "ضيف" : user?.name || "عميل",
+      content: text,
+      created_at: new Date().toISOString(),
     };
-    ws.onerror = () => {
-      setConnecting(false);
-    };
+    addMessagesUnique([temp]);
+    try {
+      const url = isGuest ? `support/guest-conversations/${conversationId}/messages/` : "support/my-messages/";
+      const headers = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
+      const res = await api.post(url, { content: text }, { headers });
+      addMessagesUnique(
+        [res.data.customer_message, res.data.guest_message, res.data.bot_reply].filter(Boolean) as SupportMessage[],
+      );
+      await playBotAudio(res.data);
+    } catch {
+      /* ignore */
+    }
   };
 
   useEffect(() => {
@@ -155,10 +395,8 @@ const SupportChatFloating: React.FC = () => {
 
   useEffect(() => {
     if (!open) return;
-
     setMessages([]);
     setConversationId(null);
-
     if (user && accessToken) {
       setGuestStep("chat");
       initForLoggedUser();
@@ -193,30 +431,19 @@ const SupportChatFloating: React.FC = () => {
     if (!open) return;
     const timer = setTimeout(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
-    }, 60);
+    }, 80);
     return () => clearTimeout(timer);
   }, [messages, open]);
 
   useEffect(() => {
     if (!open) return;
-    const onShow = Keyboard.addListener("keyboardDidShow", () => {
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
-    });
-    return () => onShow.remove();
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    setKeyboardHeight(0);
     const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
     const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
     const onShow = Keyboard.addListener(showEvent, (event) => {
       setKeyboardHeight(event.endCoordinates?.height || 0);
       setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
     });
-    const onHide = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
-    });
+    const onHide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
     return () => {
       onShow.remove();
       onHide.remove();
@@ -225,262 +452,37 @@ const SupportChatFloating: React.FC = () => {
 
   useEffect(() => {
     return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync().catch(() => undefined);
-      }
+      clearVoiceTimer();
+      stopBotAudio();
       if (recording) {
         recording.stopAndUnloadAsync().catch(() => undefined);
       }
     };
   }, [recording]);
 
-
-  const handleGuestRequestCode = async () => {
-    setGuestError(null);
-    if (!guestName.trim() || !guestEmail.trim()) {
-      setGuestError("يرجى إدخال الاسم والبريد الإلكتروني.");
-      return;
-    }
-    setGuestSubmitting(true);
-    try {
-      const res = await api.post("support/guest-request-code/", {
-        name: guestName.trim(),
-        email: guestEmail.trim(),
-      });
-      setGuestRequestId(res.data.request_id);
-      setGuestStep("code");
-      const partial: GuestProfile = { name: guestName.trim(), email: guestEmail.trim() };
-      await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(partial));
-    } catch (err: any) {
-      setGuestError(err?.response?.data?.detail || "تعذر إرسال رمز التحقق، حاول لاحقاً.");
-    } finally {
-      setGuestSubmitting(false);
-    }
-  };
-
-  const handleGuestVerifyCode = async () => {
-    setGuestError(null);
-    if (!guestRequestId) {
-      setGuestError("يرجى طلب رمز التحقق أولاً.");
-      setGuestStep("form");
-      return;
-    }
-    if (!guestCode.trim()) {
-      setGuestError("يرجى إدخال رمز التحقق.");
-      return;
-    }
-    setGuestSubmitting(true);
-    try {
-      const res = await api.post("support/guest-verify-code/", {
-        request_id: guestRequestId,
-        code: guestCode.trim(),
-      });
-      const conv = res.data.conversation;
-      const convId = conv.id as number;
-      const token = (res.data.guest_token as string | undefined) || null;
-      if (!token) {
-        setGuestError(
-          "تم التحقق بنجاح لكن الخادم لم يُرجع guest_token. يرجى تحديث الباكند وتشغيل migrate ثم إعادة المحاولة."
-        );
-        return;
-      }
-      setConversationId(convId);
-      setGuestToken(token);
-      setGuestStep("chat");
-      const toStore: GuestProfile = { name: guestName.trim(), email: guestEmail.trim(), conversation_id: convId, guest_token: token };
-      await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(toStore));
-      const msgRes = await api.get<SupportMessage[]>(
-        `support/guest-conversations/${convId}/messages/`,
-        { headers: { "X-Guest-Token": token } }
-      );
-      setMessages(msgRes.data || []);
-    } catch (err: any) {
-      setGuestError(err?.response?.data?.detail || "رمز غير صحيح، حاول مرة أخرى.");
-    } finally {
-      setGuestSubmitting(false);
-    }
-  };
-
-  const handleSend = async () => {
-    const text = input.trim();
-    if (!text) return;
-    if (sendingAudio) return;
-
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "message", content: text }));
-      setInput("");
-      return;
-    }
-
-    try {
-      if (user && accessToken) {
-        const res = await api.post("support/my-messages/", { content: text });
-        const customerMsg = res.data.customer_message as SupportMessage;
-        const botReply = res.data.bot_reply as SupportMessage;
-        setMessages((prev) => [...prev, customerMsg, botReply]);
-        setInput("");
-      } else if (isGuest && conversationId) {
-        if (!guestToken) throw new Error("Missing guestToken");
-
-        const res = await api.post(
-          `support/guest-conversations/${conversationId}/messages/`,
-          { content: text },
-          { headers: { "X-Guest-Token": guestToken } }
-        );
-
-        const guestMsg = res.data.guest_message as SupportMessage;
-        const botReply = res.data.bot_reply as SupportMessage | null;
-        setMessages((prev) => [...prev, guestMsg, ...(botReply ? [botReply] : [])]);
-        setInput("");
-      }
-    } catch {
-      // ignore
-    }
-  };
-
-  const playBotAudio = async (audioBase64?: string | null, mime?: string | null) => {
-    if (!audioBase64) return;
-    try {
-      const ext = mime && mime.includes("wav") ? "wav" : "mp3";
-      const fileUri = `${FileSystem.cacheDirectory}bot-reply.${ext}`;
-      await FileSystem.writeAsStringAsync(fileUri, audioBase64, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
-      }
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: fileUri },
-        { shouldPlay: true }
-      );
-      soundRef.current = sound;
-    } catch {
-      // ignore playback errors
-    }
-  };
-
-  const sendVoice = async (uri: string) => {
-    if (sendingAudio) return;
-    if (isGuest && guestStep !== "chat") {
-      setGuestError("ابدأ المحادثة ثم أرسل التسجيل الصوتي.");
-      return;
-    }
-
-    setSendingAudio(true);
-    const form = new FormData();
-    form.append("audio", {
-      uri,
-      name: "voice.m4a",
-      type: "audio/m4a",
-    } as any);
-
-    let endpoint = "";
-    const headers: Record<string, string> = { "Content-Type": "multipart/form-data" };
-
-    if (user && accessToken) {
-      endpoint = "support/my-voice/";
-    } else if (isGuest && conversationId) {
-      endpoint = `support/guest-conversations/${conversationId}/voice/`;
-      if (guestToken) headers["X-Guest-Token"] = guestToken;
-    } else {
-      setSendingAudio(false);
-      return;
-    }
-
-    try {
-      const res = await api.post(endpoint, form, { headers });
-      const customerMsg = res.data.customer_message as SupportMessage | undefined;
-      const guestMsg = res.data.guest_message as SupportMessage | undefined;
-      const botReply = res.data.bot_reply as SupportMessage | null | undefined;
-      const collected = [customerMsg, guestMsg, botReply].filter(Boolean) as SupportMessage[];
-      if (collected.length) {
-        setMessages((prev) => [...prev, ...collected]);
-      }
-      if (res.data.bot_audio_base64) {
-        await playBotAudio(
-          res.data.bot_audio_base64 as string,
-          (res.data.bot_audio_mime as string | undefined) || "audio/mpeg"
-        );
-      }
-    } catch (err: any) {
-      setGuestError(err?.response?.data?.detail || "تعذّر إرسال التسجيل الصوتي.");
-    } finally {
-      setSendingAudio(false);
-    }
-  };
-
-  const startVoiceRecording = async () => {
-    if (recording || sendingAudio) return;
-    try {
-      const perm = await Audio.requestPermissionsAsync();
-      if (!perm.granted) {
-        setGuestError("يلزم منح إذن الميكروفون للتسجيل الصوتي.");
-        return;
-      }
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-      });
-      const rec = new Audio.Recording();
-      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await rec.startAsync();
-      setRecording(rec);
-    } catch {
-      setGuestError("تعذّر بدء التسجيل الصوتي.");
-    }
-  };
-
-  const stopVoiceRecording = async () => {
-    if (!recording) return;
-    try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      setRecording(null);
-      if (uri) {
-        await sendVoice(uri);
-      }
-    } catch {
-      setRecording(null);
-    }
-  };
-
-  const handleEndChat = async () => {
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-    if (recording) {
-      try {
-        await recording.stopAndUnloadAsync();
-      } catch {
-        // ignore
-      }
-      setRecording(null);
-    }
-    if (soundRef.current) {
-      try {
-        await soundRef.current.unloadAsync();
-      } catch {
-        // ignore
-      }
-      soundRef.current = null;
-    }
-    if (user && accessToken) {
-      try {
-        await api.post("support/my-conversation/close/");
-      } catch {
-        // ignore
-      }
-    }
-    setConversationId(null);
-    setMessages([]);
-    setInput("");
-    if (isGuest) {
-      await AsyncStorage.removeItem(GUEST_STORAGE_KEY);
-      setGuestToken(null);
-      setGuestStep("form");
-    }
+  const renderVoiceOverlay = () => {
+    if (!voiceOverlay) return null;
+    return (
+      <View style={styles.voiceOverlay}>
+        <View style={styles.voiceCard}>
+          <Text style={styles.voiceTitle}>يستمع الآن...</Text>
+          <Text style={styles.voiceHint}>سيتوقف تلقائياً عند الصمت أو بعد 15 ثانية ويرسل الرد، ثم يعيد التسجيل طالما اللوحة مفتوحة.</Text>
+          <View style={styles.waveRow}>
+            {[6, 10, 16, 12, 18, 12, 16, 10, 6].map((h, idx) => (
+              <View key={idx} style={[styles.waveBar, { height: h + (recording ? 10 : 0) }]} />
+            ))}
+          </View>
+          <Text style={styles.voiceStatus}>{recording ? "يتم التسجيل..." : "جاري التحضير..."}</Text>
+          <View style={styles.voiceActions}>
+            <Button title="إيقاف مؤقت" onPress={() => stopVoiceRecording(false)} disabled={!recording || sendingAudio} />
+            <Pressable onPress={() => { setVoiceOverlay(false); stopVoiceRecording(true); }} style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>إغلاق</Text>
+            </Pressable>
+          </View>
+          {sendingAudio && <Text style={styles.uploadHint}>يتم إرسال الصوت...</Text>}
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -498,7 +500,20 @@ const SupportChatFloating: React.FC = () => {
                 <Text style={styles.headerTitle}>دعم CafeMS Demo</Text>
                 <View style={styles.headerActions}>
                   {(user || (isGuest && guestStep === "chat")) && (
-                    <Pressable style={styles.headerButton} onPress={handleEndChat}>
+                    <Pressable
+                      style={styles.headerButton}
+                      onPress={async () => {
+                        wsRef.current?.close();
+                        setConversationId(null);
+                        setMessages([]);
+                        setInput("");
+                        if (isGuest) {
+                          await AsyncStorage.removeItem(GUEST_STORAGE_KEY);
+                          setGuestToken(null);
+                          setGuestStep("form");
+                        }
+                      }}
+                    >
                       <Text style={styles.headerButtonText}>إنهاء</Text>
                     </Pressable>
                   )}
@@ -510,29 +525,36 @@ const SupportChatFloating: React.FC = () => {
 
               {isGuest && guestStep === "form" && (
                 <View style={styles.body}>
-                  <Text style={styles.bodyTitle}>تواصل معنا كضيف</Text>
-                  <Text style={styles.bodyHint}>الرجاء إدخال الاسم والبريد الإلكتروني لإرسال كود تحقق إلى بريدك.</Text>
+                  <Text style={styles.bodyTitle}>ابدأ بطلب الكود</Text>
+                  <Text style={styles.bodyHint}>أدخل الاسم والبريد الإلكتروني لإرسال كود تحقق إلى بريدك.</Text>
                   <Text style={styles.inputLabel}>الاسم</Text>
                   <TextInput value={guestName} onChangeText={setGuestName} style={styles.input} textAlign="right" placeholder="الاسم" />
                   <Text style={styles.inputLabel}>البريد الإلكتروني</Text>
-                  <TextInput value={guestEmail} onChangeText={setGuestEmail} style={styles.input} textAlign="right" placeholder="example@mail.com" keyboardType="email-address" />
+                  <TextInput
+                    value={guestEmail}
+                    onChangeText={setGuestEmail}
+                    style={styles.input}
+                    textAlign="right"
+                    placeholder="example@mail.com"
+                    keyboardType="email-address"
+                  />
                   {guestError ? <Text style={styles.error}>{guestError}</Text> : null}
-                  <Button title={guestSubmitting ? "جاري الإرسال..." : "إرسال كود التحقق"} onPress={handleGuestRequestCode} disabled={guestSubmitting} />
+                  <Button title={guestSubmitting ? "يتم الإرسال..." : "إرسال الكود"} onPress={handleGuestRequestCode} disabled={guestSubmitting} />
                 </View>
               )}
 
               {isGuest && guestStep === "code" && (
                 <View style={styles.body}>
-                  <Text style={styles.bodyTitle}>تأكيد البريد الإلكتروني</Text>
-                  <Text style={styles.bodyHint}>أدخل كود التحقق المرسل إلى بريدك الإلكتروني.</Text>
-                  <Text style={styles.inputLabel}>كود التحقق</Text>
+                  <Text style={styles.bodyTitle}>أدخل كود التحقق</Text>
+                  <Text style={styles.bodyHint}>الكود صالح لمدة قصيرة. راجع بريدك.</Text>
+                  <Text style={styles.inputLabel}>الكود</Text>
                   <TextInput value={guestCode} onChangeText={setGuestCode} style={styles.input} textAlign="center" keyboardType="numeric" maxLength={6} />
                   {guestError ? <Text style={styles.error}>{guestError}</Text> : null}
                   <View style={styles.codeRow}>
                     <Pressable onPress={() => { setGuestStep("form"); setGuestCode(""); }} style={styles.secondaryButton}>
                       <Text style={styles.secondaryButtonText}>رجوع</Text>
                     </Pressable>
-                    <Button title={guestSubmitting ? "جاري التحقق..." : "تأكيد الكود"} onPress={handleGuestVerifyCode} disabled={guestSubmitting} />
+                    <Button title={guestSubmitting ? "يتم التحقق..." : "تحقق"} onPress={handleGuestVerifyCode} disabled={guestSubmitting} />
                   </View>
                 </View>
               )}
@@ -543,11 +565,11 @@ const SupportChatFloating: React.FC = () => {
                     {(loading || connecting) && (
                       <View style={styles.loadingRow}>
                         <ActivityIndicator color="#f59e0b" />
-                        <Text style={styles.loadingText}>{loading ? "جاري تحميل المحادثة..." : "جاري الاتصال..."}</Text>
+                        <Text style={styles.loadingText}>{loading ? "يتم تحميل المحادثة..." : "يتم الاتصال..."}</Text>
                       </View>
                     )}
                     {!loading && !connecting && messages.length === 0 && (
-                      <Text style={styles.emptyText}>أهلاً! اكتب سؤالك وسنرد عليك قريباً.</Text>
+                      <Text style={styles.emptyText}>ابدأ بسؤال نصي أو صوتي للمتابعة مع الدعم.</Text>
                     )}
                     <ScrollView ref={scrollRef} contentContainerStyle={{ gap: 8, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
                       {messages.map((m) => {
@@ -556,9 +578,7 @@ const SupportChatFloating: React.FC = () => {
                         return (
                           <View key={m.id} style={[styles.messageRow, isMe ? styles.messageRowEnd : styles.messageRowStart]}>
                             <View style={[styles.messageBubble, isMe ? styles.messageMine : isBot ? styles.messageBot : styles.messageOther]}>
-                              {!isMe && (
-                                <Text style={styles.messageSender}>{isBot ? "رد تلقائي" : m.sender_name || "الدعم"}</Text>
-                              )}
+                              {!isMe && <Text style={styles.messageSender}>{isBot ? "دعم آلي" : m.sender_name || "الدعم"}</Text>}
                               <Text style={[styles.messageText, isMe && { color: "#fff" }]}>{m.content}</Text>
                               <Text style={styles.messageTime}>{new Date(m.created_at).toLocaleTimeString()}</Text>
                             </View>
@@ -567,15 +587,16 @@ const SupportChatFloating: React.FC = () => {
                       })}
                     </ScrollView>
                   </View>
+
                   <View style={styles.chatInputRow}>
                     <TextInput
                       style={styles.chatInput}
-                      placeholder="???? ??????..."
+                      placeholder="اكتب رسالتك..."
                       value={input}
                       onChangeText={setInput}
                       editable={!loading && !connecting && !sendingAudio}
                       returnKeyType="send"
-                      onSubmitEditing={handleSend}
+                      onSubmitEditing={sendText}
                       blurOnSubmit={false}
                     />
                     <Pressable
@@ -584,17 +605,13 @@ const SupportChatFloating: React.FC = () => {
                         recording ? styles.micButtonRecording : styles.micButtonIdle,
                         (sendingAudio || (isGuest && guestStep !== "chat")) && styles.micButtonDisabled,
                       ]}
-                      onPress={recording ? stopVoiceRecording : startVoiceRecording}
+                      onPress={startVoiceRecording}
                       disabled={sendingAudio || (isGuest && guestStep !== "chat")}
                     >
                       {sendingAudio ? (
                         <ActivityIndicator size="small" color={recording ? "#fff" : "#f59e0b"} />
                       ) : (
-                        <Ionicons
-                          name={recording ? "stop" : "mic"}
-                          size={16}
-                          color={recording ? "#fff" : "#f59e0b"}
-                        />
+                        <Ionicons name={recording ? "stop" : "mic"} size={16} color={recording ? "#fff" : "#f59e0b"} />
                       )}
                     </Pressable>
                     <Pressable
@@ -602,14 +619,16 @@ const SupportChatFloating: React.FC = () => {
                         styles.sendButton,
                         (!input.trim() || sendingAudio || (isGuest && guestStep !== "chat")) && styles.sendButtonDisabled,
                       ]}
-                      onPress={handleSend}
+                      onPress={sendText}
                       disabled={!input.trim() || sendingAudio || (isGuest && guestStep !== "chat")}
                     >
-                      <Text style={styles.sendButtonText}>?????</Text>
+                      <Text style={styles.sendButtonText}>إرسال</Text>
                     </Pressable>
                   </View>
                 </>
               )}
+
+              {renderVoiceOverlay()}
             </Pressable>
           </View>
         </View>
@@ -861,6 +880,84 @@ const createStyles = () =>
       color: "#fff",
       fontWeight: "700",
       fontSize: 12,
+    },
+    voiceOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: "rgba(0,0,0,0.45)",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 12,
+    },
+    voiceCard: {
+      width: "100%",
+      maxWidth: 360,
+      backgroundColor: "#fffaf2",
+      borderRadius: 18,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: "#fde68a",
+      shadowColor: "#000",
+      shadowOpacity: 0.15,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 10,
+    },
+    voiceTitle: {
+      fontSize: 14,
+      fontWeight: "800",
+      color: "#0f172a",
+      textAlign: "center",
+      marginBottom: 6,
+    },
+    voiceHint: {
+      fontSize: 12,
+      color: "#6b7280",
+      textAlign: "center",
+      marginBottom: 10,
+    },
+    waveRow: {
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      gap: 6,
+      height: 50,
+    },
+    waveBar: {
+      width: 4,
+      borderRadius: 4,
+      backgroundColor: "#f59e0b",
+    },
+    voiceStatus: {
+      textAlign: "center",
+      color: "#0f172a",
+      fontSize: 12,
+      marginTop: 8,
+    },
+    voiceActions: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      marginTop: 10,
+    },
+    secondaryButton: {
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: "#e2e8f0",
+      backgroundColor: "#fff",
+    },
+    secondaryButtonText: {
+      color: "#0f172a",
+      fontWeight: "700",
+      fontSize: 12,
+    },
+    uploadHint: {
+      textAlign: "center",
+      color: "#6b7280",
+      fontSize: 11,
+      marginTop: 6,
     },
   });
 

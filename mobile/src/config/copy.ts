@@ -1,4 +1,4 @@
-export const copy = {
+﻿export const copy = {
   brandFallback: "CafeMS Demo",
   taglineFallback:
     "نقدّم لك تجربة مميزة من الساندوتشات والمشروبات والحلويات. اطلب الآن واستمتع بجودة عالية وخدمة سريعة.",
@@ -145,4 +145,5 @@ export const copy = {
       "راسلنا للاستفسارات والملاحظات وسنساعدك بأسرع وقت.",
   },
 };
+
 

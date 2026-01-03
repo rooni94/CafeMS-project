@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useCallback, useState } from "react";
+﻿import React, { createContext, useContext, useEffect, useCallback, useState } from "react";
 import { api } from "../services/api";
 import { DEFAULT_MAP_EMBED } from "../utils/mapEmbedFallback";
 
@@ -226,3 +226,4 @@ export const useStoreSettings = () => {
   }
   return ctx;
 };
+

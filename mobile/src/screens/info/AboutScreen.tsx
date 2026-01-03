@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
@@ -210,4 +210,5 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default AboutScreen;
+
 

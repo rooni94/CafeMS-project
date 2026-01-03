@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../theme";
 import DashboardShell from "../dashboard/components/DashboardShell";
@@ -107,4 +107,5 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   });
 
 export default PrivacyScreen;
+
 

@@ -19,6 +19,7 @@ import { useStoreSettings } from "../../context/StoreSettingsContext";
 import { safeGoBack } from "../../navigation/helpers";
 import { useTheme } from "../../theme";
 import { copy } from "../../config/copy";
+import { normalizeBrandName } from "../../utils/text";
 
 type Check = { key: string; label: string; ok: boolean };
 
@@ -39,6 +40,7 @@ const RegisterScreen: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { settings } = useStoreSettings();
   const { register, startPhoneRegistration, verifyPhoneOtp, loading } = useAuth();
+  const brandName = normalizeBrandName(settings?.store_name, copy.brandFallback);
 
   const [method, setMethod] = useState<"email" | "phone">("email");
   const [stage, setStage] = useState<"form" | "otp">("form");
@@ -155,7 +157,7 @@ const RegisterScreen: React.FC = () => {
           <Card style={styles.headerCard} contentStyle={styles.headerContent}>
             <View style={styles.brandRow}>
               <Text style={[styles.brand, { color: theme.palette.text }]} numberOfLines={1}>
-                {settings?.store_name || copy.brandFallback}
+                {brandName}
               </Text>
               <Text style={[styles.badge, { backgroundColor: theme.palette.accentSoft, color: theme.palette.accent }]}>
                 إنشاء حساب

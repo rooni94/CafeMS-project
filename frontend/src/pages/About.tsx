@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useStoreSettings } from "../context/StoreSettingsContext";
@@ -254,3 +254,4 @@ const About: React.FC = () => {
 };
 
 export default About;
+

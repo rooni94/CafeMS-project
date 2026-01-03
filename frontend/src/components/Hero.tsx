@@ -1,4 +1,4 @@
-// src/components/Hero.tsx
+﻿// src/components/Hero.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   motion,
@@ -157,7 +157,7 @@ const Hero: React.FC<HeroProps> = ({ onCategorySelect }) => {
               ) : (
                 <>
                   أهلاً بكم في{" "}
-                  <span className="text-gulfOrange">كافتيريا </span>
+                  <span className="text-gulfOrange">كافيه </span>
                   <span className="text-gulfPurple">الخليج</span>
                 </>
               )}
@@ -235,3 +235,4 @@ const Hero: React.FC<HeroProps> = ({ onCategorySelect }) => {
 };
 
 export default Hero;
+

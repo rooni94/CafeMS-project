@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -17,7 +17,7 @@ const StoryScreen: React.FC = () => {
         <Text style={[styles.paragraph, { color: theme.palette.text }]}>
           CafeMS Demo بدأت كفكرة بسيطة: مكان يجتمع فيه الأصدقاء للاستمتاع
           بسندويتشات لذيذة ومشروبات طازجة وخدمة سريعة وودودة. مع الوقت تحولت هذه
-          الفكرة إلى علامة موثوقة في الحي، تقدم تجربة مختلفة عن الكافتيريات
+          الفكرة إلى علامة موثوقة في الحي، تقدم تجربة مختلفة عن الكافيهات
           التقليدية.
         </Text>
       </DashboardSection>
@@ -101,4 +101,5 @@ const styles = StyleSheet.create({
 });
 
 export default StoryScreen;
+
 

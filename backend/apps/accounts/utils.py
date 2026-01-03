@@ -1,4 +1,4 @@
-# backend/apps/accounts/utils.py
+﻿# backend/apps/accounts/utils.py
 """
 دوال مساعدة عامة لتطبيق الحسابات.
 الآن هو مجرد ملف هيكلي يمكن التوسع فيه مستقبلاً
@@ -7,3 +7,4 @@
 
 def arabic_app_name() -> str:
     return "CafeMS Demo"
+

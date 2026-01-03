@@ -1,4 +1,4 @@
-// src/pages/Home.tsx
+﻿// src/pages/Home.tsx
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -776,3 +776,4 @@ const Home: React.FC = () => {
 };
 
 export default Home;
+

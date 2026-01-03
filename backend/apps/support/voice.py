@@ -45,6 +45,21 @@ def _get_whisper_model() -> WhisperModel:
             if cpu_threads:
                 kwargs["cpu_threads"] = cpu_threads
             _whisper_model = WhisperModel(model_name, **kwargs)
+        except ValueError as exc:
+            # Fallback إذا لم يدعم الجهاز compute_type الحالي (مثلاً int8_float16 على CPU)
+            logger.warning("Whisper compute_type '%s' unsupported, falling back to 'int8': %s", compute_type, exc)
+            kwargs = {
+                "device": "cpu",
+                "compute_type": "int8",
+                "download_root": download_root,
+            }
+            if cpu_threads:
+                kwargs["cpu_threads"] = cpu_threads
+            try:
+                _whisper_model = WhisperModel(model_name, **kwargs)
+            except Exception as exc2:
+                logger.exception("Failed to load faster-whisper model after fallback")
+                raise VoiceProcessingError("Failed to load Whisper model.") from exc2
         except Exception as exc:
             logger.exception("Failed to load faster-whisper model")
             raise VoiceProcessingError("Failed to load Whisper model.") from exc

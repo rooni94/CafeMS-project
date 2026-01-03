@@ -1,4 +1,4 @@
-# backend/apps/accounts/views.py
+﻿# backend/apps/accounts/views.py
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from django.utils.encoding import force_bytes, force_str
@@ -504,3 +504,4 @@ class MyPermissionsAPIView(APIView):
                 "permissions": rp_data,
             }
         )
+

@@ -1,4 +1,4 @@
-# backend/cafe_backend/settings.py
+﻿# backend/cafe_backend/settings.py
 import os
 from pathlib import Path
 from datetime import timedelta
@@ -259,3 +259,4 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000  # سنة
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+

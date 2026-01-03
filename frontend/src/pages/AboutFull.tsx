@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 const AboutFull: React.FC = () => {
   return (
@@ -9,7 +9,7 @@ const AboutFull: React.FC = () => {
       <p>
         CafeMS Demo بدأت كفكرة بسيطة: مكان يجتمع فيه الأصدقاء للاستمتاع
         بسندويتشات لذيذة ومشروبات طازجة وخدمة سريعة وودودة. مع الوقت تحولت هذه
-        الفكرة إلى علامة موثوقة في الحي، تقدم تجربة مختلفة عن الكافتيريات
+        الفكرة إلى علامة موثوقة في الحي، تقدم تجربة مختلفة عن الكافيهات
         التقليدية.
       </p>
       <h2 className="font-semibold text-lg mt-3">رؤيتنا</h2>
@@ -42,3 +42,4 @@ const AboutFull: React.FC = () => {
 };
 
 export default AboutFull;
+

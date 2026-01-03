@@ -8,6 +8,7 @@ import React, {
 import { api } from "../services/api";
 import { StoreSettings } from "../types";
 import { copy } from "../config/copy";
+import { normalizeBrandName } from "../utils/text";
 
 type StoreSettingsContextValue = {
   settings: StoreSettings | null;
@@ -50,7 +51,11 @@ export const StoreSettingsProvider: React.FC<{
     try {
       const res = await api.get("store/settings/public/");
       if (res.data) {
-        setSettings({ ...fallbackSettings, ...res.data });
+        const merged = { ...fallbackSettings, ...res.data };
+        setSettings({
+          ...merged,
+          store_name: normalizeBrandName(merged.store_name, copy.brandFallback),
+        });
       } else {
         setSettings(fallbackSettings);
       }

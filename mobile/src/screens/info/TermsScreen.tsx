@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+﻿import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../theme";
 import DashboardShell from "../dashboard/components/DashboardShell";
@@ -45,7 +45,7 @@ const TermsScreen: React.FC = () => {
 
         <SectionTitle>٤. الاستخدام المسموح</SectionTitle>
         <Bullet>يُمنع إساءة استخدام المنصة أو محاولة اختراقها.</Bullet>
-        <Bullet>يحق لإدارة الكافتيريا إيقاف أي حساب مخالف أو مسيء دون إشعار مسبق.</Bullet>
+        <Bullet>يحق لإدارة الكافيه إيقاف أي حساب مخالف أو مسيء دون إشعار مسبق.</Bullet>
 
         <SectionTitle>٥. التعديلات على الشروط</SectionTitle>
         <Paragraph>
@@ -98,4 +98,5 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   });
 
 export default TermsScreen;
+
 

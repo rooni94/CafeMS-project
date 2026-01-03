@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+﻿from datetime import datetime, timedelta
 from apps.accounts.permissions import (
     CanViewDashboard,
     CanViewActivityLog,
@@ -663,3 +663,4 @@ class POSCashierOrderView(APIView):
             order,
         )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+

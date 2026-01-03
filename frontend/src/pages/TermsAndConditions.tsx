@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 const TermsAndConditions: React.FC = () => {
   return (
@@ -31,7 +31,7 @@ const TermsAndConditions: React.FC = () => {
       <ul className="list-disc pr-5 space-y-1">
         <li>يُمنع إساءة استخدام المنصة أو محاولة اختراقها.</li>
         <li>
-          يحق لإدارة الكافتيريا إيقاف أي حساب مخالف أو مسيء دون إشعار مسبق.
+          يحق لإدارة الكافيه إيقاف أي حساب مخالف أو مسيء دون إشعار مسبق.
         </li>
       </ul>
 
@@ -49,3 +49,4 @@ const TermsAndConditions: React.FC = () => {
 };
 
 export default TermsAndConditions;
+

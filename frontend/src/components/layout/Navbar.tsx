@@ -1,4 +1,4 @@
-// src/components/layout/Navbar.tsx
+﻿// src/components/layout/Navbar.tsx
 import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
@@ -306,7 +306,7 @@ export const Navbar: React.FC = () => {
               />
             ) : (
               <span className="text-xl font-bold">
-                <span style={{ color: brandPrimary }}>كافتيريا </span>
+                <span style={{ color: brandPrimary }}>كافيه </span>
                 <span style={{ color: brandSecondary }}>الخليج</span>
               </span>
             )}
@@ -326,7 +326,7 @@ export const Navbar: React.FC = () => {
               />
             ) : (
               <span className="text-2xl font-bold">
-                <span style={{ color: brandPrimary }}>كافتيريا </span>
+                <span style={{ color: brandPrimary }}>كافيه </span>
                 <span style={{ color: brandSecondary }}>الخليج</span>
               </span>
             )}
@@ -527,3 +527,4 @@ export const Navbar: React.FC = () => {
     </header>
   );
 };
+

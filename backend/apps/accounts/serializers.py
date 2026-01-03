@@ -1,4 +1,4 @@
-# backend/apps/accounts/serializers.py
+﻿# backend/apps/accounts/serializers.py
 import re
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -317,3 +317,4 @@ class UserActivitySerializer(serializers.ModelSerializer):
 
     def get_order_id(self, obj):
         return obj.order_id
+

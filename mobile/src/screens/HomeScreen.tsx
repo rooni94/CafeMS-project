@@ -17,7 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../theme";
 import { copy } from "../config/copy";
 import { resolveMediaUrl } from "../utils/media";
-import { decodeUnicodeEscapes, normalizeArabicText } from "../utils/text";
+import { decodeUnicodeEscapes, normalizeArabicText, normalizeBrandName } from "../utils/text";
 import { goToStack, goToTab } from "../navigation/helpers";
 import ProductAddonsModal from "../components/ProductAddonsModal";
 import DashboardSection from "./dashboard/components/DashboardSection";
@@ -96,7 +96,7 @@ const HomeScreen: React.FC = () => {
     },
   });
 
-  const brandName = normalizeArabicText(settings?.store_name) || copy.brandFallback;
+  const brandName = normalizeBrandName(settings?.store_name, copy.brandFallback);
   const [brandFirst, ...brandRest] = brandName.split(" ");
   const brandSecond = brandRest.join(" ");
   const tagline = normalizeArabicText(settings?.tagline) || copy.taglineFallback;

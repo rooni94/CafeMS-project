@@ -1,4 +1,3 @@
-// src/components/support/SupportChatWidget.tsx
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -10,6 +9,10 @@ type SupportMessage = {
   sender_name?: string;
   content: string;
   created_at: string;
+  bot_audio_base64?: string | null;
+  bot_audio_mime?: string | null;
+  tts_audio_base64?: string | null;
+  audio_base64?: string | null;
 };
 
 type GuestProfile = {
@@ -23,57 +26,67 @@ const GUEST_STORAGE_KEY = "cafe_support_guest";
 
 const getWsBaseUrl = () => {
   const apiUrl = import.meta.env.VITE_API_URL || "/api/";
-
   try {
-    if (
-      typeof apiUrl === "string" &&
-      (apiUrl.startsWith("http://") || apiUrl.startsWith("https://"))
-    ) {
+    if (typeof apiUrl === "string" && (apiUrl.startsWith("http://") || apiUrl.startsWith("https://"))) {
       const url = new URL(apiUrl);
       const wsScheme = url.protocol === "https:" ? "wss" : "ws";
       return `${wsScheme}://${url.host}`;
     }
   } catch {
-    // ignore
+    /* ignore */
   }
-
   const loc = window.location;
   const wsScheme = loc.protocol === "https:" ? "wss" : "ws";
   return `${wsScheme}://${loc.host}`;
 };
 
+const b64ToUrl = (b64: string, mime = "audio/mpeg") => {
+  try {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    return URL.createObjectURL(new Blob([bytes], { type: mime }));
+  } catch {
+    return null;
+  }
+};
+
 const SupportChatWidget: React.FC = () => {
   const { user, accessToken } = useAuth();
+  const isGuest = !user;
 
   const [open, setOpen] = useState(false);
-
   const [conversationId, setConversationId] = useState<number | null>(null);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [sendingAudio, setSendingAudio] = useState(false);
-  const [recording, setRecording] = useState(false);
-
   const [input, setInput] = useState("");
 
-  // 👇 حالة الزائر
-  const isGuest = !user;
+  // guest
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestToken, setGuestToken] = useState<string | null>(null);
-
   const [guestStep, setGuestStep] = useState<"form" | "code" | "chat">("form");
   const [guestRequestId, setGuestRequestId] = useState<number | null>(null);
   const [guestCode, setGuestCode] = useState("");
   const [guestError, setGuestError] = useState<string | null>(null);
   const [guestSubmitting, setGuestSubmitting] = useState(false);
 
+  // voice
+  const [voiceOverlay, setVoiceOverlay] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [sendingAudio, setSendingAudio] = useState(false);
+
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const sendingAudioRef = useRef(false);
   const botAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // silence detection
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const silenceTimerRef = useRef<number | null>(null);
+  const maxTimerRef = useRef<number | null>(null);
 
   const addMessagesUnique = (incoming: SupportMessage[]) => {
     if (!incoming.length) return;
@@ -84,7 +97,27 @@ const SupportChatWidget: React.FC = () => {
     });
   };
 
-  // تحميل بيانات محتملة للضيف من localStorage
+  const stopBotAudio = () => {
+    if (botAudioRef.current) {
+      botAudioRef.current.pause();
+      botAudioRef.current.currentTime = 0;
+      botAudioRef.current = null;
+    }
+  };
+
+  const playBotAudio = (payload: any) => {
+    const base64 = payload?.bot_audio_base64 || payload?.tts_audio_base64 || payload?.audio_base64;
+    if (!base64) return;
+    const mime = payload?.bot_audio_mime || payload?.audio_mime || "audio/mpeg";
+    const url = b64ToUrl(base64, mime);
+    if (!url) return;
+    stopBotAudio();
+    const audio = new Audio(url);
+    botAudioRef.current = audio;
+    audio.play().catch(() => undefined);
+  };
+
+  // ---------- Guest storage ----------
   useEffect(() => {
     if (!isGuest) return;
     try {
@@ -98,16 +131,15 @@ const SupportChatWidget: React.FC = () => {
           setGuestToken(data.guest_token);
           setGuestStep("chat");
         } else if (data.conversation_id && !data.guest_token) {
-          // بيانات قديمة (قبل إضافة guest_token) — اطلب تحقق جديد
           localStorage.removeItem(GUEST_STORAGE_KEY);
         }
       }
-    } catch (e) {
-      console.error("Guest storage parse error", e);
+    } catch {
+      /* ignore */
     }
   }, [isGuest]);
 
-  // ====== مستخدم مسجّل ======
+  // ---------- Init ----------
   const initForLoggedUser = async () => {
     if (!user || !accessToken) return;
     setLoading(true);
@@ -115,9 +147,9 @@ const SupportChatWidget: React.FC = () => {
       const convRes = await api.get("support/my-conversation/");
       const convId = convRes.data.conversation.id as number;
       setConversationId(convId);
-
       const msgRes = await api.get<SupportMessage[]>("support/my-messages/");
-      addMessagesUnique(msgRes.data);
+      addMessagesUnique(msgRes.data || []);
+      setGuestStep("chat");
     } catch (err) {
       console.error(err);
     } finally {
@@ -125,16 +157,29 @@ const SupportChatWidget: React.FC = () => {
     }
   };
 
-  // ====== ضيف – طلب كود للتحقق ======
+  const initForGuestIfHasConversation = async (convId: number, token: string) => {
+    setLoading(true);
+    try {
+      const msgRes = await api.get<SupportMessage[]>(
+        `support/guest-conversations/${convId}/messages/`,
+        { headers: { "X-Guest-Token": token } },
+      );
+      addMessagesUnique(msgRes.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ---------- Guest flows ----------
   const handleGuestRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setGuestError(null);
-
     if (!guestName.trim() || !guestEmail.trim()) {
-      setGuestError("الرجاء إدخال الاسم والبريد الإلكتروني.");
+      setGuestError("يرجى إدخال الاسم والبريد الإلكتروني.");
       return;
     }
-
     setGuestSubmitting(true);
     try {
       const res = await api.post("support/guest-request-code/", {
@@ -143,695 +188,550 @@ const SupportChatWidget: React.FC = () => {
       });
       setGuestRequestId(res.data.request_id);
       setGuestStep("code");
-
-      // نخزن الاسم والإيميل مؤقتاً
-      const partial: GuestProfile = { name: guestName.trim(), email: guestEmail.trim() };
-      localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(partial));
+      localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify({ name: guestName.trim(), email: guestEmail.trim() }));
     } catch (err: any) {
-      console.error(err);
-      const msg =
-        err?.response?.data?.detail ||
-        "تعذر إرسال كود التحقق، تأكد من البريد ثم حاول مرة أخرى.";
+      const msg = err?.response?.data?.detail || "تعذر إرسال كود التحقق. حاول لاحقاً.";
       setGuestError(msg);
     } finally {
       setGuestSubmitting(false);
     }
   };
 
-  // ====== ضيف – التحقق من الكود وإنشاء المحادثة ======
   const handleGuestVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setGuestError(null);
-
     if (!guestRequestId) {
       setGuestError("انتهت صلاحية الطلب، أعد إدخال بياناتك.");
       setGuestStep("form");
       return;
     }
     if (!guestCode.trim()) {
-      setGuestError("الرجاء إدخال كود التحقق.");
+      setGuestError("يرجى إدخال كود التحقق.");
       return;
     }
-
     setGuestSubmitting(true);
     try {
       const res = await api.post("support/guest-verify-code/", {
         request_id: guestRequestId,
         code: guestCode.trim(),
       });
-
-      const conv = res.data.conversation;
-      const convId = conv.id as number;
+      const convId = res.data.conversation.id as number;
       const token = (res.data.guest_token as string | undefined) || null;
       if (!token) {
-        setGuestError(
-          "تم التحقق بنجاح لكن الخادم لم يُرجع guest_token. هذا يعني أن الباكند غير مُحدّث. حدّث الباكند وشغّل migrate ثم أعد المحاولة."
-        );
+        setGuestError("تم التحقق لكن الخادم لم يرجع guest_token. حدّث الباكند ثم أعد المحاولة.");
         return;
       }
       setConversationId(convId);
       setGuestToken(token);
       setGuestStep("chat");
-
-      // نخزن البيانات كاملة
-      const toStore: GuestProfile = {
-        name: guestName.trim(),
-        email: guestEmail.trim(),
-        conversation_id: convId,
-        guest_token: token,
-      };
-      localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(toStore));
-
-      // تحميل أي رسائل ترحيب/بوت
-      const msgRes = await api.get<SupportMessage[]>(
-        `support/guest-conversations/${convId}/messages/`,
-        { headers: { "X-Guest-Token": token } }
+      localStorage.setItem(
+        GUEST_STORAGE_KEY,
+        JSON.stringify({ name: guestName.trim(), email: guestEmail.trim(), conversation_id: convId, guest_token: token }),
       );
-      addMessagesUnique(msgRes.data);
+      await initForGuestIfHasConversation(convId, token);
     } catch (err: any) {
-      console.error(err);
-      const msg =
-        err?.response?.data?.detail ||
-        "كود التحقق غير صحيح أو منتهي. حاول مرة أخرى.";
+      const msg = err?.response?.data?.detail || "كود غير صحيح أو منتهي. حاول مرة أخرى.";
       setGuestError(msg);
     } finally {
       setGuestSubmitting(false);
     }
   };
 
-  // ====== ضيف – في حال عندنا conversation_id مباشر (من localStorage) ======
-  const initForGuestIfHasConversation = async (convId: number, token: string) => {
-    setLoading(true);
-    try {
-      const msgRes = await api.get<SupportMessage[]>(
-        `support/guest-conversations/${convId}/messages/`,
-        { headers: { "X-Guest-Token": token } }
-      );
-      setMessages(msgRes.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 2) فتح WebSocket
- const connectWebSocket = (convId: number) => {
-  const base = getWsBaseUrl();
-  const qs = accessToken
-    ? `?token=${encodeURIComponent(accessToken)}`
-    : guestToken
-    ? `?guest=1&guest_token=${encodeURIComponent(guestToken)}`
-    : "?guest=1";
-  const wsUrl = `${base}/ws/support/${convId}/${qs}`;
-
-  setConnecting(true);
-  const ws = new WebSocket(wsUrl);
-  wsRef.current = ws;
-
-  ws.onopen = () => {
-    setConnecting(false);
-  };
-
-  ws.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data) as SupportMessage;
-      addMessagesUnique([data]);
-    } catch (err) {
-      console.error("WS message parse error", err);
-    }
-  };
-
-  ws.onclose = () => {
-    setConnecting(false);       // ✅ مهم
-    wsRef.current = null;
-  };
-
-  ws.onerror = (err) => {
-    console.error("WS error", err);
-    setConnecting(false);       // ✅ مهم
-  };
-};
-
-  // عند فتح الشات
-  
-  const b64ToBlob = (b64: string, mime = "audio/mpeg") => {
-    const byteChars = atob(b64);
-    const byteNumbers = new Array(byteChars.length);
-    for (let i = 0; i < byteChars.length; i++) {
-      byteNumbers[i] = byteChars.charCodeAt(i);
-    }
-    return new Blob([new Uint8Array(byteNumbers)], { type: mime });
-  };
-
-  const playBotAudio = (audioBase64?: string | null, mime?: string | null) => {
-    if (!audioBase64) return;
-    try {
-      const blob = b64ToBlob(audioBase64, mime || "audio/mpeg");
-      const url = URL.createObjectURL(blob);
-      if (botAudioRef.current) {
-        botAudioRef.current.pause();
-        URL.revokeObjectURL(botAudioRef.current.src);
+  // ---------- WebSocket ----------
+  const connectWebSocket = (convId: number) => {
+    const base = getWsBaseUrl();
+    const qs = accessToken
+      ? `?token=${encodeURIComponent(accessToken)}`
+      : guestToken
+      ? `?guest=1&guest_token=${encodeURIComponent(guestToken)}`
+      : "?guest=1";
+    const wsUrl = `${base}/ws/support/${convId}/${qs}`;
+    if (wsRef.current) wsRef.current.close();
+    setConnecting(true);
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+    ws.onopen = () => setConnecting(false);
+    ws.onclose = () => setConnecting(false);
+    ws.onerror = () => setConnecting(false);
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data) as SupportMessage;
+        addMessagesUnique([data]);
+        if (data.sender_type === "bot") playBotAudio(data);
+      } catch (err) {
+        console.error("WS parse error", err);
       }
-      const audio = new Audio(url);
-      botAudioRef.current = audio;
-      audio.onended = () => URL.revokeObjectURL(url);
-      audio.play().catch(() => {
-        // ignore autoplay failures
-      });
-    } catch (err) {
-      console.error("Audio playback failed", err);
-    }
+    };
   };
 
-  const sendVoiceBlob = async (blob: Blob) => {
-    if (sendingAudio) return;
-
-    if (isGuest && guestStep !== "chat") {
-      alert("ابدأ المحادثة ثم أرسل التسجيل الصوتي.");
-      return;
-    }
-
-    setSendingAudio(true);
-    const formData = new FormData();
-    formData.append("audio", blob, "voice.webm");
-
-    let endpoint = "";
-    const headers: Record<string, string> = {};
-
-    if (user && accessToken) {
-      endpoint = "support/my-voice/";
-    } else if (isGuest && conversationId) {
-      endpoint = `support/guest-conversations/${conversationId}/voice/`;
-      if (guestToken) headers["X-Guest-Token"] = guestToken;
-    } else {
-      alert("لا يوجد محادثة مفتوحة لإرسال تسجيل صوتي.");
-      setSendingAudio(false);
-      return;
-    }
-
-    try {
-      const res = await api.post(endpoint, formData, {
-        headers: { ...headers, "Content-Type": "multipart/form-data" },
-      });
-
-      const customerMsg = res.data.customer_message as SupportMessage | undefined;
-      const guestMsg = res.data.guest_message as SupportMessage | undefined;
-      const botReply = res.data.bot_reply as SupportMessage | null | undefined;
-      const collected = [customerMsg, guestMsg, botReply].filter(Boolean) as SupportMessage[];
-
-        addMessagesUnique(collected);
-
-      if (res.data.bot_audio_base64) {
-        playBotAudio(
-          res.data.bot_audio_base64 as string,
-          (res.data.bot_audio_mime as string | undefined) || "audio/mpeg"
-        );
-      }
-    } catch (err) {
-      console.error(err);
-      alert("تعذّر إرسال الرسالة الصوتية.");
-    } finally {
-      setSendingAudio(false);
-    }
-  };
-
-const startRecording = async () => {
-    if (recording || sendingAudio) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-        recorder.onstop = () => {
-          stream.getTracks().forEach((t) => t.stop());
-          const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-          audioChunksRef.current = [];
-          if (blob.size > 0 && !sendingAudioRef.current) {
-            sendingAudioRef.current = true;
-            sendVoiceBlob(blob).finally(() => {
-              sendingAudioRef.current = false;
-            });
-          }
-        };
-
-      recorder.start();
-      mediaRecorderRef.current = recorder;
-      setRecording(true);
-    } catch (err) {
-      console.error(err);
-      alert("تعذّر الوصول للمايكروفون. تأكد من صلاحيات المتصفح.");
-    }
-  };
-
-  const stopRecording = () => {
-    if (!recording || !mediaRecorderRef.current) return;
-    try {
-      mediaRecorderRef.current.stop();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setRecording(false);
-    }
-  };
-
-useEffect(() => {
-    if (!open) return;
-
+  // open widget
+  const handleOpen = async () => {
+    setOpen(true);
     setMessages([]);
     setConversationId(null);
-
     if (user && accessToken) {
-      // مستخدم مسجّل
       setGuestStep("chat");
-      initForLoggedUser();
+      await initForLoggedUser();
     } else {
-      // ضيف
-      // لو عندنا conv_id مسبقاً من التخزين
       try {
         const raw = localStorage.getItem(GUEST_STORAGE_KEY);
         if (raw) {
           const stored = JSON.parse(raw) as GuestProfile;
           if (stored.conversation_id && stored.guest_token) {
-            setGuestStep("chat");
             setConversationId(stored.conversation_id);
             setGuestToken(stored.guest_token);
-            initForGuestIfHasConversation(stored.conversation_id, stored.guest_token);
+            setGuestStep("chat");
+            await initForGuestIfHasConversation(stored.conversation_id, stored.guest_token);
             return;
           }
         }
-      } catch (e) {
-        console.error(e);
-      }
-
-      // لو ما عندنا محادثة سابقة → نبدأ من الفورم
-      setGuestStep("form");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, user, accessToken]);
-
-  // بعد معرفة conversationId نفتح الـ WebSocket
-  useEffect(() => {
-    if (!open || !conversationId) return;
-    connectWebSocket(conversationId);
-
-    return () => {
-      if (wsRef.current) wsRef.current.close();
-    };
-  }, [conversationId, open, accessToken, guestToken]);
-
-  // Scroll لآخر رسالة
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, open]);
-
- const handleSend = async () => {
-  const text = input.trim();
-  if (!text) return;
-  if (sendingAudio) return;
-
-  if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-    wsRef.current.send(
-      JSON.stringify({
-        type: "message",
-        content: text,
-      })
-    );
-    setInput("");
-    return;
-  }
-
-  try {
-    if (user && accessToken) {
-      const res = await api.post("support/my-messages/", { content: text });
-      const customerMsg = res.data.customer_message as SupportMessage;
-      const botReply = res.data.bot_reply as SupportMessage;
-      setMessages((prev) => [...prev, customerMsg, botReply]);
-      setInput("");
-    } else if (isGuest && conversationId) {
-      if (!guestToken) {
-        throw new Error("Missing guestToken");
-      }
-
-      const res = await api.post(
-        `support/guest-conversations/${conversationId}/messages/`,
-        { content: text },
-        { headers: { "X-Guest-Token": guestToken } }
-      );
-
-      const guestMsg = res.data.guest_message as SupportMessage;
-      const botReply = res.data.bot_reply as SupportMessage | null;
-      setMessages((prev) => [...prev, guestMsg, ...(botReply ? [botReply] : [])]);
-      setInput("");
-    } else {
-      alert("الرجاء إكمال خطوات التحقق قبل إرسال الرسائل.");
-    }
-  } catch (err) {
-    console.error(err);
-    alert("حدث خطأ أثناء إرسال الرسالة.");
-  }
-};
-
-  const handleEndChat = async () => {
-    // إغلاق WebSocket
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-
-    if (mediaRecorderRef.current && recording) {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch (err) {
-        console.error(err);
-      }
-      setRecording(false);
-      audioChunksRef.current = [];
-    }
-    if (botAudioRef.current) {
-      try {
-        botAudioRef.current.pause();
       } catch {
-        // ignore
+        /* ignore */
       }
-      URL.revokeObjectURL(botAudioRef.current.src);
-      botAudioRef.current = null;
-    }
-
-    // لو مستخدم مسجّل → نغلق المحادثة من الباكند
-    if (user && accessToken) {
-      try {
-        await api.post("support/my-conversation/close/");
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // تنظيف الحالة المحلية
-    setConversationId(null);
-    setMessages([]);
-    setInput("");
-
-    if (isGuest) {
-      // حذف بيانات الضيف كي يبدأ من جديد
-      localStorage.removeItem(GUEST_STORAGE_KEY);
-      setGuestToken(null);
       setGuestStep("form");
     }
   };
 
-
+  const handleClose = () => {
+    setOpen(false);
+    stopBotAudio();
+    wsRef.current?.close();
+  };
 
   useEffect(() => {
-    if (!open && recording && mediaRecorderRef.current) {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch {
-        // ignore
-      }
-      audioChunksRef.current = [];
-      setRecording(false);
+    if (!open || !conversationId) return;
+    connectWebSocket(conversationId);
+    return () => wsRef.current?.close();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, conversationId, accessToken, guestToken]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // ---------- Send text ----------
+  const sendText = async () => {
+    const text = input.trim();
+    if (!text) return;
+    if (!conversationId) {
+      alert("يرجى إكمال خطوات التحقق أولاً.");
+      return;
     }
-  }, [open, recording]);
 
-  useEffect(() => {
-    return () => {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-        try {
-          mediaRecorderRef.current.stop();
-        } catch {
-          // ignore
-        }
+    // optimistic
+    addMessagesUnique([
+      {
+        id: -Date.now(),
+        conversation: conversationId,
+        sender_type: isGuest ? "guest" : "customer",
+        sender_name: isGuest ? guestName || "ضيف" : user?.name || "عميل",
+        content: text,
+        created_at: new Date().toISOString(),
+      },
+    ]);
+    setInput("");
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "message", content: text }));
+      return;
+    }
+
+    try {
+      if (user && accessToken) {
+        const res = await api.post("support/my-messages/", { content: text });
+        addMessagesUnique([res.data.customer_message, res.data.bot_reply].filter(Boolean) as SupportMessage[]);
+        playBotAudio(res.data);
+      } else if (isGuest && guestToken) {
+        const res = await api.post(
+          `support/guest-conversations/${conversationId}/messages/`,
+          { content: text },
+          { headers: { "X-Guest-Token": guestToken } },
+        );
+        addMessagesUnique([res.data.guest_message, res.data.bot_reply].filter(Boolean) as SupportMessage[]);
+        playBotAudio(res.data);
       }
-      if (botAudioRef.current) {
-        try {
-          botAudioRef.current.pause();
-        } catch {
-          // ignore
-        }
-        URL.revokeObjectURL(botAudioRef.current.src);
-        botAudioRef.current = null;
+    } catch (err) {
+      console.error(err);
+      alert("حدث خطأ أثناء إرسال الرسالة.");
+    }
+  };
+
+  // ---------- Voice ----------
+  const clearAudioGraph = () => {
+    if (silenceTimerRef.current) {
+      window.clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (maxTimerRef.current) {
+      window.clearTimeout(maxTimerRef.current);
+      maxTimerRef.current = null;
+    }
+    analyserRef.current?.disconnect();
+    audioCtxRef.current?.close().catch(() => undefined);
+    analyserRef.current = null;
+    audioCtxRef.current = null;
+    dataArrayRef.current = null;
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    setRecording(false);
+    clearAudioGraph();
+  };
+
+  const setupSilenceDetection = () => {
+    if (!analyserRef.current || !dataArrayRef.current) return;
+    const check = () => {
+      if (!analyserRef.current || !dataArrayRef.current) return;
+      analyserRef.current.getByteTimeDomainData(dataArrayRef.current);
+      let sumSquares = 0;
+      for (let i = 0; i < dataArrayRef.current.length; i += 1) {
+        const v = (dataArrayRef.current[i] - 128) / 128;
+        sumSquares += v * v;
+      }
+      const rms = Math.sqrt(sumSquares / dataArrayRef.current.length);
+      const SILENCE_RMS = 0.02;
+      const SILENCE_MS = 1200;
+      if (rms < SILENCE_RMS && !silenceTimerRef.current) {
+        silenceTimerRef.current = window.setTimeout(() => stopRecording(), SILENCE_MS);
+      } else if (rms >= SILENCE_RMS && silenceTimerRef.current) {
+        window.clearTimeout(silenceTimerRef.current);
+        silenceTimerRef.current = null;
+      }
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        requestAnimationFrame(check);
       }
     };
-  }, []);
+    requestAnimationFrame(check);
+  };
+
+  const startRecording = async () => {
+    setVoiceOverlay(true);
+    if (sendingAudio || recording) return;
+    if (!conversationId) {
+      alert("يرجى إكمال خطوات التحقق قبل التسجيل.");
+      return;
+    }
+    stopBotAudio();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+
+      const audioCtx = new AudioContext();
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const source = audioCtx.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      audioCtxRef.current = audioCtx;
+      analyserRef.current = analyser;
+      dataArrayRef.current = dataArray;
+
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+      recorder.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        audioChunksRef.current = [];
+        clearAudioGraph();
+        setRecording(false);
+        await sendVoiceBlob(blob);
+        if (voiceOverlay && !sendingAudio) {
+          setTimeout(() => {
+            startRecording().catch(() => undefined);
+          }, 350);
+        }
+      };
+
+      recorder.start();
+      setRecording(true);
+      setupSilenceDetection();
+
+      if (maxTimerRef.current) window.clearTimeout(maxTimerRef.current);
+      maxTimerRef.current = window.setTimeout(() => stopRecording(), 15000);
+    } catch (err) {
+      console.error(err);
+      setRecording(false);
+      alert("تعذر بدء التسجيل. تأكد من أذونات الميكروفون.");
+    }
+  };
+
+  const sendVoiceBlob = async (blob: Blob) => {
+    if (!conversationId) return;
+    setSendingAudio(true);
+    try {
+      const form = new FormData();
+      form.append("audio", blob, "voice.webm");
+      const url = isGuest ? `support/guest-conversations/${conversationId}/voice/` : "support/my-voice/";
+      const headers = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
+      const res = await api.post(url, form, {
+        headers: { ...(headers || {}), "Content-Type": "multipart/form-data" },
+      });
+      const collected: SupportMessage[] = [];
+      if (res.data.customer_message) collected.push(res.data.customer_message);
+      if (res.data.guest_message) collected.push(res.data.guest_message);
+      if (res.data.bot_reply) collected.push(res.data.bot_reply);
+      addMessagesUnique(collected);
+      playBotAudio(res.data);
+    } catch (err) {
+      console.error(err);
+      alert("تعذر إرسال الرسالة الصوتية.");
+    } finally {
+      setSendingAudio(false);
+    }
+  };
+
+  // ---------- UI ----------
+  const renderVoiceOverlay = () => {
+    if (!voiceOverlay) return null;
+    return (
+      <div className="absolute inset-0 z-30 flex items-center justify-center px-4 bg-black/50">
+        <div className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border border-amber-200 bg-gradient-to-b from-white via-amber-50 to-amber-100">
+          <div className="px-4 pt-4 pb-2 text-center">
+            <div className="text-xs text-amber-600 font-semibold">يستمع الآن...</div>
+            <div className="text-sm font-bold text-gray-800 mt-1">
+              نسجل تلقائياً، وسنرسل الرد حالما تتوقف عن الكلام. لا حاجة للضغط على إرسال.
+            </div>
+          </div>
+          <div className="px-4 pb-4">
+            <div className="h-16 rounded-xl bg-white/80 border border-amber-100 flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 opacity-60 bg-gradient-to-r from-amber-100 via-amber-200 to-amber-100 animate-pulse" />
+              <div className="relative flex items-end gap-1">
+                {[6, 10, 16, 12, 18, 12, 16, 10, 6].map((h, idx) => (
+                  <span
+                    key={idx}
+                    className="w-1 rounded-full bg-amber-500 animate-[pulse_1.2s_ease-in-out_infinite]"
+                    style={{ height: `${h + (recording ? 10 : 0)}px`, animationDelay: `${idx * 0.08}s` }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="mt-3 text-[12px] text-gray-700 text-center">
+              {recording
+                ? "سيتم الإيقاف والإرسال عند الصمت أو بعد 15 ثانية، ثم نبدأ تسجيل جديد تلقائياً ما دامت اللوحة مفتوحة."
+                : "جاري التحضير للتسجيل..."}
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center mt-3">
+              <button
+                onClick={stopRecording}
+                disabled={!recording || sendingAudio}
+                className="px-3 py-2 rounded-full bg-amber-500 text-white text-xs font-semibold disabled:opacity-50"
+              >
+                إيقاف مؤقت
+              </button>
+              <button
+                onClick={() => {
+                  setVoiceOverlay(false);
+                  stopRecording();
+                }}
+                className="px-3 py-2 rounded-full border text-gray-600 text-xs font-semibold bg-white"
+              >
+                إغلاق
+              </button>
+            </div>
+            {sendingAudio && <div className="text-[11px] text-gray-500 text-center mt-1">يتم إرسال الصوت...</div>}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderGuestGate = () => {
+    if (!isGuest || guestStep === "chat") return null;
+    return (
+      <div className="absolute inset-0 bg-white/95 flex items-center justify-center px-4 z-20">
+        {guestStep === "form" && (
+          <form onSubmit={handleGuestRequestCode} className="w-full max-w-xs space-y-3 text-right text-sm">
+            <div className="font-semibold text-gray-800">تواصل معنا كضيف</div>
+            <div className="text-[12px] text-gray-600">
+              أدخل الاسم والبريد الإلكتروني لإرسال كود تحقق إلى بريدك. لن تتمكن من بدء المحادثة بدونه.
+            </div>
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              placeholder="الاسم"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+            />
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm"
+              placeholder="example@mail.com"
+              type="email"
+              value={guestEmail}
+              onChange={(e) => setGuestEmail(e.target.value)}
+            />
+            {guestError && <div className="text-[12px] text-red-500">{guestError}</div>}
+            <button
+              type="submit"
+              disabled={guestSubmitting}
+              className="w-full py-2 rounded-full bg-amber-500 text-white text-sm disabled:opacity-60"
+            >
+              {guestSubmitting ? "يتم الإرسال..." : "إرسال كود التحقق"}
+            </button>
+          </form>
+        )}
+        {guestStep === "code" && (
+          <form onSubmit={handleGuestVerifyCode} className="w-full max-w-xs space-y-3 text-right text-sm">
+            <div className="font-semibold text-gray-800">أدخل كود التحقق</div>
+            <div className="text-[12px] text-gray-600">راجع بريدك وأدخل الكود للمتابعة.</div>
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-center tracking-[0.3em] text-sm"
+              placeholder="123456"
+              maxLength={6}
+              value={guestCode}
+              onChange={(e) => setGuestCode(e.target.value)}
+            />
+            {guestError && <div className="text-[12px] text-red-500">{guestError}</div>}
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setGuestStep("form");
+                  setGuestCode("");
+                }}
+                className="px-3 py-2 rounded-full border text-xs"
+              >
+                رجوع
+              </button>
+              <button
+                type="submit"
+                disabled={guestSubmitting}
+                className="px-4 py-2 rounded-full bg-amber-500 text-white text-sm disabled:opacity-60"
+              >
+                {guestSubmitting ? "يتم التحقق..." : "تأكيد الكود"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="fixed bottom-4 left-4 z-40">
-      {open && (
-        <div className="w-72 sm:w-80 h-96 bg-white rounded-2xl shadow-lg border border-amber-100 flex flex-col overflow-hidden mb-2">
-<div className="px-3 py-2 bg-amber-500 text-white flex items-center justify-between">
-  <span className="text-sm font-semibold">دعم CafeMS Demo</span>
-  <div className="flex items-center gap-2">
-    {(user || (isGuest && guestStep === "chat")) && (
-      <button
-        onClick={handleEndChat}
-        className="text-[10px] border border-white/60 rounded-full px-2 py-0.5 hover:bg-white/10"
-      >
-        إنهاء
-      </button>
-    )}
-    <button
-      onClick={() => setOpen(false)}
-      className="text-xs hover:text-red-100"
-    >
-      ✕
-    </button>
-  </div>
-</div>
-
-
-          {/* 👇 حالة الضيف – خطوة 1: نموذج الاسم والإيميل */}
-          {isGuest && guestStep === "form" && (
-            <div className="flex-1 px-3 py-3 text-xs bg-amber-50/40">
-              <p className="mb-2 text-gray-700 text-sm font-semibold">
-                تواصل معنا كضيف
-              </p>
-              <p className="mb-3 text-gray-500 text-[11px]">
-                الرجاء إدخال الاسم والبريد الإلكتروني لإرسال كود تحقق إلى بريدك.
-              </p>
-              <form
-                onSubmit={handleGuestRequestCode}
-                className="space-y-2 text-xs"
-              >
-                <div>
-                  <label className="block mb-1">الاسم</label>
-                  <input
-                    className="w-full border rounded-lg px-2 py-1.5"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1">البريد الإلكتروني</label>
-                  <input
-                    type="email"
-                    className="w-full border rounded-lg px-2 py-1.5"
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                {guestError && (
-                  <div className="text-[11px] text-red-500 mt-1">
-                    {guestError}
-                  </div>
-                )}
-                <button
-                  type="submit"
-                  disabled={guestSubmitting}
-                  className="w-full mt-2 py-1.5 rounded-full bg-amber-500 text-white text-xs hover:bg-amber-600 disabled:opacity-60"
-                >
-                  {guestSubmitting ? "جاري إرسال الكود..." : "إرسال كود التحقق"}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* 👇 حالة الضيف – خطوة 2: إدخال كود التحقق */}
-          {isGuest && guestStep === "code" && (
-            <div className="flex-1 px-3 py-3 text-xs bg-amber-50/40">
-              <p className="mb-2 text-gray-700 text-sm font-semibold">
-                تحقق من بريدك الإلكتروني
-              </p>
-              <p className="mb-3 text-gray-500 text-[11px]">
-                تم إرسال كود مكوّن من 6 أرقام إلى بريدك الإلكتروني.
-                الرجاء إدخاله بالأسفل لإكمال التحقق.
-              </p>
-              <form
-                onSubmit={handleGuestVerifyCode}
-                className="space-y-2 text-xs"
-              >
-                <div>
-                  <label className="block mb-1">كود التحقق</label>
-                  <input
-                    className="w-full border rounded-lg px-2 py-1.5 text-center tracking-[0.3em]"
-                    value={guestCode}
-                    onChange={(e) => setGuestCode(e.target.value)}
-                    maxLength={6}
-                    required
-                  />
-                </div>
-                {guestError && (
-                  <div className="text-[11px] text-red-500 mt-1">
-                    {guestError}
-                  </div>
-                )}
-                <div className="flex justify-between mt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setGuestStep("form");
-                      setGuestCode("");
-                    }}
-                    className="px-3 py-1.5 rounded-full border text-xs"
-                  >
-                    الرجوع
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={guestSubmitting}
-                    className="px-4 py-1.5 rounded-full bg-amber-500 text-white text-xs hover:bg-amber-600 disabled:opacity-60"
-                  >
-                    {guestSubmitting ? "جاري التحقق..." : "تأكيد الكود"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {/* 👇 الشات العادي (للعميل أو للضيف بعد التحقق) */}
-          {(!isGuest || guestStep === "chat") && (
-            <>
-              <div className="flex-1 px-3 py-2 overflow-y-auto space-y-2 text-xs bg-amber-50/40">
-                {(loading || connecting) && (
-                  <div className="text-center text-gray-500 mt-3">
-                    {loading
-                      ? "جاري تحميل المحادثة..."
-                      : "جاري الاتصال بالدردشة..."}
-                  </div>
-                )}
-
-                {!loading && !connecting && messages.length === 0 && (
-                  <div className="text-gray-500 text-center mt-4">
-                    اكتب رسالتك لبدء المحادثة مع الدعم.
-                  </div>
-                )}
-
-                {messages.map((m, idx) => {
-                  const isMe =
-                    (!isGuest && m.sender_type === "customer") ||
-                    (isGuest && m.sender_type === "guest");
-                  const isBot = m.sender_type === "bot";
-
-                  return (
-                    <div
-                      key={`${m.id}-${idx}`}
-                      className={`flex ${
-                        isMe ? "justify-end" : "justify-start"
-                      }`}
-                    >
-                      <div
-                        className={`max-w-[80%] px-3 py-2 rounded-2xl shadow-sm ${
-                          isMe
-                            ? "bg-amber-500 text-white rounded-br-none"
-                            : isBot
-                            ? "bg-white border border-dashed border-amber-300 text-gray-800 rounded-bl-none"
-                            : "bg-white border border-gray-200 text-gray-800 rounded-bl-none"
-                        }`}
-                      >
-                        {!isMe && (
-                          <div className="text-[10px] text-gray-500 mb-0.5">
-                            {isBot
-                              ? "دعم آلي"
-                              : m.sender_name || "الدعم"}
-                          </div>
-                        )}
-                        <div>{m.content}</div>
-                        <div className="text-[9px] text-gray-400 mt-1 text-left">
-                          {new Date(m.created_at).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
-              </div>
-
-                            <div className="border-t px-2 py-2 flex items-center gap-1">
-                <input
-                  className="flex-1 border rounded-full px-3 py-1.5 text-xs"
-                  placeholder="اكتب رسالتك..."
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  disabled={
-                    loading ||
-                    connecting ||
-                    sendingAudio ||
-                    (isGuest && guestStep !== "chat")
-                  }
-                />
-                <button
-                  onClick={recording ? stopRecording : startRecording}
-                  disabled={
-                    loading ||
-                    connecting ||
-                    sendingAudio ||
-                    (isGuest && guestStep !== "chat") ||
-                    (isGuest && !conversationId)
-                  }
-                  className={`px-3 py-1.5 rounded-full border text-xs ${
-                    recording
-                      ? "bg-red-500 text-white border-red-500"
-                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
-                  }`}
-                  title={recording ? "إيقاف التسجيل" : "تسجيل صوت"}
-                >
-                  {recording ? "إيقاف" : "🎤"}
-                </button>
-                <button
-                  onClick={handleSend}
-                  disabled={
-                    !input.trim() ||
-                    loading ||
-                    connecting ||
-                    sendingAudio ||
-                    (isGuest && guestStep !== "chat")
-                  }
-                  className="px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs hover:bg-amber-600 disabled:opacity-60"
-                >
-                  إرسال
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+    <div className="fixed bottom-4 left-4 z-40" style={{ fontFamily: "inherit" }}>
+      {!open && (
+        <button
+          onClick={handleOpen}
+          className="w-12 h-12 rounded-full bg-amber-500 text-white shadow-lg flex items-center justify-center text-xl hover:bg-amber-600"
+        >
+          💬
+        </button>
       )}
 
-      {/* زر الشات – يظهر للجميع */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-12 h-12 rounded-full bg-amber-500 text-white shadow-lg flex items-center justify-center text-xl hover:bg-amber-600"
-      >
-        💬
-      </button>
+      {open && (
+        <div
+          className="w-72 sm:w-80 bg-white rounded-2xl shadow-xl border border-amber-100 flex flex-col overflow-hidden relative"
+          style={{ height: "540px", maxHeight: "80vh" }}
+        >
+          <div className="px-3 py-2 bg-amber-500 text-white flex items-center justify-between sticky top-0 z-10">
+            <span className="text-sm font-semibold">دعم CafeMS Demo</span>
+            <div className="flex items-center gap-2">
+              {(user || (isGuest && guestStep === "chat")) && (
+                <button
+                  onClick={() => {
+                    wsRef.current?.close();
+                    setConversationId(null);
+                    setMessages([]);
+                    setInput("");
+                    if (isGuest) {
+                      localStorage.removeItem(GUEST_STORAGE_KEY);
+                      setGuestToken(null);
+                      setGuestStep("form");
+                    }
+                  }}
+                  className="text-[10px] border border-white/60 rounded-full px-2 py-0.5 hover:bg-white/10"
+                >
+                  إنهاء
+                </button>
+              )}
+              <button onClick={handleClose} className="text-xs hover:text-red-100">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 relative bg-amber-50/40 flex flex-col min-h-0">
+            {(loading || connecting) && (
+              <div className="text-center text-gray-500 text-xs py-3">
+                {loading ? "جاري تحميل المحادثة..." : "جاري الاتصال..."}
+              </div>
+            )}
+
+            {!loading && !connecting && messages.length === 0 && guestStep === "chat" && (
+              <div className="text-center text-gray-500 text-xs py-3">ابدأ برسالة نصية أو صوتية للمتابعة مع الدعم.</div>
+            )}
+
+            <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-2 text-xs">
+              {messages.map((m) => {
+                const isMe = (!isGuest && m.sender_type === "customer") || (isGuest && m.sender_type === "guest");
+                const isBot = m.sender_type === "bot";
+                return (
+                  <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[82%] px-3 py-2 rounded-2xl shadow-sm ${
+                        isMe
+                          ? "bg-amber-500 text-white rounded-br-none"
+                          : isBot
+                          ? "bg-white border border-dashed border-amber-300 text-gray-800 rounded-bl-none"
+                          : "bg-white border border-gray-200 text-gray-800 rounded-bl-none"
+                      }`}
+                    >
+                      {!isMe && (
+                        <div className="text-[10px] text-gray-500 mb-0.5">{isBot ? "دعم آلي" : m.sender_name || "الدعم"}</div>
+                      )}
+                      <div>{m.content}</div>
+                      <div className="text-[9px] text-gray-400 mt-1 text-left">{new Date(m.created_at).toLocaleTimeString()}</div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {renderVoiceOverlay()}
+            {renderGuestGate()}
+          </div>
+
+          <div className="border-t px-2 py-2 flex items-center gap-2 sticky bottom-0 bg-white">
+            <input
+              className="flex-1 border rounded-full px-3 py-1.5 text-xs"
+              placeholder="اكتب رسالتك..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendText();
+                }
+              }}
+              disabled={loading || connecting || (isGuest && guestStep !== "chat")}
+            />
+            <button
+              onClick={sendText}
+              disabled={!input.trim() || loading || connecting || (isGuest && guestStep !== "chat")}
+              className="px-3 py-1.5 rounded-full bg-amber-500 text-white text-xs hover:bg-amber-600 disabled:opacity-60"
+            >
+              إرسال
+            </button>
+            <button
+              onClick={startRecording}
+              disabled={recording || sendingAudio || loading || connecting || (isGuest && guestStep !== "chat")}
+              className="px-3 py-1.5 rounded-full border border-amber-400 text-amber-600 text-xs disabled:opacity-60 bg-white"
+            >
+              🎤
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
-
 };
 
 export default SupportChatWidget;

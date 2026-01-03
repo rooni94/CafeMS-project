@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 
 const PrivacyPolicy: React.FC = () => {
   return (
@@ -48,3 +48,4 @@ const PrivacyPolicy: React.FC = () => {
 };
 
 export default PrivacyPolicy;
+

@@ -1,4 +1,4 @@
-# backend/apps/support/views.py
+﻿# backend/apps/support/views.py
 import logging
 from django.utils import timezone
 from django.db import transaction
@@ -884,3 +884,4 @@ class SupportStaffActivityListView(generics.ListAPIView):
         if staff_id:
             qs = qs.filter(staff_id=staff_id)
         return qs
+

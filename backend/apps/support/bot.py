@@ -1,4 +1,4 @@
-import re
+﻿import re
 from difflib import get_close_matches
 from typing import Optional
 
@@ -298,7 +298,7 @@ def generate_bot_reply(user: Optional[User], content: str) -> str:
     # الموقع / الفروع
     if any(
         k in lower
-        for k in ["وين موقعكم", "وين الفرع", "عنوانكم", "موقع الكافتيريا", "الموقع", "العنوان"]
+        for k in ["وين موقعكم", "وين الفرع", "عنوانكم", "موقع الكافيه", "الموقع", "العنوان"]
     ):
         return (
             "نستقبل الطلبات عن طريق الموقع/التطبيق مع خدمة توصيل في نطاق محدد. "
@@ -377,3 +377,4 @@ def should_handover_to_human(content: str) -> bool:
         "support agent",
     ]
     return any(p in text for p in trigger_phrases)
+

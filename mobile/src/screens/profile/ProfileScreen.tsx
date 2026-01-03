@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import QRCode from "react-native-qrcode-svg";
@@ -490,3 +490,4 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default ProfileScreen;
+

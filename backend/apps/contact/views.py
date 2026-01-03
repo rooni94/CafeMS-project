@@ -1,4 +1,4 @@
-# backend/apps/contact/views.py
+﻿# backend/apps/contact/views.py
 from rest_framework import generics, viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
@@ -88,3 +88,4 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
