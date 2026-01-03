@@ -1,5 +1,5 @@
 # apps/support/urls.py
-from django.urls import path
+from django.urls import path, re_path
 from .views import (
     MyConversationView,
     MyMessagesView,
@@ -43,8 +43,9 @@ urlpatterns = [
         GuestConversationMessagesView.as_view(),
         name="guest-conversation-messages",
     ),
-    path(
-        "guest-conversations/<int:pk>/voice/",
+    # نقبل المسار بصيغة path القياسية أو بدون / نهائية (لبعض الإعدادات التي لا تفعل APPEND_SLASH)
+    re_path(
+        r"^guest-conversations/(?P<pk>\d+)/voice/?$",
         GuestVoiceMessageView.as_view(),
         name="guest-conversation-voice",
     ),

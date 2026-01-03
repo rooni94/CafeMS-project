@@ -362,19 +362,20 @@ const SupportChatFloating: React.FC = () => {
   };
 
   const sendText = async () => {
-    if (!conversationId || !input.trim() || sendingAudio) return;
+    if (!input.trim() || sendingAudio) return;
     const text = input.trim();
+    if (!conversationId) {
+      setGuestError("ابدأ المحادثة أولاً قبل الإرسال.");
+      return;
+    }
     setInput("");
-    const temp: SupportMessage = {
-      id: -Date.now(),
-      conversation: conversationId,
-      sender_type: isGuest ? "guest" : "customer",
-      sender_name: isGuest ? guestName || "ضيف" : user?.name || "عميل",
-      content: text,
-      created_at: new Date().toISOString(),
-    };
-    addMessagesUnique([temp]);
     try {
+      // إن كان الـ WS مفتوحاً نرسل فقط عبره ونعتمد على البث العكسي
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "message", content: text }));
+        return;
+      }
+
       const url = isGuest ? `support/guest-conversations/${conversationId}/messages/` : "support/my-messages/";
       const headers = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
       const res = await api.post(url, { content: text }, { headers });

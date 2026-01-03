@@ -1,6 +1,8 @@
 # backend/apps/orders/serializers.py
 from decimal import Decimal, ROUND_HALF_UP
 from rest_framework import serializers
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.exceptions import InvalidToken
 from apps.products.models import Product, ProductAddon
 from apps.products.serializers import ProductSerializer
 from .models import (
@@ -68,6 +70,10 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     user_name = serializers.SerializerMethodField()
+    customer_name = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
+    token = serializers.CharField(write_only=True, required=False, allow_blank=True)
     table = TableSerializer(read_only=True)
     table_id = serializers.PrimaryKeyRelatedField(
         queryset=Table.objects.all(),
@@ -84,6 +90,8 @@ class OrderSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "user_name",
+            "customer_name",
+            "token",
             "status",
             "status_display",
             "payment_method",
@@ -120,7 +128,8 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_user_name(self, obj: Order):
         user = getattr(obj, "user", None)
         if not user:
-            return None
+            # Fallback to stored snapshot if user is null.
+            return getattr(obj, "customer_name", None)
         full = user.get_full_name()
         if full:
             return full
@@ -135,6 +144,7 @@ class OrderSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # نفصل بيانات العناصر
         items_data = validated_data.pop("items", [])
+        raw_token_from_payload = validated_data.pop("token", None)
 
         # لو جا user من serializer.save(user=...) نحذفه من validated_data
         user_from_kwargs = validated_data.pop("user", None)
@@ -146,6 +156,21 @@ class OrderSerializer(serializers.ModelSerializer):
             user = request.user
         elif user_from_kwargs is not None:
             user = user_from_kwargs
+        elif request:
+            # احتياطي: لو تم إسقاط Authorization بالـ proxy نستقبل التوكن يدوياً
+            raw_token = (
+                raw_token_from_payload
+                or request.data.get("token")
+                or request.headers.get("X-Access-Token")
+                or request.headers.get("X-Authorization")
+            )
+            if raw_token:
+                auth = JWTAuthentication()
+                try:
+                    validated_token = auth.get_validated_token(raw_token)
+                    user = auth.get_user(validated_token)
+                except InvalidToken:
+                    user = None
 
         # إنشاء الطلب نفسه بحالة pending
         served_by = None
@@ -157,6 +182,11 @@ class OrderSerializer(serializers.ModelSerializer):
         order = Order.objects.create(
             user=user,
             status="pending",
+            customer_name=(
+                validated_data.get("customer_name")
+                or (user.get_full_name() if user else None)
+                or (user.username if user else None)
+            ),
             # payment_status يبقى "pending" افتراضياً
             served_by=served_by,
             **validated_data,

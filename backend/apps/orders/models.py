@@ -106,6 +106,9 @@ class Order(models.Model):
     # إجمالي الطلب (بدون رسوم التوصيل غالبًا)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
+    # اسم العميل كنسخة محفوظة لو كان حقل user فارغاً لاحقاً
+    customer_name = models.CharField(max_length=150, blank=True, null=True)
+
     # نوع الطلب (أكل بالمحل/سفري/توصيل)
     order_type = models.CharField(
         max_length=20,

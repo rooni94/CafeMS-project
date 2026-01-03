@@ -110,6 +110,10 @@ const CheckoutScreen: React.FC = () => {
         order_type: deliveryMode === "pickup" ? "takeaway" : "delivery",
         payment_method: paymentMethod === "card" ? "card_pos" : paymentMethod,
         delivery_address: deliveryMode === "delivery" ? selectedAddress : "",
+        customer_name: user?.username,
+        token: (typeof api.defaults.headers.common["Authorization"] === "string"
+          ? (api.defaults.headers.common["Authorization"] as string).replace(/^Bearer\s+/i, "")
+          : undefined),
         items: items.map((item) => ({
           product_id: item.id,
           quantity: item.quantity,
@@ -412,3 +416,5 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default CheckoutScreen;
+
+

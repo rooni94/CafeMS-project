@@ -96,7 +96,7 @@ const DashboardPOS: React.FC = () => {
   const [discountType, setDiscountType] = useState<"none" | "amount" | "percent">("amount");
   const [discountValue, setDiscountValue] = useState("0");
   const [note, setNote] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card_pos" | "online">("cash");
+  const [paymentMethod, setpaymentMethod] = useState<"cash" | "card_pos" | "online">("cash");
 
   const [membershipId, setMembershipId] = useState("");
   const [pointsDelta, setPointsDelta] = useState("10");
@@ -200,6 +200,10 @@ const DashboardPOS: React.FC = () => {
         discount_type: discountType,
         discount_value: discountType === "percent" ? Math.min(100, discountNumeric) : discountNumeric,
         note,
+        customer_name: user?.username,
+        token: (typeof api.defaults.headers.common["Authorization"] === "string"
+          ? (api.defaults.headers.common["Authorization"] as string).replace(/^Bearer\s+/i, "")
+          : undefined),
         payment_method: paymentMethod,
         delivery: orderType === "delivery",
       });
@@ -418,7 +422,7 @@ const DashboardPOS: React.FC = () => {
           <Select
             label="طريقة الدفع"
             value={paymentMethod}
-            onChange={setPaymentMethod}
+            onChange={setpaymentMethod}
             options={[
               { value: "cash", label: "نقدًا" },
               { value: "card_pos", label: "بطاقة / POS" },
@@ -644,3 +648,4 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default DashboardPOS;
+

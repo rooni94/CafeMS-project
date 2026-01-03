@@ -151,6 +151,11 @@ class MyMessagesView(views.APIView):
 
         auto_text: str | None = None
 
+        # إعادة تفعيل البوت تلقائياً إذا لم يُسند لموظف وكان قد عُطّل سابقاً
+        if conv.bot_disabled and not conv.assigned_to:
+            conv.bot_disabled = False
+            conv.save(update_fields=["bot_disabled"])
+
         # 1) لو طلب موظف → فعّل التحويل، وأوقف الردود الآلية بعد ذلك
         if should_handover_to_human(content):
             if not conv.bot_disabled:
@@ -237,6 +242,12 @@ class MyVoiceMessageView(views.APIView):
         _broadcast_message(conv.id, customer_data)
 
         auto_text: str | None = None
+
+        # إعادة تفعيل البوت تلقائياً إذا لم يُسند لموظف وكان قد عُطّل سابقاً
+        if conv.bot_disabled and not conv.assigned_to:
+            conv.bot_disabled = False
+            conv.save(update_fields=["bot_disabled"])
+
         if should_handover_to_human(transcript):
             if not conv.bot_disabled:
                 conv.bot_disabled = True

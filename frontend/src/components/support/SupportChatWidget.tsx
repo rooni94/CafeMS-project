@@ -316,30 +316,20 @@ const SupportChatWidget: React.FC = () => {
   const sendText = async () => {
     const text = input.trim();
     if (!text) return;
-    if (!conversationId) {
-      alert("ابدأ المحادثة أولاً قبل الإرسال.");
-      return;
-    }
-
-    // optimistic
-    addMessagesUnique([
-      {
-        id: -Date.now(),
-        conversation: conversationId,
-        sender_type: isGuest ? "guest" : "customer",
-        sender_name: isGuest ? guestName || "ضيف" : user?.name || "عميل",
-        content: text,
-        created_at: new Date().toISOString(),
-      },
-    ]);
     setInput("");
 
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "message", content: text }));
-      return;
-    }
-
     try {
+      if (!conversationId) {
+        alert("ابدأ المحادثة أولاً قبل الإرسال.");
+        return;
+      }
+
+      // إن كان الـ WS مفتوحاً نرسل فقط عبره ونعتمد على البث العكسي
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "message", content: text }));
+        return;
+      }
+
       if (user && accessToken) {
         const res = await api.post("support/my-messages/", { content: text });
         addMessagesUnique([res.data.customer_message, res.data.bot_reply].filter(Boolean) as SupportMessage[]);
