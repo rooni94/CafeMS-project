@@ -32,7 +32,7 @@ def _get_whisper_model() -> WhisperModel:
     global _whisper_model
     if _whisper_model is None:
         # استخدم نموذج أخف افتراضيًا للسرعة (يمكن تغييره عبر البيئة)
-        model_name = getattr(settings, "WHISPER_MODEL_NAME", "medium") or "medium"
+        model_name = getattr(settings, "WHISPER_MODEL_NAME", "small") or "small"
         compute_type = getattr(settings, "WHISPER_COMPUTE_TYPE", "int8") or "int8"
         download_root = getattr(settings, "WHISPER_MODEL_DIR", "").strip() or None
         cpu_threads = getattr(settings, "WHISPER_CPU_THREADS", None)
