@@ -1,31 +1,41 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# Virtualenvs
+# ======================
+# Python / Virtual Env
+# ======================
 .venv/
 venv/
-env/
+backend/.venv/
+__pycache__/
+*.pyc
 
-# Django
+# ======================
+# AI / Models / Cache
+# ======================
+vosk_models/
+.whisper_cache/
+.huggingface/
+*.onnx
+*.bin
+
+# ======================
+# Django runtime
+# ======================
 db.sqlite3
 media/
 staticfiles/
 *.log
 
-# Node
+# ======================
+# Frontend
+# ======================
 node_modules/
 dist/
+*.zip
 
-# Models / STT caches
-vosk_models/
-*.bin
-*.model
-*.mdl
-*.fst
-
-# Whisper / HF cache (اختياري)
-.whisper_cache/
-.huggingface/
+# ======================
+# Env files
+# ======================
+.env
+.env.*
+frontend/.env.local
+frontend/.env.production
+mobile/.env.*
