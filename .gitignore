@@ -1,30 +1,31 @@
-# Python / Django
+# Python
 __pycache__/
-*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Django
+db.sqlite3
+media/
+staticfiles/
 *.log
 
-# Django DB & media
-backend/db.sqlite3
-backend/media/
-backend/staticfiles/
-# Data & backups
-*.csv
-*_backup.sqlite3
-db_old_backup.sqlite3
-
-# Env files
-.env
-.env.*
-*.env
-backend/.env
-backend/.env.*
-
-# Virtual env
-venv/
-backend/venv/
-dist.zip
-# Node / frontend
+# Node
 node_modules/
 dist/
-.vite/
+
+# Models / STT caches
+vosk_models/
+*.bin
+*.model
+*.mdl
+*.fst
+
+# Whisper / HF cache (اختياري)
 .whisper_cache/
+.huggingface/
