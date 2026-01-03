@@ -448,10 +448,10 @@ const SupportChatWidget: React.FC = () => {
         clearAudioGraph();
         setRecording(false);
         await sendVoiceBlob(blob);
-        if (voiceOverlay && !sendingAudio) {
+        if (voiceOverlay) {
           setTimeout(() => {
             startRecording().catch(() => undefined);
-          }, 350);
+          }, 300);
         }
       };
 

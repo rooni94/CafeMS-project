@@ -1,4 +1,3 @@
-﻿// mobile/src/components/support/SupportChatFloating.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
@@ -116,7 +115,7 @@ const SupportChatFloating: React.FC = () => {
       const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
       soundRef.current = sound;
     } catch {
-      /* ignore */
+      /* ignore playback errors */
     }
   };
 
@@ -230,7 +229,7 @@ const SupportChatFloating: React.FC = () => {
   const handleGuestVerifyCode = async () => {
     setGuestError(null);
     if (!guestRequestId) {
-      setGuestError("انتهت صلاحية الطلب. أعد إدخال بياناتك.");
+      setGuestError("انتهت صلاحية الطلب، أعد طلب كود جديد.");
       setGuestStep("form");
       return;
     }
@@ -247,7 +246,7 @@ const SupportChatFloating: React.FC = () => {
       const convId = res.data.conversation.id as number;
       const token = (res.data.guest_token as string | undefined) || null;
       if (!token) {
-        setGuestError("تم التحقق لكن لم نستلم guest_token. حدّث الباكند ثم أعد المحاولة.");
+        setGuestError("تم التحقق لكن لم يصل guest_token. حدّث الباكند ثم حاول مجدداً.");
         return;
       }
       setConversationId(convId);
@@ -276,7 +275,7 @@ const SupportChatFloating: React.FC = () => {
     setVoiceOverlay(true);
     if (recording || sendingAudio) return;
     if (!conversationId) {
-      setGuestError("أكمل خطوات التحقق أولاً ثم ابدأ التسجيل.");
+      setGuestError("ابدأ المحادثة أولاً قبل التسجيل الصوتي.");
       return;
     }
     await stopBotAudio();
@@ -284,7 +283,7 @@ const SupportChatFloating: React.FC = () => {
     try {
       const perm = await Audio.requestPermissionsAsync();
       if (!perm.granted) {
-        setGuestError("يجب منح إذن الميكروفون للتسجيل الصوتي.");
+        setGuestError("يجب منح إذن الميكروفون لتسجيل الصوت.");
         return;
       }
       await Audio.setAudioModeAsync({
@@ -314,8 +313,8 @@ const SupportChatFloating: React.FC = () => {
       const uri = recording.getURI();
       setRecording(null);
       if (uri) await sendVoice(uri);
-      if (voiceOverlay && !sendingAudio) {
-        setTimeout(() => startVoiceRecording(), 350);
+      if (voiceOverlay) {
+        setTimeout(() => startVoiceRecording(), 300);
       }
     } catch {
       setRecording(null);
@@ -465,21 +464,23 @@ const SupportChatFloating: React.FC = () => {
     return (
       <View style={styles.voiceOverlay}>
         <View style={styles.voiceCard}>
-          <Text style={styles.voiceTitle}>يستمع الآن...</Text>
-          <Text style={styles.voiceHint}>سيتوقف تلقائياً عند الصمت أو بعد 15 ثانية ويرسل الرد، ثم يعيد التسجيل طالما اللوحة مفتوحة.</Text>
+          <Text style={styles.voiceTitle}>جاري التسجيل...</Text>
+          <Text style={styles.voiceHint}>
+            يتوقف تلقائياً عند الصمت أو بعد 15 ثانية ويعود للاستماع تلقائياً إذا بقيت اللوحة مفتوحة.
+          </Text>
           <View style={styles.waveRow}>
             {[6, 10, 16, 12, 18, 12, 16, 10, 6].map((h, idx) => (
               <View key={idx} style={[styles.waveBar, { height: h + (recording ? 10 : 0) }]} />
             ))}
           </View>
-          <Text style={styles.voiceStatus}>{recording ? "يتم التسجيل..." : "جاري التحضير..."}</Text>
+          <Text style={styles.voiceStatus}>{recording ? "يتم التسجيل..." : "يتم التهيئة..."}</Text>
           <View style={styles.voiceActions}>
-            <Button title="إيقاف مؤقت" onPress={() => stopVoiceRecording(false)} disabled={!recording || sendingAudio} />
+            <Button title="إيقاف وإرسال" onPress={() => stopVoiceRecording(false)} disabled={!recording || sendingAudio} />
             <Pressable onPress={() => { setVoiceOverlay(false); stopVoiceRecording(true); }} style={styles.secondaryButton}>
               <Text style={styles.secondaryButtonText}>إغلاق</Text>
             </Pressable>
           </View>
-          {sendingAudio && <Text style={styles.uploadHint}>يتم إرسال الصوت...</Text>}
+          {sendingAudio && <Text style={styles.uploadHint}>يتم إرسال الرسالة الصوتية...</Text>}
         </View>
       </View>
     );
@@ -525,7 +526,7 @@ const SupportChatFloating: React.FC = () => {
 
               {isGuest && guestStep === "form" && (
                 <View style={styles.body}>
-                  <Text style={styles.bodyTitle}>ابدأ بطلب الكود</Text>
+                  <Text style={styles.bodyTitle}>تواصل معنا كضيف</Text>
                   <Text style={styles.bodyHint}>أدخل الاسم والبريد الإلكتروني لإرسال كود تحقق إلى بريدك.</Text>
                   <Text style={styles.inputLabel}>الاسم</Text>
                   <TextInput value={guestName} onChangeText={setGuestName} style={styles.input} textAlign="right" placeholder="الاسم" />
@@ -565,11 +566,11 @@ const SupportChatFloating: React.FC = () => {
                     {(loading || connecting) && (
                       <View style={styles.loadingRow}>
                         <ActivityIndicator color="#f59e0b" />
-                        <Text style={styles.loadingText}>{loading ? "يتم تحميل المحادثة..." : "يتم الاتصال..."}</Text>
+                        <Text style={styles.loadingText}>{loading ? "جاري تحميل المحادثة..." : "جاري الاتصال..."}</Text>
                       </View>
                     )}
                     {!loading && !connecting && messages.length === 0 && (
-                      <Text style={styles.emptyText}>ابدأ بسؤال نصي أو صوتي للمتابعة مع الدعم.</Text>
+                      <Text style={styles.emptyText}>لا توجد رسائل بعد. ابدأ بالسؤال أو سجّل صوتياً.</Text>
                     )}
                     <ScrollView ref={scrollRef} contentContainerStyle={{ gap: 8, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
                       {messages.map((m) => {
@@ -939,19 +940,6 @@ const createStyles = () =>
       justifyContent: "center",
       gap: 8,
       marginTop: 10,
-    },
-    secondaryButton: {
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: "#e2e8f0",
-      backgroundColor: "#fff",
-    },
-    secondaryButtonText: {
-      color: "#0f172a",
-      fontWeight: "700",
-      fontSize: 12,
     },
     uploadHint: {
       textAlign: "center",
