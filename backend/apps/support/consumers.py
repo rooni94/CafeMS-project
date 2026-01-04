@@ -222,7 +222,7 @@ class SupportChatConsumer(AsyncJsonWebsocketConsumer):
 
         # منطق الرد الآلي العادي إن لم يكن البوت معطّل
         elif not conv.bot_disabled:
-            reply_text = generate_bot_reply(user, text)
+            reply_text = generate_bot_reply(user, text, conv)
 
         if not reply_text:
             conv.save(update_fields=["bot_disabled", "last_message_at"])

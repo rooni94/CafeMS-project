@@ -171,7 +171,7 @@ class MyMessagesView(views.APIView):
 
         # 2) لو لم يتم تعطيل البوت → استخدم generate_bot_reply
         elif not conv.bot_disabled:
-            auto_text = generate_bot_reply(user, content)
+            auto_text = generate_bot_reply(user, content, conv)
 
         # 3) إنشاء رسالة البوت (لو فيه نص)
         auto_reply_data = None
@@ -257,7 +257,7 @@ class MyVoiceMessageView(views.APIView):
                     "تم إيقاف الرد الآلي وسيتم متابعة المحادثة من فريق الدعم."
                 )
         elif not conv.bot_disabled:
-            auto_text = generate_bot_reply(request.user, transcript)
+            auto_text = generate_bot_reply(request.user, transcript, conv)
 
         auto_reply_data = None
         bot_audio_b64 = None
@@ -654,7 +654,7 @@ class GuestConversationMessagesView(APIView):
                 conv.save(update_fields=["bot_disabled"])
                 auto_text = "تم تحويل المحادثة للدعم البشري وسيتم الرد قريباً."
         elif not conv.bot_disabled:
-            auto_text = generate_bot_reply(None, content)
+            auto_text = generate_bot_reply(None, content, conv)
 
         auto_reply_data = None
         if auto_text:
@@ -751,7 +751,7 @@ class GuestVoiceMessageView(APIView):
                     "تم إيقاف الرد الآلي وسيتم متابعة المحادثة من فريق الدعم."
                 )
         elif not conv.bot_disabled:
-            auto_text = generate_bot_reply(None, transcript)
+            auto_text = generate_bot_reply(None, transcript, conv)
 
         auto_reply_data = None
         bot_audio_b64 = None
