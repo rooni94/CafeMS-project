@@ -1,14 +1,16 @@
 {
   "build": {
     "preview": {
-      "android": {
-        "buildType": "apk"
-      }
+      "android": { "buildType": "apk" }
     },
     "production": {
-      "android": {
-        "buildType": "app-bundle"
-      }
+      "ios": {
+        "resourceClass": "m-medium"
+      },
+      "android": { "buildType": "app-bundle" }
     }
+  },
+  "submit": {
+    "production": {}
   }
 }
