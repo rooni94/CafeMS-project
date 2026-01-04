@@ -631,7 +631,7 @@ const SupportChatWidget: React.FC = () => {
           style={{ width: widgetWidth, height: widgetHeight }}
         >
           <div className="px-3 py-2 bg-amber-500 text-white flex items-center justify-between sticky top-0 z-10">
-            <span className="text-sm font-semibold">دعم كافيتريا الخليج</span>
+            <span className="text-sm font-semibold">دعم CafeMS Demo</span>
             <div className="flex items-center gap-2">
               {(user || (isGuest && guestStep === "chat")) && (
                 <button
