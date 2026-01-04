@@ -1,13 +1,21 @@
-﻿import re
+import logging
+import re
+from decimal import Decimal
 from difflib import get_close_matches
-from typing import Optional
+from typing import Optional, Tuple
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 
-from apps.orders.models import Order
+from apps.orders.models import Order, OrderItem
 from apps.products.models import Product
+from apps.support.models import Conversation
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
+
+# سياق خفي باستخدام محرف غير مرئي حتى لا يظهر للعميل
+_CTX_PREFIX = "\u2063"
 
 
 # ---------- Utilities ----------
@@ -24,7 +32,7 @@ def _extract_int(text: str) -> Optional[int]:
 def _normalize_text(text: str) -> str:
     if not text:
         return ""
-    cleaned = re.sub(r"[!?.,؛،]", " ", text)
+    cleaned = re.sub(r"[!?.,؛،؟]", " ", text)
     cleaned = re.sub(r"\s+", " ", cleaned)
     return cleaned.strip()
 
@@ -33,11 +41,8 @@ def _normalize_variants(text: str) -> str:
     if not text:
         return ""
     normalized = text
-    # توحيد كتابة ساندويتش
     normalized = re.sub(r"ساند[وي]تش", "ساندويتش", normalized, flags=re.IGNORECASE)
     normalized = normalized.replace("صندويتش", "ساندويتش")
-
-    # مرادفات/اختصارات شائعة
     variant_map = {
         "بيبسي": "مشروب غازي",
         "سفن": "مشروب غازي",
@@ -50,16 +55,14 @@ def _normalize_variants(text: str) -> str:
         "لاتيه": "Latte",
         "لتيه": "Latte",
         "قهوه": "قهوة",
-        "قهوة": "Latte",  # لو القهوة الأساسية لاتيه
+        "قهوة": "Latte",
     }
     for k, v in variant_map.items():
         normalized = re.sub(k, v, normalized, flags=re.IGNORECASE)
-
     return normalized
 
 
 def _strip_stopwords(query: str) -> str:
-    # كلمات ربط/حشو شائعة باللهجة السعودية والخليجية
     stopwords = {
         "كم",
         "بكم",
@@ -105,7 +108,6 @@ def _best_product(query: str) -> Optional[Product]:
     if not query:
         return None
 
-    # مرادفات مبنية على المنيو
     alias_map = {
         "بطاطس": "صحن بطاطس",
         "بطاتس": "صحن بطاطس",
@@ -134,26 +136,22 @@ def _best_product(query: str) -> Optional[Product]:
     q_strip = _strip_stopwords(q_norm)
     q_tokens = set(q_strip.split())
 
-    # alias مباشر
     if q_strip in alias_map:
         target = alias_map[q_strip].lower()
         if target in names_lower:
             return products[names_lower.index(target)]
 
-    # alias على مستوى كلمة واحدة
     for token in list(q_tokens):
         if token in alias_map:
             target = alias_map[token].lower()
             if target in names_lower:
                 return products[names_lower.index(target)]
 
-    # مطابقة tokens فرعية
     if q_tokens:
         for idx, toks in enumerate(name_tokens):
             if q_tokens.issubset(toks):
                 return products[idx]
 
-    # substring matching
     for cand in [q_strip, q_norm, query.lower()]:
         if not cand:
             continue
@@ -161,7 +159,6 @@ def _best_product(query: str) -> Optional[Product]:
             if cand in n:
                 return products[i]
 
-    # fuzzy matching
     close = get_close_matches(q_strip or q_norm, names_lower, n=1, cutoff=0.55)
     if close:
         idx = names_lower.index(close[0])
@@ -183,39 +180,265 @@ def _default_reply() -> str:
     )
 
 
+def _parse_order_type_and_payment(text: str) -> Tuple[str, str]:
+    order_type = "takeaway"
+    payment = "cash"
+    lower = text.lower()
+    if any(k in lower for k in ["محلي", "صالة", "اكل داخل", "أكل داخل"]):
+        order_type = "dine_in"
+    if any(k in lower for k in ["توصيل", "دليفري", "delivery"]):
+        order_type = "delivery"
+    if any(k in lower for k in ["بطاقة", "فيزا", "ماستر", "كردت", "مدى", "card"]):
+        payment = "card_pos"
+    if any(k in lower for k in ["اونلاين", "أونلاين", "online"]):
+        payment = "online"
+    if any(k in lower for k in ["كاش", "نقد", "نقدي", "cash"]):
+        payment = "cash"
+    return order_type, payment
+
+
+def _create_quick_order(user: User, product: Product, qty: int, order_type: str, payment_method: str, note: str = "") -> Optional[Order]:
+    qty = max(1, qty)
+    price = getattr(product, "price", None)
+    price_dec = Decimal(str(price)) if price is not None else Decimal("0")
+    total = price_dec * qty
+    try:
+        with transaction.atomic():
+            order = Order.objects.create(
+                user=user,
+                status="pending",
+                payment_method=payment_method,
+                payment_status="pending",
+                paid=False,
+                total=total,
+                customer_name=getattr(user, "get_full_name", lambda: "")() or getattr(user, "username", "") or "",
+                order_type=order_type,
+                delivery=(order_type == "delivery"),
+                note=note or "طلب سريع عبر البوت",
+            )
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                quantity=qty,
+                price=price_dec,
+            )
+        return order
+    except Exception:
+        logger.exception("Failed to create quick order")
+        return None
+
+
+# ---------- سياق متعدد الرسائل ----------
+def _get_user_conversation(user: User) -> Optional[Conversation]:
+    if not user or not getattr(user, "is_authenticated", False):
+        return None
+    return (
+        Conversation.objects.filter(customer=user, is_deleted=False)
+        .order_by("-created_at")
+        .first()
+    )
+
+
+def _parse_ctx_marker(text: str) -> Optional[dict]:
+    if not text:
+        return None
+    cleaned = text.replace(_CTX_PREFIX, "")
+    m = re.search(r"\[CTX:([^\]]+)\]", cleaned)
+    if not m:
+        return None
+    parts = m.group(1).split()
+    stage = parts[0]
+    data = {}
+    for part in parts[1:]:
+        if "=" in part:
+            k, v = part.split("=", 1)
+            data[k] = v
+    return {"stage": stage, "data": data}
+
+
+def _last_bot_ctx(conv: Optional[Conversation]) -> Optional[dict]:
+    if not conv:
+        return None
+    last_bot = conv.messages.filter(sender_type="bot").order_by("-created_at").first()
+    if not last_bot:
+        return None
+    return _parse_ctx_marker(last_bot.content)
+
+
+def _mark_reply(text: str, stage: Optional[str] = None, **data) -> str:
+    if not stage:
+        return text
+    extras = " ".join(f"{k}={v}" for k, v in data.items())
+    marker = f"{_CTX_PREFIX}[CTX:{stage}{(' ' + extras) if extras else ''}]"
+    return f"{text} {marker}"
+
+
+def _is_yes(text: str) -> bool:
+    lower = text.lower()
+    return any(k in lower for k in ["نعم", "ايه", "ايوه", "أيوه", "يب", "yes", "sure", "ارسل", "اي"])
+
+
+def _is_invoice_request(text: str) -> bool:
+    lower = text.lower()
+    return any(k in lower for k in ["فاتورة", "الفاتورة", "ارسل الفاتورة", "أرسل الفاتورة", "invoice", "bill"])
+
+
+def _extract_addon_note(text: str) -> Optional[str]:
+    lower = text.lower()
+    keywords = ["زيادة", "زود", "زوّد", "بدون", "لا تضيف", "ضيف", "اضف", "إضافة", "إضافات"]
+    if any(k in lower for k in keywords):
+        return text.strip()
+    return None
+
+
 # ---------- Main bot ----------
 def generate_bot_reply(user: Optional[User], content: str) -> str:
     original = content or ""
     text = _normalize_variants(_normalize_text(original))
     lower = text.lower()
 
+    conv = _get_user_conversation(user) if user else None
+    ctx = _last_bot_ctx(conv)
+
+    # مسار سياقي لإنشاء الطلب
+    if ctx and ctx.get("stage") in {"ASK_PRODUCT", "ASK_TYPE", "ASK_PAY", "ASK_NEXT"}:
+        stage = ctx["stage"]
+        data = ctx.get("data", {})
+
+        if stage == "ASK_PRODUCT":
+            product = _best_product(text)
+            qty = _extract_int(text) or int(data.get("qty", 1))
+            if product:
+                return _mark_reply(
+                    f"حددت {qty} × {product.name}. تبيها سفري ولا محلي؟ ولو توصيل اكتب العنوان.",
+                    "ASK_TYPE",
+                    pid=product.id,
+                    qty=qty,
+                )
+            return _mark_reply("ما قدرت أحدد المنتج. اكتب اسم المنتج والكمية (مثال: بطاطس 2).", "ASK_PRODUCT")
+
+        if stage == "ASK_TYPE":
+            pid = data.get("pid")
+            qty = int(data.get("qty", "1"))
+            if not pid:
+                return "ما عندي تفاصيل المنتج. أعد الطلب بذكر المنتج والكمية."
+            try:
+                product = Product.objects.get(id=pid)
+            except Product.DoesNotExist:
+                return "المنتج غير موجود حالياً. اختر منتج آخر."
+            order_type, _ = _parse_order_type_and_payment(text)
+            order_type_text = {"takeaway": "سفري/استلام", "dine_in": "محلي بالصالة", "delivery": "توصيل"}.get(
+                order_type, "سفري/استلام"
+            )
+            return _mark_reply(
+                f"تمام، بتكون {order_type_text}. كيف تبي تدفع؟ كاش أو بطاقة أو أونلاين؟",
+                "ASK_PAY",
+                pid=pid,
+                qty=qty,
+                order_type=order_type,
+            )
+
+        if stage == "ASK_PAY":
+            pid = data.get("pid")
+            qty = int(data.get("qty", "1"))
+            order_type = data.get("order_type", "takeaway")
+            if not pid:
+                return "ما عندي تفاصيل المنتج. أعد الطلب من جديد بذكر المنتج."
+            try:
+                product = Product.objects.get(id=pid)
+            except Product.DoesNotExist:
+                return "المنتج غير موجود حالياً. اختر منتج آخر."
+            _, payment_method = _parse_order_type_and_payment(text)
+            order = _create_quick_order(
+                user=user,
+                product=product,
+                qty=qty,
+                order_type=order_type,
+                payment_method=payment_method,
+            )
+            if not order:
+                return "حاولت أسوي الطلب لكن في مشكلة داخلية. جرّب بعد شوي أو اطلب موظف يساعدك."
+            order_type_text = {"takeaway": "سفري/استلام", "dine_in": "محلي بالصالة", "delivery": "توصيل"}.get(
+                order_type, "سفري/استلام"
+            )
+            pay_text = {"cash": "كاش", "card_pos": "بطاقة", "online": "أونلاين"}.get(payment_method, "كاش")
+            return _mark_reply(
+                f"تم إنشاء طلب #{order.id}: {qty} × {product.name}. "
+                f"الاستلام: {order_type_text}، الدفع: {pay_text}. "
+                "تبي أضيف صنف ثاني، أضيف ملاحظة (مثلاً زيادة جبن)، أو أرسل لك الفاتورة؟",
+                "ASK_NEXT",
+                order_id=order.id,
+            )
+
+        if stage == "ASK_NEXT":
+            order_id = data.get("order_id")
+            if _is_invoice_request(text):
+                return _mark_reply(
+                    f"فاتورة الطلب #{order_id}: تقدر تطلع عليها من صفحة الطلبات. إذا حاب أرسلها بالإيميل، عطنا البريد.",
+                    "ASK_NEXT",
+                    order_id=order_id,
+                )
+            addon_note = _extract_addon_note(text)
+            if addon_note and order_id:
+                try:
+                    order = Order.objects.get(id=order_id, user=user)
+                    order.note = (order.note + " | " if order.note else "") + addon_note
+                    order.save(update_fields=["note"])
+                except Exception:
+                    logger.exception("Failed to add addon note")
+                return _mark_reply(
+                    f"سجلت ملاحظة: «{addon_note}». تبي أضيف صنف ثاني أو أرسل الفاتورة؟",
+                    "ASK_NEXT",
+                    order_id=order_id,
+                )
+            if _is_yes(text):
+                return _mark_reply(
+                    "اكتب اسم الصنف والكمية (وأي إضافة مثل زيادة جبن أو بدون بصل).",
+                    "ASK_PRODUCT",
+                )
+            return "تم، إذا احتجت أي تعديل أو فاتورة لاحقاً بلغني."
+
+    # تحية
     greeting_tail = (
         "هلا والله 👋، نوَّرت CafeMS Demo! "
-"وش حاب نساعدك فيه؟ تقدر تسأل عن الأسعار، حالة الطلب، توُّفر منتج، أو أي استفسار عن التطبيق أو الموقع."
+        "وش حاب نساعدك فيه؟ تقدر تسأل عن الأسعار، حالة الطلب، توفُّر منتج، أو أي استفسار عن التطبيق أو الموقع."
     )
-
-    # تحية سلام
-    salam_keywords = ["السلام عليكم", "سلام عليكم", "سلام", "السلام", "عليكم السلام"]
-    if any(k in text for k in salam_keywords):
+    if any(k in text for k in ["السلام عليكم", "سلام عليكم", "سلام", "السلام", "عليكم السلام"]):
         return f"وعليكم السلام! {greeting_tail}"
-
-    # صباح/مساء
     if "صباح الخير" in text:
         return f"صباح النور 🌅، {greeting_tail}"
     if "مساء الخير" in text:
         return f"مساء النور 🌆، {greeting_tail}"
-
-    greetings = [
-        "مرحبا",
-        "مرحباً",
-        "هلا",
-        "هلا والله",
-        "هاي",
-        "الو",
-        "ألو",
-    ]
-    if any(k in text for k in greetings):
+    if any(k in text for k in ["مرحبا", "مرحباً", "هلا", "هلا والله", "هاي", "الو", "ألو"]):
         return greeting_tail
+
+    # بدء طلب جديد
+    order_triggers = [
+        "أبغى أطلب",
+        "ابي اطلب",
+        "ابغى اطلب",
+        "سو لي طلب",
+        "سوّي لي طلب",
+        "أضف",
+        "اضف",
+        "أبي أضيف",
+        "ابغى اضيف",
+        "اطلب",
+        "طلب",
+    ]
+    if any(k in lower for k in order_triggers):
+        if not user or not getattr(user, "is_authenticated", False):
+            return "سجّل دخولك عشان أقدر أسوي الطلب. بعد الدخول اكتب: «أبغى لاتيه 2» أو «أضف برجر دجاج»."
+        product = _best_product(text)
+        qty = _extract_int(text) or 1
+        if product:
+            return _mark_reply(
+                f"حددت {qty} × {product.name}. تبيها سفري ولا محلي؟ ولو توصيل اكتب العنوان.",
+                "ASK_TYPE",
+                pid=product.id,
+                qty=qty,
+            )
+        return _mark_reply("تمام، وش اسم المنتج والكمية اللي تبيها؟", "ASK_PRODUCT")
 
     # حالة الطلب
     if any(k in text for k in ["طلب", "طلبي", "طربي", "وين الطلب", "وين طلبي"]) or "order" in lower:
@@ -235,7 +458,24 @@ def generate_bot_reply(user: Optional[User], content: str) -> str:
             "لو حاب تعدّل أو تلغي قول لي وش المطلوب."
         )
 
-    # سؤال عن السعر
+    # إلغاء طلب
+    if any(k in lower for k in ["الغاء", "الغاء الطلب", "ألغ الطلب", "cancel"]) and "طلب" in lower:
+        order_id = _extract_int(text)
+        if order_id is None:
+            return "أرسل رقم الطلب عشان أقدر ألغيه (مثال: ألغِ الطلب 12)."
+        if not user or not getattr(user, "is_authenticated", False):
+            return f"لازم تكون مسجل دخول لإلغاء طلب #{order_id}."
+        try:
+            order = Order.objects.get(id=order_id, user=user)
+        except Order.DoesNotExist:
+            return f"ما لقيت طلب برقم {order_id} مرتبط بحسابك."
+        if order.status in ["completed", "cancelled"]:
+            return f"الطلب #{order_id} حالته {order.status} ولا يمكن تعديله."
+        order.status = "cancelled"
+        order.save(update_fields=["status"])
+        return f"تم إلغاء الطلب #{order_id}. تحتاج أساعدك في إنشاء طلب جديد؟"
+
+    # الأسعار
     if any(k in lower for k in ["سعر", "price", "بكم", "كم سعر", "كم قيمه", "كم قيمة"]):
         q = re.sub(r"^(سعر|price|بكم|كم سعر|كم قيمه|كم قيمة)\s*", "", text, flags=re.IGNORECASE).strip() or text
         p = _best_product(q)
@@ -303,17 +543,6 @@ def generate_bot_reply(user: Optional[User], content: str) -> str:
         return (
             "نستقبل الطلبات عن طريق الموقع/التطبيق مع خدمة توصيل في نطاق محدد. "
             "تقدر تشوف موقعنا ومعلومات التواصل من صفحة «اتصل بنا» في الموقع."
-        )
-
-    # إنشاء طلب
-    if any(
-        k in lower
-        for k in ["أبغى أطلب", "ابي اطلب", "ابغى اطلب", "سو لي طلب", "سوّي لي طلب", "أضف", "اضف", "أبي أضيف", "ابغى اضيف"]
-    ):
-        return (
-            "تمام، خل نضبط طلبك ✅\n"
-            "اكتب لي اسم المنتج والعدد، مثلاً: «ساندوتش دجاج مكسيكي مع جبن ٢» أو «فلافل عادي وحبتين موية».\n"
-            "بعدها أرسل لك ملخص الطلب قبل التأكيد."
         )
 
     # تعديل طلب
