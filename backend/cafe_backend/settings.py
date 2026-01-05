@@ -3,6 +3,9 @@ import os
 from pathlib import Path
 from datetime import timedelta
 import environ
+import logging
+
+logging.getLogger("django.security.DisallowedHost").setLevel(logging.WARNING)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
