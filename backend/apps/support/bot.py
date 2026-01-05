@@ -23,18 +23,18 @@ _BIT1 = "\u200c"
 YES_LIKE = {"نعم", "اي", "ايه", "ايوه", "أجل", "تمام", "اوكي", "أوكي", "طيب", "yes", "sure", "ok", "okay"}
 NO_LIKE = {"لا", "مو", "مابي", "الغ", "وقف", "no", "not"}
 INVOICE_WORDS = ["فاتورة", "ارسال الفاتورة", "أرسل الفاتورة", "ارسل الفاتورة", "وصل", "الفاتورة", "الفاتوره", "وصل الطلب", "invoice", "bill"]
+GRATITUDE_WORDS = {"شكرا", "شكراً", "مشكور", "تسلم", "يعطيك العافية", "الله يعافيك"}
 ADDON_HINT = ["زيادة", "اضافة", "إضافة", "بدون", "شيل", "لا تحط", "ملاحظة", "ملاحظه", "اضف", "زيادة جبن", "بدون بصل"]
 ORDER_TRIGGERS = ["اطلب", "طلب", "ابغى اطلب", "أبغى اطلب", "ابغى اضيف طلب", "أبغى أضيف طلب", "طلب جديد", "سوي طلب", "أريد طلب", "اضافة طلب"]
 
 PRODUCT_ALIASES: Dict[str, List[str]] = {
-    "بطاطس": ["بطاطس", "بطاطا", "بطاطس مقلي", "فرايز", "شبس"],
-    "برجر": ["برجر", "همبرجر", "برغر", "زنجر", "برجر دجاج", "برجر لحم"],
-    "شاورما": ["شاورما", "شاورمة", "شاورما دجاج", "شاورما لحم"],
-    "قهوة": ["قهوة", "لاتيه", "كابتشينو", "اسبريسو", "latte", "coffee"],
-    "ماء": ["موية", "مويه", "ماء", "مويا", "مياه", "ماء بارد"],
+    "?????": ["?????", "?????", "????? ????", "?????", "???"],
+    "????": ["????", "??????", "????", "????", "???? ????", "???? ???"],
+    "??????": ["??????", "??????", "?????? ????", "?????? ???"],
+    "????": ["????", "?????", "????????", "??????", "latte", "coffee"],
+    "???": ["????", "?????", "???", "???", "????", "??? ????"],
+    "?????": ["?????", "???????? ?????", "??????? ?????", "??????? ?????", "??? ?????"],
 }
-
-
 # ========= ترميز/فك سياق =========
 def _encode_ctx(stage: str, data: dict) -> str:
     payload = stage + "|" + ";".join(f"{k}={v}" for k, v in data.items())
@@ -253,7 +253,7 @@ def _add_item_to_order(order: Order, product: Product, qty: int, note: Optional[
 def _format_invoice_hint(order_id: int) -> str:
     return (
         f"أرسل لك الفاتورة للطلب #{order_id}. تقدر تتابع الطلب وتشوف الفاتورة من صفحة تتبع الطلب: "
-        f"/order-tracking?order={order_id} أو من صفحة الطلبات."
+        f"https://example.invalid/order-tracking?order={order_id} أو من صفحة الطلبات."
     )
 
 
@@ -397,6 +397,9 @@ def generate_bot_reply(user: Optional[User], content: str, conversation: Optiona
                 order.note = (order.note + " | " if order.note else "") + addon_note
                 order.save(update_fields=["note", "updated_at"])
                 return _mark_reply(f"سجلت الملاحظة: «{addon_note}». تحب أضيف صنف ثاني أو أرسل الفاتورة؟", "ASK_NEXT", order_id=order_id)
+
+            if any(word in lower for word in GRATITUDE_WORDS):
+                return _mark_reply("تسلم! تحتاج خدمة ثانية؟ أقدر أرسل الفاتورة أو أضيف صنف جديد.", "ASK_NEXT", order_id=order_id)
 
             new_product = _best_product(text)
             if order and new_product:
