@@ -300,6 +300,14 @@ def generate_bot_reply(user: Optional[User], content: str, conversation: Optiona
     text = _normalize(original)
     lower = text.lower()
 
+    # ردود تحية مخصصة
+    if any(k in text for k in ["السلام عليكم", "سلام", "سلام عليكم"]):
+        return _mark_reply("وعليكم السلام ورحمة الله، هلا والله! وش تحب أساعدك فيه؟ تبغى تطلب ولا عندك استفسار؟", "ASK_PRODUCT", data={})
+    if "صباح الخير" in text:
+        return _mark_reply("صباح النور والسرور 🌅 هلا والله! وش حاب تطلب أو تستفسر عنه؟", "ASK_PRODUCT", data={})
+    if "مساء الخير" in text:
+        return _mark_reply("مساء النور 🌙 هلا والله! وش ودّك أساعدك فيه؟", "ASK_PRODUCT", data={})
+
     conv = _get_user_conversation(user, conversation)
     ctx = _last_bot_ctx(conv)
 

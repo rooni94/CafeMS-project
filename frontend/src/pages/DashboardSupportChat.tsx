@@ -69,6 +69,7 @@ const DashboardSupportChat: React.FC = () => {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [shouldScrollToEnd, setShouldScrollToEnd] = useState(false);
 
   const [input, setInput] = useState("");
   const wsRef = useRef<WebSocket | null>(null);
@@ -150,6 +151,7 @@ const DashboardSupportChat: React.FC = () => {
       try {
         const data = JSON.parse(event.data) as SupportMessage;
         setMessages((prev) => [...prev, data]);
+        setShouldScrollToEnd(true);
       } catch (err) {
         console.error("WS parse error", err);
       }
@@ -169,6 +171,7 @@ const DashboardSupportChat: React.FC = () => {
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConv(conv);
     setMessages([]);
+    setShouldScrollToEnd(false);
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -182,10 +185,12 @@ const DashboardSupportChat: React.FC = () => {
   };
 
   useEffect(() => {
+    if (!shouldScrollToEnd) return;
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, selectedConv]);
+    setShouldScrollToEnd(false);
+  }, [messages, shouldScrollToEnd]);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -210,6 +215,7 @@ const DashboardSupportChat: React.FC = () => {
         { content: text }
       );
       setMessages((prev) => [...prev, res.data]);
+      setShouldScrollToEnd(true);
       setInput("");
     } catch (err) {
       console.error(err);

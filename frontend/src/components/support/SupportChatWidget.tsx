@@ -88,6 +88,9 @@ const SupportChatWidget: React.FC = () => {
   const dataArrayRef = useRef<Uint8Array | null>(null);
   const silenceTimerRef = useRef<number | null>(null);
   const maxTimerRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const recordingRef = useRef<boolean>(false);
+  const sendingAudioRef = useRef<boolean>(false);
 
   const addMessagesUnique = (incoming: SupportMessage[]) => {
     if (!incoming.length) return;
@@ -108,14 +111,52 @@ const SupportChatWidget: React.FC = () => {
 
   const playBotAudio = (payload: any) => {
     const base64 = payload?.bot_audio_base64 || payload?.tts_audio_base64 || payload?.audio_base64;
-    if (!base64) return;
+    if (!base64) {
+      // No audio returned (e.g., TTS failure) – re-arm recording quickly if we're in voice mode.
+      if (voiceOverlay && open && !recordingRef.current && !sendingAudioRef.current) {
+        setTimeout(() => {
+          startRecording().catch(() => undefined);
+        }, 500);
+      }
+      return;
+    }
     const mime = payload?.bot_audio_mime || payload?.audio_mime || "audio/mpeg";
     const url = b64ToUrl(base64, mime);
     if (!url) return;
     stopBotAudio();
     const audio = new Audio(url);
     botAudioRef.current = audio;
-    audio.play().catch(() => undefined);
+
+    let hasStarted = false;
+    audio.onplay = () => {
+      hasStarted = true;
+    };
+
+    const maybeAutoRecord = () => {
+      botAudioRef.current = null;
+      if (!voiceOverlay || !open || recordingRef.current || sendingAudioRef.current) return;
+      if (!hasStarted && audio.currentTime <= 0.05) {
+        hasStarted = true;
+      }
+      startRecording().catch(() => undefined);
+    };
+
+    audio.onended = () => maybeAutoRecord();
+    audio.onerror = () => maybeAutoRecord();
+    audio.onpause = () => {
+      if (hasStarted && audio.currentTime > 0.1) maybeAutoRecord();
+    };
+
+    audio
+      .play()
+      .then(() => {
+        hasStarted = true;
+      })
+      .catch(() => {
+        // If autoplay fails, still re-arm recording.
+        hasStarted = true;
+        maybeAutoRecord();
+      });
   };
 
   // guest storage
@@ -298,6 +339,8 @@ const SupportChatWidget: React.FC = () => {
   const handleClose = () => {
     setOpen(false);
     stopBotAudio();
+    setVoiceOverlay(false);
+    stopRecording();
     wsRef.current?.close();
   };
 
@@ -364,6 +407,11 @@ const SupportChatWidget: React.FC = () => {
     analyserRef.current = null;
     audioCtxRef.current = null;
     dataArrayRef.current = null;
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    mediaRecorderRef.current = null;
   };
 
   const stopRecording = () => {
@@ -371,6 +419,7 @@ const SupportChatWidget: React.FC = () => {
       mediaRecorderRef.current.stop();
     }
     setRecording(false);
+    recordingRef.current = false;
     clearAudioGraph();
   };
 
@@ -401,15 +450,17 @@ const SupportChatWidget: React.FC = () => {
   };
 
   // start recording (auto-stop on silence)
-  const startRecording = async () => {
+  const startRecording = async (force = false) => {
     setVoiceOverlay(true);
-    if (sendingAudio || recording) return;
+    if (!force && (sendingAudioRef.current || recordingRef.current)) return;
     if (!conversationId) {
       alert("ابدأ المحادثة قبل التسجيل الصوتي.");
       return;
     }
     stopBotAudio();
     try {
+      // إذا كان هناك تسجيل سابق لم يُغلق، أغلقه وأفرغ الموارد
+      stopRecording();
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
@@ -420,6 +471,7 @@ const SupportChatWidget: React.FC = () => {
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       const source = audioCtx.createMediaStreamSource(stream);
       source.connect(analyser);
+      streamRef.current = stream;
 
       audioCtxRef.current = audioCtx;
       analyserRef.current = analyser;
@@ -437,16 +489,16 @@ const SupportChatWidget: React.FC = () => {
         audioChunksRef.current = [];
         clearAudioGraph();
         setRecording(false);
-        await sendVoiceBlob(blob);
-        if (voiceOverlay) {
-          setTimeout(() => {
-            startRecording().catch(() => undefined);
-          }, 300);
+        recordingRef.current = false;
+        if (blob.size > 0) {
+          await sendVoiceBlob(blob);
         }
+        mediaRecorderRef.current = null;
       };
 
       recorder.start();
       setRecording(true);
+      recordingRef.current = true;
       setupSilenceDetection();
 
       if (maxTimerRef.current) window.clearTimeout(maxTimerRef.current);
@@ -461,6 +513,7 @@ const SupportChatWidget: React.FC = () => {
   const sendVoiceBlob = async (blob: Blob) => {
     if (!conversationId) return;
     setSendingAudio(true);
+    sendingAudioRef.current = true;
     try {
       const form = new FormData();
       form.append("audio", blob, "voice.webm");
@@ -468,18 +521,37 @@ const SupportChatWidget: React.FC = () => {
       const headers = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
       const res = await api.post(url, form, {
         headers: { ...(headers || {}), "Content-Type": "multipart/form-data" },
+        timeout: 15000,
       });
       const collected: SupportMessage[] = [];
       if (res.data.customer_message) collected.push(res.data.customer_message);
       if (res.data.guest_message) collected.push(res.data.guest_message);
       if (res.data.bot_reply) collected.push(res.data.bot_reply);
       addMessagesUnique(collected);
-      playBotAudio(res.data);
+      const audioPayload = res.data.bot_reply
+        ? {
+            ...res.data.bot_reply,
+            bot_audio_base64: res.data.bot_audio_base64,
+            bot_audio_mime: res.data.bot_audio_mime,
+            tts_audio_base64: res.data.tts_audio_base64,
+            audio_base64: res.data.bot_audio_base64 || res.data.tts_audio_base64,
+            audio_mime: res.data.bot_audio_mime,
+          }
+        : res.data;
+      // حاول تشغيل الصوت سواء كان مضمناً مع الرسالة أو مع الرد
+      playBotAudio(audioPayload);
     } catch (err) {
       console.error(err);
       alert("تعذر إرسال التسجيل الصوتي.");
     } finally {
       setSendingAudio(false);
+      sendingAudioRef.current = false;
+      // Auto-rearm only if no bot audio is playing; playback handler will restart recording after it ends.
+      if (voiceOverlay && open && !recordingRef.current && !sendingAudioRef.current && !botAudioRef.current) {
+        setTimeout(() => {
+          startRecording().catch(() => undefined);
+        }, 600);
+      }
     }
   };
 
@@ -726,7 +798,7 @@ const SupportChatWidget: React.FC = () => {
               إرسال
             </button>
             <button
-              onClick={startRecording}
+              onClick={() => startRecording()}
               disabled={recording || sendingAudio || loading || connecting || (isGuest && guestStep !== "chat")}
               className="px-3 py-1.5 rounded-full border border-amber-400 text-amber-600 text-xs disabled:opacity-60 bg-white"
             >

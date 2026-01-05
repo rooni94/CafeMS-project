@@ -107,15 +107,45 @@ const SupportChatFloating: React.FC = () => {
 
   const playBotAudio = async (payload: any) => {
     const base64 = payload?.bot_audio_base64 || payload?.tts_audio_base64 || payload?.audio_base64;
-    if (!base64) return;
+    if (!base64) {
+      if (voiceOverlay && open && !recording && !sendingAudio) {
+        setTimeout(() => {
+          startVoiceRecording().catch(() => undefined);
+        }, 400);
+      }
+      return;
+    }
+
     const uri = await b64ToUri(base64, payload?.bot_audio_mime || payload?.audio_mime || "audio/mpeg");
     if (!uri) return;
+
     try {
       if (soundRef.current) await soundRef.current.unloadAsync();
       const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
       soundRef.current = sound;
+
+      let autoTriggered = false;
+      const maybeAutoRecord = () => {
+        if (autoTriggered) return;
+        autoTriggered = true;
+        soundRef.current = null;
+        if (!voiceOverlay || !open || recording || sendingAudio) return;
+        startVoiceRecording().catch(() => undefined);
+      };
+
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (!status.isLoaded) return;
+        if ((status as any).didJustFinish) {
+          maybeAutoRecord();
+        }
+      });
     } catch {
-      /* ignore playback errors */
+      soundRef.current = null;
+      if (voiceOverlay && open && !recording && !sendingAudio) {
+        setTimeout(() => {
+          startVoiceRecording().catch(() => undefined);
+        }, 400);
+      }
     }
   };
 
@@ -313,9 +343,6 @@ const SupportChatFloating: React.FC = () => {
       const uri = recording.getURI();
       setRecording(null);
       if (uri) await sendVoice(uri);
-      if (voiceOverlay) {
-        setTimeout(() => startVoiceRecording(), 300);
-      }
     } catch {
       setRecording(null);
     }
@@ -338,6 +365,11 @@ const SupportChatFloating: React.FC = () => {
       setGuestError(err?.response?.data?.detail || "تعذر إرسال الرسالة الصوتية.");
     } finally {
       setSendingAudio(false);
+      if (voiceOverlay && !recording && !soundRef.current) {
+        setTimeout(() => {
+          startVoiceRecording().catch(() => undefined);
+        }, 500);
+      }
     }
   };
 

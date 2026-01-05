@@ -444,62 +444,7 @@ const DashboardOrders: React.FC = () => {
                       })()
                     : null}
 
-                        {orderDetails?.note ? (
-                          <Text style={[styles.note, { color: theme.palette.text }]} numberOfLines={3}>
-                            ملاحظة: {normalizeArabicText(orderDetails.note)}
-                          </Text>
-                        ) : null}
-
-                        {!detailsLoading && Array.isArray(orderDetails?.items) && orderDetails!.items!.length ? (
-                          <View style={styles.itemsList}>
-                            {orderDetails!.items!.slice(0, 20).map((it) => {
-                              const itemName = normalizeArabicText(it.product?.name) || `منتج #${it.id}`;
-                              const addons = (it.addons || []).map((a) => normalizeArabicText(a.name)).filter(Boolean);
-                              const addonsText = addons.length ? ` • إضافات: ${addons.join(" + ")}` : "";
-                              const lineTotal = safeNumber(it.price) * Number(it.quantity || 1);
-                              return (
-                                <DashboardListItem
-                                  key={it.id}
-                                  title={itemName}
-                                  subtitle={`الكمية: ${it.quantity}${addonsText}`}
-                                  icon="fast-food-outline"
-                                  right={<CurrencyAmount value={lineTotal} color={theme.palette.text} symbolSize={12} textStyle={styles.totalText} />}
-                                />
-                              );
-                            })}
-                          </View>
-                        ) : detailsLoading ? (
-                          <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>جارٍ تحميل تفاصيل الطلب...</Text>
-                        ) : (
-                          <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>لا توجد بنود لهذا الطلب.</Text>
-                        )}
-
-                        <View style={styles.actionRow}>
-                          <Button title="عرض الفاتورة" variant="secondary" onPress={() => openInvoice(order.id)} {...chipProps} />
-                          <Button title="إغلاق" variant="ghost" onPress={() => setExpandedId(null)} {...chipProps} />
-                        </View>
-                      </View>
-
-                      <View style={[styles.statusCard, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
-                        <Text style={[styles.statusTitle, { color: theme.palette.text }]}>تغيير حالة الطلب</Text>
-                        <Text style={[styles.statusHint, { color: theme.palette.muted }]}>
-                          {canManageOrders ? "اختر الحالة المناسبة لتحديث الطلب." : "لا تملك صلاحية تغيير الحالة."}
-                        </Text>
-                        <View style={styles.statusWrap}>
-                          {STATUS_OPTIONS.filter((s) => s.value != null).map((s) => (
-                            <Button
-                              key={String(s.value)}
-                              title={s.label}
-                              variant={order.status === s.value ? "primary" : "secondary"}
-                              onPress={() => updateStatus(order.id, s.value as OrderStatusValue)}
-                              disabled={!canManageOrders || updating}
-                              {...chipProps}
-                            />
-                          ))}
-                        </View>
-                      </View>
-                    </View>
-                  ) : null}
+
                 </View>
               );
             })}

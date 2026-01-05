@@ -10,7 +10,7 @@ from typing import Optional, Callable
 
 # كلمات مفتاحية للنوايا (intents)
 INTENT_KEYWORDS = {
-    "greeting": ["هلا", "السلام عليكم","سلام","سلام عليكم", "مرحبا", "ياهلا", "أهلا"],
+    "greeting": ["هلا", "مرحبا", "ياهلا", "أهلا"],
     "smalltalk_howareyou": ["كيف حالك", "شلونك", "اخبارك"],
     "smalltalk_joke": ["قل نكته", "نكتة", "ضحكني"],
     "smalltalk_weather": ["كيف الجو", "الطقس", "حر ولا برد"],

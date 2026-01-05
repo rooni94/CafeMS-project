@@ -3,7 +3,12 @@ import { I18nManager } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import { AppRole, createRoleTheme, RoleTheme } from "./theme";
 
-I18nManager.allowRTL(true);
+// Ensure the app renders in RTL (Arabic) on all platforms.
+if (!I18nManager.isRTL) {
+  I18nManager.allowRTL(true);
+  I18nManager.forceRTL(true);
+  I18nManager.swapLeftAndRightInRTL(true);
+}
 
 export type ThemeContextValue = RoleTheme & {
   setRole: (role: AppRole) => void;

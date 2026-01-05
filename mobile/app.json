@@ -17,6 +17,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.example.cafems"
     },
+    "androidNavigationBar": {
+      "visible": "sticky-immersive"
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
