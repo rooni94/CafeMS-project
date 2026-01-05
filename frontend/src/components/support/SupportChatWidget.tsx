@@ -91,6 +91,24 @@ const SupportChatWidget: React.FC = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const recordingRef = useRef<boolean>(false);
   const sendingAudioRef = useRef<boolean>(false);
+  const voiceOverlayRef = useRef<boolean>(false);
+  const openRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    voiceOverlayRef.current = voiceOverlay;
+  }, [voiceOverlay]);
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
+  const rearmRecordingIfIdle = (delay = 500) => {
+    window.setTimeout(() => {
+      if (!voiceOverlayRef.current || !openRef.current) return;
+      if (recordingRef.current || sendingAudioRef.current || botAudioRef.current) return;
+      startRecording(true).catch(() => undefined);
+    }, delay);
+  };
 
   const addMessagesUnique = (incoming: SupportMessage[]) => {
     if (!incoming.length) return;
@@ -113,11 +131,7 @@ const SupportChatWidget: React.FC = () => {
     const base64 = payload?.bot_audio_base64 || payload?.tts_audio_base64 || payload?.audio_base64;
     if (!base64) {
       // No audio returned (e.g., TTS failure) – re-arm recording quickly if we're in voice mode.
-      if (voiceOverlay && open && !recordingRef.current && !sendingAudioRef.current) {
-        setTimeout(() => {
-          startRecording().catch(() => undefined);
-        }, 500);
-      }
+      rearmRecordingIfIdle(500);
       return;
     }
     const mime = payload?.bot_audio_mime || payload?.audio_mime || "audio/mpeg";
@@ -134,11 +148,11 @@ const SupportChatWidget: React.FC = () => {
 
     const maybeAutoRecord = () => {
       botAudioRef.current = null;
-      if (!voiceOverlay || !open || recordingRef.current || sendingAudioRef.current) return;
+      if (!voiceOverlayRef.current || !openRef.current || recordingRef.current || sendingAudioRef.current) return;
       if (!hasStarted && audio.currentTime <= 0.05) {
         hasStarted = true;
       }
-      startRecording().catch(() => undefined);
+      startRecording(true).catch(() => undefined);
     };
 
     audio.onended = () => maybeAutoRecord();
@@ -157,6 +171,16 @@ const SupportChatWidget: React.FC = () => {
         hasStarted = true;
         maybeAutoRecord();
       });
+
+    // Extra safety: if for any reason events don't fire, re-arm after a short delay.
+    rearmRecordingIfIdle(1200);
+    // And hard timeout to avoid getting stuck with a stale botAudioRef.
+    window.setTimeout(() => {
+      if (botAudioRef.current === audio && !audio.paused && audio.currentTime < 0.1) {
+        botAudioRef.current = null;
+        rearmRecordingIfIdle(200);
+      }
+    }, 4000);
   };
 
   // guest storage
@@ -310,6 +334,7 @@ const SupportChatWidget: React.FC = () => {
 
   // open widget
   const handleOpen = async () => {
+    openRef.current = true;
     setOpen(true);
     setMessages([]);
     setConversationId(null);
@@ -337,10 +362,9 @@ const SupportChatWidget: React.FC = () => {
   };
 
   const handleClose = () => {
+    openRef.current = false;
     setOpen(false);
-    stopBotAudio();
-    setVoiceOverlay(false);
-    stopRecording();
+    stopVoiceSession();
     wsRef.current?.close();
   };
 
@@ -423,6 +447,13 @@ const SupportChatWidget: React.FC = () => {
     clearAudioGraph();
   };
 
+  const stopVoiceSession = () => {
+    stopBotAudio();
+    stopRecording();
+    voiceOverlayRef.current = false;
+    setVoiceOverlay(false);
+  };
+
   const setupSilenceDetection = () => {
     if (!analyserRef.current || !dataArrayRef.current) return;
     const check = () => {
@@ -451,6 +482,7 @@ const SupportChatWidget: React.FC = () => {
 
   // start recording (auto-stop on silence)
   const startRecording = async (force = false) => {
+    voiceOverlayRef.current = true;
     setVoiceOverlay(true);
     if (!force && (sendingAudioRef.current || recordingRef.current)) return;
     if (!conversationId) {
@@ -502,7 +534,7 @@ const SupportChatWidget: React.FC = () => {
       setupSilenceDetection();
 
       if (maxTimerRef.current) window.clearTimeout(maxTimerRef.current);
-      maxTimerRef.current = window.setTimeout(() => stopRecording(), 15000);
+      maxTimerRef.current = window.setTimeout(() => stopRecording(), 35000);
     } catch (err) {
       console.error(err);
       setRecording(false);
@@ -521,7 +553,7 @@ const SupportChatWidget: React.FC = () => {
       const headers = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
       const res = await api.post(url, form, {
         headers: { ...(headers || {}), "Content-Type": "multipart/form-data" },
-        timeout: 15000,
+        timeout: 35000,
       });
       const collected: SupportMessage[] = [];
       if (res.data.customer_message) collected.push(res.data.customer_message);
@@ -547,10 +579,8 @@ const SupportChatWidget: React.FC = () => {
       setSendingAudio(false);
       sendingAudioRef.current = false;
       // Auto-rearm only if no bot audio is playing; playback handler will restart recording after it ends.
-      if (voiceOverlay && open && !recordingRef.current && !sendingAudioRef.current && !botAudioRef.current) {
-        setTimeout(() => {
-          startRecording().catch(() => undefined);
-        }, 600);
+      if (voiceOverlayRef.current && openRef.current && !recordingRef.current && !sendingAudioRef.current && !botAudioRef.current) {
+        rearmRecordingIfIdle(600);
       }
     }
   };
@@ -582,7 +612,7 @@ const SupportChatWidget: React.FC = () => {
             </div>
             <div className="mt-3 text-[12px] text-gray-700 text-center">
               {recording
-                ? "التسجيل يعمل الآن وسيُرسل تلقائياً عند الصمت أو بعد 15 ثانية."
+                ? "التسجيل يعمل الآن وسيُرسل تلقائياً عند الصمت أو بعد 35 ثانية."
                 : "جاري تهيئة الميكروفون..."}
             </div>
             <div className="flex flex-wrap gap-2 justify-center mt-3">
@@ -595,8 +625,7 @@ const SupportChatWidget: React.FC = () => {
               </button>
               <button
                 onClick={() => {
-                  setVoiceOverlay(false);
-                  stopRecording();
+                  stopVoiceSession();
                 }}
                 className="px-3 py-2 rounded-full border text-gray-600 text-xs font-semibold bg-white"
               >
@@ -682,6 +711,17 @@ const SupportChatWidget: React.FC = () => {
 
   const widgetWidth = "min(420px, 92vw)";
   const widgetHeight = "min(70vh, 520px)";
+
+  // Keep nudging the recorder to start when voice mode is on and idle (fallback watchdog).
+  useEffect(() => {
+    if (!voiceOverlay || !open) return;
+    const id = window.setInterval(() => {
+      if (!voiceOverlayRef.current || !openRef.current) return;
+      if (recordingRef.current || sendingAudioRef.current || botAudioRef.current) return;
+      startRecording(true).catch(() => undefined);
+    }, 1800);
+    return () => window.clearInterval(id);
+  }, [voiceOverlay, open]);
 
   return (
     <div

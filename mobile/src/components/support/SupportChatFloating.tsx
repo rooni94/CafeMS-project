@@ -78,6 +78,10 @@ const SupportChatFloating: React.FC = () => {
   const [sendingAudio, setSendingAudio] = useState(false);
   const [voiceOverlay, setVoiceOverlay] = useState(false);
   const voiceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const voiceOverlayRef = useRef<boolean>(false);
+  const openRef = useRef<boolean>(false);
+  const recordingFlagRef = useRef<boolean>(false);
+  const sendingAudioRef = useRef<boolean>(false);
 
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -96,6 +100,14 @@ const SupportChatFloating: React.FC = () => {
   const wsBase = useMemo(() => getWsBaseUrl(), []);
   const styles = useMemo(() => createStyles(), []);
 
+  useEffect(() => {
+    voiceOverlayRef.current = voiceOverlay;
+  }, [voiceOverlay]);
+
+  useEffect(() => {
+    openRef.current = open;
+  }, [open]);
+
   const addMessagesUnique = (incoming: SupportMessage[]) => {
     if (!incoming.length) return;
     setMessages((prev) => {
@@ -108,9 +120,9 @@ const SupportChatFloating: React.FC = () => {
   const playBotAudio = async (payload: any) => {
     const base64 = payload?.bot_audio_base64 || payload?.tts_audio_base64 || payload?.audio_base64;
     if (!base64) {
-      if (voiceOverlay && open && !recording && !sendingAudio) {
+      if (voiceOverlayRef.current && openRef.current && !recordingFlagRef.current && !sendingAudioRef.current) {
         setTimeout(() => {
-          startVoiceRecording().catch(() => undefined);
+          startVoiceRecording(true).catch(() => undefined);
         }, 400);
       }
       return;
@@ -129,8 +141,8 @@ const SupportChatFloating: React.FC = () => {
         if (autoTriggered) return;
         autoTriggered = true;
         soundRef.current = null;
-        if (!voiceOverlay || !open || recording || sendingAudio) return;
-        startVoiceRecording().catch(() => undefined);
+        if (!voiceOverlayRef.current || !openRef.current || recordingFlagRef.current || sendingAudioRef.current) return;
+        startVoiceRecording(true).catch(() => undefined);
       };
 
       sound.setOnPlaybackStatusUpdate((status) => {
@@ -139,11 +151,17 @@ const SupportChatFloating: React.FC = () => {
           maybeAutoRecord();
         }
       });
+
+      setTimeout(() => {
+        if (!soundRef.current && voiceOverlayRef.current && openRef.current && !recordingFlagRef.current && !sendingAudioRef.current) {
+          startVoiceRecording(true).catch(() => undefined);
+        }
+      }, 1400);
     } catch {
       soundRef.current = null;
-      if (voiceOverlay && open && !recording && !sendingAudio) {
+      if (voiceOverlayRef.current && openRef.current && !recordingFlagRef.current && !sendingAudioRef.current) {
         setTimeout(() => {
-          startVoiceRecording().catch(() => undefined);
+          startVoiceRecording(true).catch(() => undefined);
         }, 400);
       }
     }
@@ -301,11 +319,20 @@ const SupportChatFloating: React.FC = () => {
     }
   };
 
-  const startVoiceRecording = async () => {
+  const rearmRecordingIfIdle = (delay = 500) => {
+    setTimeout(() => {
+      if (!voiceOverlayRef.current || !openRef.current) return;
+      if (recordingFlagRef.current || sendingAudioRef.current || soundRef.current) return;
+      startVoiceRecording(true).catch(() => undefined);
+    }, delay);
+  };
+
+  const startVoiceRecording = async (force = false) => {
+    voiceOverlayRef.current = true;
     setVoiceOverlay(true);
-    if (recording || sendingAudio) return;
+    if (!force && (recordingFlagRef.current || sendingAudioRef.current)) return;
     if (!conversationId) {
-      setGuestError("ابدأ المحادثة أولاً قبل التسجيل الصوتي.");
+      setGuestError("???? ???????? ????? ??? ??????? ??????.");
       return;
     }
     await stopBotAudio();
@@ -313,7 +340,7 @@ const SupportChatFloating: React.FC = () => {
     try {
       const perm = await Audio.requestPermissionsAsync();
       if (!perm.granted) {
-        setGuestError("يجب منح إذن الميكروفون لتسجيل الصوت.");
+        setGuestError("??? ??? ??? ?????????? ?????? ?????.");
         return;
       }
       await Audio.setAudioModeAsync({
@@ -328,52 +355,70 @@ const SupportChatFloating: React.FC = () => {
       await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       await rec.startAsync();
       setRecording(rec);
-      voiceTimeoutRef.current = setTimeout(() => stopVoiceRecording(true), 15000);
+      recordingFlagRef.current = true;
+      voiceTimeoutRef.current = setTimeout(() => stopVoiceRecording(true), 35000);
     } catch {
       setRecording(null);
-      setGuestError("تعذر بدء التسجيل. تأكد من الأذونات وحاول مرة أخرى.");
+      recordingFlagRef.current = false;
+      setGuestError("???? ??? ???????. ???? ?? ???????? ????? ??? ????.");
     }
   };
 
   const stopVoiceRecording = async (autoStop = false) => {
     clearVoiceTimer();
-    if (!recording) return;
+    if (!recording) {
+      recordingFlagRef.current = false;
+      return;
+    }
     try {
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
       setRecording(null);
+      recordingFlagRef.current = false;
       if (uri) await sendVoice(uri);
     } catch {
       setRecording(null);
+      recordingFlagRef.current = false;
     }
+  };
+
+  const stopVoiceSession = async () => {
+    voiceOverlayRef.current = false;
+    setVoiceOverlay(false);
+    await stopBotAudio();
+    await stopVoiceRecording(true);
   };
 
   const sendVoice = async (uri: string) => {
     if (!conversationId) return;
     setSendingAudio(true);
+    sendingAudioRef.current = true;
     try {
       const form = new FormData();
       form.append("audio", { uri, name: "voice.m4a", type: "audio/m4a" } as any);
       const url = isGuest ? `support/guest-conversations/${conversationId}/voice/` : "support/my-voice/";
       const headers = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
-      const res = await api.post(url, form, { headers: { ...(headers || {}), "Content-Type": "multipart/form-data" } });
+      const res = await api.post(url, form, {
+        headers: { ...(headers || {}), "Content-Type": "multipart/form-data" },
+        timeout: 35000,
+      });
       addMessagesUnique(
         [res.data.customer_message, res.data.guest_message, res.data.bot_reply].filter(Boolean) as SupportMessage[],
       );
       await playBotAudio(res.data);
     } catch (err: any) {
-      setGuestError(err?.response?.data?.detail || "تعذر إرسال الرسالة الصوتية.");
+      setGuestError(err?.response?.data?.detail || "??? ??? ?? ??? ?????? ??????.");
     } finally {
       setSendingAudio(false);
-      if (voiceOverlay && !recording && !soundRef.current) {
-        setTimeout(() => {
-          startVoiceRecording().catch(() => undefined);
-        }, 500);
+      sendingAudioRef.current = false;
+      if (voiceOverlayRef.current && openRef.current && !recordingFlagRef.current && !soundRef.current) {
+        rearmRecordingIfIdle(600);
       }
     }
   };
 
   const handleOpen = async () => {
+    openRef.current = true;
     setOpen(true);
     setMessages([]);
     if (user && accessToken) {
@@ -388,8 +433,9 @@ const SupportChatFloating: React.FC = () => {
   };
 
   const handleClose = async () => {
+    openRef.current = false;
     setOpen(false);
-    await stopBotAudio();
+    await stopVoiceSession();
     wsRef.current?.close();
   };
 
@@ -489,6 +535,9 @@ const SupportChatFloating: React.FC = () => {
       if (recording) {
         recording.stopAndUnloadAsync().catch(() => undefined);
       }
+      recordingFlagRef.current = false;
+      sendingAudioRef.current = false;
+      voiceOverlayRef.current = false;
     };
   }, [recording]);
 
@@ -499,7 +548,7 @@ const SupportChatFloating: React.FC = () => {
         <View style={styles.voiceCard}>
           <Text style={styles.voiceTitle}>جاري التسجيل...</Text>
           <Text style={styles.voiceHint}>
-            يتوقف تلقائياً عند الصمت أو بعد 15 ثانية ويعود للاستماع تلقائياً إذا بقيت اللوحة مفتوحة.
+            يتوقف تلقائياً عند الصمت أو بعد 35 ثانية ويعود للاستماع تلقائياً إذا بقيت اللوحة مفتوحة.
           </Text>
           <View style={styles.waveRow}>
             {[6, 10, 16, 12, 18, 12, 16, 10, 6].map((h, idx) => (
@@ -509,7 +558,7 @@ const SupportChatFloating: React.FC = () => {
           <Text style={styles.voiceStatus}>{recording ? "يتم التسجيل..." : "يتم التهيئة..."}</Text>
           <View style={styles.voiceActions}>
             <Button title="إيقاف وإرسال" onPress={() => stopVoiceRecording(false)} disabled={!recording || sendingAudio} />
-            <Pressable onPress={() => { setVoiceOverlay(false); stopVoiceRecording(true); }} style={styles.secondaryButton}>
+            <Pressable onPress={() => { stopVoiceSession(); }} style={styles.secondaryButton}>
               <Text style={styles.secondaryButtonText}>إغلاق</Text>
             </Pressable>
           </View>
@@ -521,13 +570,13 @@ const SupportChatFloating: React.FC = () => {
 
   return (
     <>
-      <Pressable style={styles.fab} onPress={() => setOpen(true)}>
+      <Pressable style={styles.fab} onPress={handleOpen}>
         <Ionicons name="chatbubble-ellipses-outline" size={22} color="#fff" />
       </Pressable>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={handleClose}>
         <View style={styles.modalRoot}>
-          <Pressable style={styles.overlay} onPress={() => setOpen(false)} />
+          <Pressable style={styles.overlay} onPress={handleClose} />
           <View style={[styles.panelWrap, { bottom: keyboardHeight ? keyboardHeight + 16 : 80 }]}>
             <Pressable style={styles.panel} onPress={() => undefined}>
               <View style={styles.header}>
@@ -537,6 +586,7 @@ const SupportChatFloating: React.FC = () => {
                     <Pressable
                       style={styles.headerButton}
                       onPress={async () => {
+                        await stopVoiceSession();
                         wsRef.current?.close();
                         setConversationId(null);
                         setMessages([]);
@@ -551,7 +601,7 @@ const SupportChatFloating: React.FC = () => {
                       <Text style={styles.headerButtonText}>إنهاء</Text>
                     </Pressable>
                   )}
-                  <Pressable onPress={() => setOpen(false)}>
+                  <Pressable onPress={handleClose}>
                     <Ionicons name="close" size={18} color="#fff" />
                   </Pressable>
                 </View>
