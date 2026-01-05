@@ -32,6 +32,7 @@ type SupportMessage = {
   tts_audio_base64?: string | null;
   audio_base64?: string | null;
   bot_audio_mime?: string | null;
+  audio_mime?: string | null;
 };
 
 type GuestProfile = {
@@ -56,10 +57,16 @@ const getWsBaseUrl = () => {
 };
 
 const b64ToUri = async (base64?: string | null, mime = "audio/mpeg") => {
-  if (!base64) return null;
+  if (!base64 || typeof base64 !== "string") return null;
+
+  // base64 لازم يكون حجمه معقول عشان ما نحاول نشغّل نص/بيانات ناقصة
+  if (base64.length < 1000) return null;
+
   const ext = mime.includes("wav") ? "wav" : "mp3";
-  const fileUri = `${FileSystem.cacheDirectory}bot-reply-${Date.now()}.${ext}`;
-  await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+  const cacheDir = (FileSystem as any).cacheDirectory ?? (FileSystem as any).documentDirectory ?? "";
+  const fileUri = `${cacheDir}bot-reply-${Date.now()}.${ext}`;
+
+  await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: "base64" });
   return fileUri;
 };
 
@@ -77,6 +84,7 @@ const SupportChatFloating: React.FC = () => {
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [sendingAudio, setSendingAudio] = useState(false);
   const [voiceOverlay, setVoiceOverlay] = useState(false);
+
   const voiceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const voiceOverlayRef = useRef<boolean>(false);
   const openRef = useRef<boolean>(false);
@@ -84,6 +92,10 @@ const SupportChatFloating: React.FC = () => {
   const sendingAudioRef = useRef<boolean>(false);
   const silenceSinceRef = useRef<number | null>(null);
   const activeRecordingRef = useRef<Audio.Recording | null>(null);
+  const isPlayingRef = useRef<boolean>(false);
+
+  // وضع المحادثة الصوتية المستمرة (push-to-talk أول مرة فقط)
+  const voiceSessionRef = useRef<boolean>(false);
 
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -119,57 +131,24 @@ const SupportChatFloating: React.FC = () => {
     });
   };
 
-  const playBotAudio = async (payload: any) => {
-    const base64 = payload?.bot_audio_base64 || payload?.tts_audio_base64 || payload?.audio_base64;
-    if (!base64) {
-      if (voiceOverlayRef.current && openRef.current && !recordingFlagRef.current && !sendingAudioRef.current) {
-        setTimeout(() => {
-          startVoiceRecording(true).catch(() => undefined);
-        }, 400);
-      }
-      return;
-    }
-
-    const uri = await b64ToUri(base64, payload?.bot_audio_mime || payload?.audio_mime || "audio/mpeg");
-    if (!uri) return;
-
-    try {
-      if (soundRef.current) await soundRef.current.unloadAsync();
-      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
-      soundRef.current = sound;
-
-      let autoTriggered = false;
-      const maybeAutoRecord = () => {
-        if (autoTriggered) return;
-        autoTriggered = true;
-        soundRef.current = null;
-        if (!voiceOverlayRef.current || !openRef.current || recordingFlagRef.current || sendingAudioRef.current) return;
-        startVoiceRecording(true).catch(() => undefined);
-      };
-
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (!status.isLoaded) return;
-        if ((status as any).didJustFinish) {
-          maybeAutoRecord();
-        }
-      });
-
-      setTimeout(() => {
-        if (!soundRef.current && voiceOverlayRef.current && openRef.current && !recordingFlagRef.current && !sendingAudioRef.current) {
-          startVoiceRecording(true).catch(() => undefined);
-        }
-      }, 1400);
-    } catch {
-      soundRef.current = null;
-      if (voiceOverlayRef.current && openRef.current && !recordingFlagRef.current && !sendingAudioRef.current) {
-        setTimeout(() => {
-          startVoiceRecording(true).catch(() => undefined);
-        }, 400);
-      }
+  const clearVoiceTimer = () => {
+    if (voiceTimeoutRef.current) {
+      clearTimeout(voiceTimeoutRef.current);
+      voiceTimeoutRef.current = null;
     }
   };
 
+  const rearmRecordingIfIdle = (delay = 500) => {
+    setTimeout(() => {
+      if (!voiceSessionRef.current) return;
+      if (!voiceOverlayRef.current || !openRef.current) return;
+      if (recordingFlagRef.current || sendingAudioRef.current || isPlayingRef.current || activeRecordingRef.current) return;
+      startVoiceRecording(true).catch(() => undefined);
+    }, delay);
+  };
+
   const stopBotAudio = async () => {
+    isPlayingRef.current = false;
     if (soundRef.current) {
       try {
         await soundRef.current.unloadAsync();
@@ -177,6 +156,74 @@ const SupportChatFloating: React.FC = () => {
         /* ignore */
       }
       soundRef.current = null;
+    }
+  };
+
+  const playBotAudio = async (payload: any) => {
+    const base64 = payload?.bot_audio_base64 || payload?.tts_audio_base64 || payload?.audio_base64;
+    const mime = payload?.bot_audio_mime || payload?.audio_mime || "audio/mpeg";
+
+    // لو ما فيه صوت: رجّع الاستماع لو كنا في وضع المحادثة الصوتية المستمرة
+    if (!base64 || typeof base64 !== "string" || base64.length < 1000) {
+      if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) {
+        rearmRecordingIfIdle(450);
+      }
+      return;
+    }
+
+    const uri = await b64ToUri(base64, mime);
+    if (!uri) {
+      if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) {
+        rearmRecordingIfIdle(450);
+      }
+      return;
+    }
+
+    try {
+      await stopBotAudio();
+
+      const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
+      soundRef.current = sound;
+      isPlayingRef.current = true;
+
+      let autoTriggered = false;
+      const maybeAutoRecord = () => {
+        if (autoTriggered) return;
+        autoTriggered = true;
+
+        isPlayingRef.current = false;
+
+        // لو وضع المحادثة الصوتية شغّال: بعد ما يخلص الرد، نرجع نسجّل تلقائياً
+        if (!voiceSessionRef.current) return;
+        if (!voiceOverlayRef.current || !openRef.current) return;
+        if (recordingFlagRef.current || sendingAudioRef.current) return;
+
+        rearmRecordingIfIdle(350);
+      };
+
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (!status.isLoaded) return;
+        if ((status as any).didJustFinish) {
+          sound.unloadAsync().catch(() => {});
+          soundRef.current = null;
+          maybeAutoRecord();
+        }
+      });
+
+      // احتياط: لو ما وصلنا didJustFinish لأي سبب
+      setTimeout(() => {
+        if (!voiceSessionRef.current) return;
+        if (soundRef.current) return;
+        if (!voiceOverlayRef.current || !openRef.current) return;
+        if (recordingFlagRef.current || sendingAudioRef.current) return;
+        rearmRecordingIfIdle(450);
+      }, 1500);
+    } catch (e) {
+      isPlayingRef.current = false;
+      soundRef.current = null;
+      if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) {
+        rearmRecordingIfIdle(450);
+      }
     }
   };
 
@@ -235,14 +282,18 @@ const SupportChatFloating: React.FC = () => {
       : guestToken
       ? `?guest=1&guest_token=${encodeURIComponent(guestToken)}`
       : "?guest=1";
+
     const wsUrl = `${wsBase}/ws/support/${convId}/${qs}`;
     if (wsRef.current) wsRef.current.close();
+
     setConnecting(true);
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
+
     ws.onopen = () => setConnecting(false);
     ws.onclose = () => setConnecting(false);
     ws.onerror = () => setConnecting(false);
+
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as SupportMessage;
@@ -314,75 +365,68 @@ const SupportChatFloating: React.FC = () => {
     }
   };
 
-  const clearVoiceTimer = () => {
-    if (voiceTimeoutRef.current) {
-      clearTimeout(voiceTimeoutRef.current);
-      voiceTimeoutRef.current = null;
-    }
-  };
-
-  const rearmRecordingIfIdle = (delay = 500) => {
-    setTimeout(() => {
-      if (!voiceOverlayRef.current || !openRef.current) return;
-      if (recordingFlagRef.current || sendingAudioRef.current || soundRef.current || activeRecordingRef.current) return;
-      startVoiceRecording(true).catch(() => undefined);
-    }, delay);
-  };
-
   const startVoiceRecording = async (force = false) => {
+    // تشغيل وضع المحادثة الصوتية المستمرة بمجرد الضغط على المايك لأول مرة
+    voiceSessionRef.current = true;
     voiceOverlayRef.current = true;
     setVoiceOverlay(true);
-    if (!force && (recordingFlagRef.current || sendingAudioRef.current)) return;
+
+    if (!force && (recordingFlagRef.current || sendingAudioRef.current || isPlayingRef.current)) return;
     if (recordingFlagRef.current || activeRecordingRef.current) return;
+
     if (!conversationId) {
-      setGuestError("???? ???????? ????? ??? ??????? ??????.");
+      setGuestError("ابدأ المحادثة أولاً قبل التسجيل الصوتي.");
       return;
     }
+
+    // لو مستخدم مسجّل ومافي توكن: لا تحاول ترسل وتاخذ 401
+    if (!isGuest && !accessToken) {
+      setGuestError("انتهت الجلسة. أعد تسجيل الدخول ثم حاول.");
+      return;
+    }
+
     await stopBotAudio();
     clearVoiceTimer();
+
     try {
       const perm = await Audio.getPermissionsAsync();
       if (!perm.granted) {
         const req = await Audio.requestPermissionsAsync();
         if (!req.granted) {
-          setGuestError("??? ??? ??? ?????????? ?????? ?????.");
+          setGuestError("يرجى السماح بصلاحية المايكروفون.");
           return;
         }
       }
+
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
         shouldDuckAndroid: true,
       });
-      const recordingOptions: Audio.RecordingOptions = {
+
+      const recordingOptions = {
+        ...(Audio as any).RECORDING_OPTIONS_PRESET_HIGH_QUALITY,
         android: {
+          ...((Audio as any).RECORDING_OPTIONS_PRESET_HIGH_QUALITY?.android || {}),
           extension: ".m4a",
-          outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
-          audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_AAC,
-          sampleRate: 44100,
-          numberOfChannels: 1,
-          bitRate: 128000,
         },
         ios: {
+          ...((Audio as any).RECORDING_OPTIONS_PRESET_HIGH_QUALITY?.ios || {}),
           extension: ".m4a",
-          outputFormat: Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_MPEG4AAC,
-          audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
-          sampleRate: 44100,
-          numberOfChannels: 1,
-          bitRate: 128000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
         },
         isMeteringEnabled: true,
-      };
+      } as Audio.RecordingOptions;
+
       const { recording: rec } = await Audio.Recording.createAsync(recordingOptions, (status) => {
         if (!status || !status.canRecord) return;
         const now = Date.now();
         const level = (status as any).metering;
-        const SILENCE_DB = -40; // more sensitive to silence
+
+        // الصمت: يوقف ويسلّم مباشرة بدون زر
+        const SILENCE_DB = -40;
         const SILENCE_MS = 900;
+
         if (typeof level === "number" && level < SILENCE_DB) {
           if (silenceSinceRef.current === null) silenceSinceRef.current = now;
           if (silenceSinceRef.current && now - silenceSinceRef.current > SILENCE_MS) {
@@ -392,10 +436,13 @@ const SupportChatFloating: React.FC = () => {
           silenceSinceRef.current = null;
         }
       });
+
       recordingFlagRef.current = true;
       activeRecordingRef.current = rec;
       silenceSinceRef.current = null;
       setRecording(rec);
+
+      // سقف أقصى 35 ثانية
       voiceTimeoutRef.current = setTimeout(() => stopVoiceRecording(true), 35000);
     } catch (err) {
       console.error("voice start failed", err);
@@ -403,38 +450,53 @@ const SupportChatFloating: React.FC = () => {
       recordingFlagRef.current = false;
       activeRecordingRef.current = null;
       silenceSinceRef.current = null;
-      setGuestError("???? ??? ???????. ???? ?? ???????? ????? ??? ????.");
+      setGuestError("تعذر بدء التسجيل. حاول مرة أخرى.");
       setVoiceOverlay(false);
       voiceOverlayRef.current = false;
+      voiceSessionRef.current = false;
     }
   };
 
-  const stopVoiceRecording = async (autoStop = false) => {
+  const stopVoiceRecording = async (_autoStop = false) => {
     clearVoiceTimer();
-    if (!recording) {
+
+    const rec = recording || activeRecordingRef.current;
+    if (!rec) {
       recordingFlagRef.current = false;
       activeRecordingRef.current = null;
       silenceSinceRef.current = null;
       return;
     }
+
     try {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      await rec.stopAndUnloadAsync();
+      const uri = rec.getURI();
+
       setRecording(null);
       recordingFlagRef.current = false;
       activeRecordingRef.current = null;
       silenceSinceRef.current = null;
-      if (uri) await sendVoice(uri);
+
+      // إذا كان التسجيل قصير جداً أو uri فاضي: رجّع الاستماع
+      if (!uri) {
+        if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) rearmRecordingIfIdle(450);
+        return;
+      }
+
+      await sendVoice(uri);
     } catch (err) {
       console.error("voice stop failed", err);
       setRecording(null);
       recordingFlagRef.current = false;
       activeRecordingRef.current = null;
       silenceSinceRef.current = null;
+
+      if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) rearmRecordingIfIdle(450);
     }
   };
 
   const stopVoiceSession = async () => {
+    voiceSessionRef.current = false;
     voiceOverlayRef.current = false;
     setVoiceOverlay(false);
     await stopBotAudio();
@@ -443,20 +505,41 @@ const SupportChatFloating: React.FC = () => {
 
   const sendVoice = async (uri: string) => {
     if (!conversationId) return;
+
+    // لو مستخدم مسجّل ومافي توكن: لا تحاول
+    if (!isGuest && !accessToken) {
+      setGuestError("انتهت الجلسة. أعد تسجيل الدخول ثم حاول.");
+      return;
+    }
+
     setSendingAudio(true);
     sendingAudioRef.current = true;
+
     try {
       const form = new FormData();
-      form.append("audio", { uri, name: "voice.m4a", type: "audio/m4a" } as any);
+
+      // ملاحظة: لا تضبط Content-Type يدوياً (Axios لازم يضيف boundary)
+      form.append(
+        "audio",
+        {
+          uri,
+          name: `voice-${Date.now()}.m4a`,
+          type: Platform.OS === "ios" ? "audio/m4a" : "audio/mp4",
+        } as any,
+      );
+
       const url = isGuest ? `support/guest-conversations/${conversationId}/voice/` : "support/my-voice/";
-      const headers = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
+      const guestHeaders = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
+
       const res = await api.post(url, form, {
-        headers: { ...(headers || {}), "Content-Type": "multipart/form-data" },
-        timeout: 35000,
+        headers: { ...(guestHeaders || {}) }, // ✅ بدون Content-Type
+        timeout: 65000, // Whisper + TTS قد تأخذ وقت على السيرفر الضعيف
       });
+
       addMessagesUnique(
         [res.data.customer_message, res.data.guest_message, res.data.bot_reply].filter(Boolean) as SupportMessage[],
       );
+
       const audioPayload = res.data.bot_reply
         ? {
             ...res.data.bot_reply,
@@ -464,18 +547,20 @@ const SupportChatFloating: React.FC = () => {
             bot_audio_mime: res.data.bot_audio_mime,
             tts_audio_base64: res.data.tts_audio_base64,
             audio_base64: res.data.bot_audio_base64 || res.data.tts_audio_base64,
-            audio_mime: res.data.bot_audio_mime,
+            audio_mime: res.data.bot_audio_mime || res.data.audio_mime || "audio/mpeg",
           }
         : res.data;
+
+      // يشغل الصوت.. وبعد ما يخلص يرجع يسجل تلقائيًا (لأن voiceSessionRef.current = true)
       await playBotAudio(audioPayload);
     } catch (err: any) {
-      setGuestError(err?.response?.data?.detail || "??? ??? ?? ??? ?????? ??????.");
+      const detail = err?.response?.data?.detail;
+      setGuestError(detail || "لم يتم إرسال الرسالة الصوتية. حاول مرة أخرى.");
+      // في حال فشل الإرسال: ارجع للاستماع
+      if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) rearmRecordingIfIdle(600);
     } finally {
       setSendingAudio(false);
       sendingAudioRef.current = false;
-      if (voiceOverlayRef.current && openRef.current && !recordingFlagRef.current && !soundRef.current) {
-        rearmRecordingIfIdle(600);
-      }
     }
   };
 
@@ -504,10 +589,12 @@ const SupportChatFloating: React.FC = () => {
   const sendText = async () => {
     if (!input.trim() || sendingAudio) return;
     const text = input.trim();
+
     if (!conversationId) {
       setGuestError("ابدأ المحادثة أولاً قبل الإرسال.");
       return;
     }
+
     setInput("");
     try {
       // إن كان الـ WS مفتوحاً نرسل فقط عبره ونعتمد على البث العكسي
@@ -519,9 +606,9 @@ const SupportChatFloating: React.FC = () => {
       const url = isGuest ? `support/guest-conversations/${conversationId}/messages/` : "support/my-messages/";
       const headers = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
       const res = await api.post(url, { content: text }, { headers });
-      addMessagesUnique(
-        [res.data.customer_message, res.data.guest_message, res.data.bot_reply].filter(Boolean) as SupportMessage[],
-      );
+
+      addMessagesUnique([res.data.customer_message, res.data.guest_message, res.data.bot_reply].filter(Boolean) as SupportMessage[]);
+
       await playBotAudio(res.data);
     } catch {
       /* ignore */
@@ -535,8 +622,10 @@ const SupportChatFloating: React.FC = () => {
 
   useEffect(() => {
     if (!open) return;
+
     setMessages([]);
     setConversationId(null);
+
     if (user && accessToken) {
       setGuestStep("chat");
       initForLoggedUser();
@@ -600,31 +689,45 @@ const SupportChatFloating: React.FC = () => {
       recordingFlagRef.current = false;
       sendingAudioRef.current = false;
       voiceOverlayRef.current = false;
+      voiceSessionRef.current = false;
+      isPlayingRef.current = false;
     };
-  }, [recording]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const renderVoiceOverlay = () => {
     if (!voiceOverlay) return null;
     return (
       <View style={styles.voiceOverlay}>
         <View style={styles.voiceCard}>
-          <Text style={styles.voiceTitle}>جاري التسجيل...</Text>
+          <Text style={styles.voiceTitle}>وضع المحادثة الصوتية</Text>
           <Text style={styles.voiceHint}>
-            يتوقف تلقائياً عند الصمت أو بعد 35 ثانية ويعود للاستماع تلقائياً إذا بقيت اللوحة مفتوحة.
+            يتوقف تلقائياً عند الصمت أو بعد 35 ثانية، يُرسل فوراً، ثم ينتظر رد البوت، وبعد ما يخلص الرد يرجع يسجّل تلقائياً.
           </Text>
+
           <View style={styles.waveRow}>
             {[6, 10, 16, 12, 18, 12, 16, 10, 6].map((h, idx) => (
               <View key={idx} style={[styles.waveBar, { height: h + (recording ? 10 : 0) }]} />
             ))}
           </View>
-          <Text style={styles.voiceStatus}>{recording ? "يتم التسجيل..." : "يتم التهيئة..."}</Text>
+
+          <Text style={styles.voiceStatus}>
+            {sendingAudio
+              ? "يتم إرسال الصوت..."
+              : isPlayingRef.current
+              ? "يتم تشغيل رد البوت..."
+              : recording
+              ? "يتم التسجيل..."
+              : "يتم الاستعداد..."}
+          </Text>
+
           <View style={styles.voiceActions}>
-            <Button title="إيقاف وإرسال" onPress={() => stopVoiceRecording(false)} disabled={!recording || sendingAudio} />
-            <Pressable onPress={() => { stopVoiceSession(); }} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>إغلاق</Text>
+            <Pressable onPress={() => stopVoiceSession()} style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>إيقاف الوضع الصوتي</Text>
             </Pressable>
           </View>
-          {sendingAudio && <Text style={styles.uploadHint}>يتم إرسال الرسالة الصوتية...</Text>}
+
+          {guestError ? <Text style={[styles.error, { marginTop: 8 }]}>{guestError}</Text> : null}
         </View>
       </View>
     );
@@ -745,21 +848,24 @@ const SupportChatFloating: React.FC = () => {
                       onSubmitEditing={sendText}
                       blurOnSubmit={false}
                     />
+
+                    {/* زر المايك: أول ضغطة تبدأ "الوضع الصوتي المستمر" */}
                     <Pressable
                       style={[
                         styles.micButton,
                         recording ? styles.micButtonRecording : styles.micButtonIdle,
                         (sendingAudio || (isGuest && guestStep !== "chat")) && styles.micButtonDisabled,
                       ]}
-                      onPress={startVoiceRecording}
+                      onPress={() => startVoiceRecording()}
                       disabled={sendingAudio || (isGuest && guestStep !== "chat")}
                     >
                       {sendingAudio ? (
                         <ActivityIndicator size="small" color={recording ? "#fff" : "#f59e0b"} />
                       ) : (
-                        <Ionicons name={recording ? "stop" : "mic"} size={16} color={recording ? "#fff" : "#f59e0b"} />
+                        <Ionicons name={recording ? "mic" : "mic"} size={16} color={recording ? "#fff" : "#f59e0b"} />
                       )}
                     </Pressable>
+
                     <Pressable
                       style={[
                         styles.sendButton,
