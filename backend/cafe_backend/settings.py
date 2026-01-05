@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "apps.support",
     "apps.payments",
     "apps.accounts.apps.AccountsConfig",
+    "apps.accounting.apps.AccountingConfig",
     "django_user_agents",
     "django_filters",
     "apps.hr.apps.HrConfig",

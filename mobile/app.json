@@ -1,9 +1,9 @@
 {
   "expo": {
-    "name": "alkhaleej cafe",
+    "name": "CafeMS Demo",
     "slug": "mobile",
     "scheme": "mobile",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,17 +14,25 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+      "buildNumber": "2",
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.cafems"
+      "bundleIdentifier": "com.example.cafems",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "نستخدم الميكروفون لتسجيل رسائل الدعم الصوتية."
+      }
+      
     },
     "androidNavigationBar": {
       "visible": "sticky-immersive"
     },
     "android": {
+      "versionCode": 2,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
+      "permissions": ["RECORD_AUDIO"],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.example.cafems"

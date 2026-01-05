@@ -80,6 +80,11 @@ class RolePermission(models.Model):
     can_manage_hr_reports = models.BooleanField(default=False)
     can_manage_hr_work_reports = models.BooleanField(default=False)
     can_view_hr_performance = models.BooleanField(default=False)
+    can_view_accounting = models.BooleanField(default=False)
+    can_manage_accounting = models.BooleanField(default=False)
+    can_manage_financial_reports = models.BooleanField(default=False)
+    can_manage_payments = models.BooleanField(default=False)
+    can_manage_suppliers = models.BooleanField(default=False)
 
     def __str__(self):
         return self.get_role_display()

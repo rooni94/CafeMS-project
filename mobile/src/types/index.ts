@@ -38,6 +38,11 @@ export interface RolePermissions {
   can_manage_hr_reports?: boolean;
   can_manage_hr_work_reports?: boolean;
   can_view_hr_performance?: boolean;
+  can_view_accounting?: boolean;
+  can_manage_accounting?: boolean;
+  can_manage_financial_reports?: boolean;
+  can_manage_payments?: boolean;
+  can_manage_suppliers?: boolean;
 }
 
 export interface Category {
@@ -136,4 +141,11 @@ export interface StoreSettings {
     button_text?: string;
     button_link?: string;
   }[];
+}
+
+export interface InventoryItem {
+  id: number;
+  sku: string;
+  name_ar?: string;
+  quantity_on_hand?: number;
 }

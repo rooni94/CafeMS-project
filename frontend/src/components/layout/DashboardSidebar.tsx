@@ -3,7 +3,6 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
-// نفس نوع الصلاحيات المستخدمة في Dashboard.tsx
 export type RolePermissions = {
   role: "customer" | "staff" | "supervisor" | "manager";
   can_view_dashboard: boolean;
@@ -26,15 +25,10 @@ export type RolePermissions = {
 
 type SidebarProps = {
   perms: RolePermissions | null;
-  collapsed?: boolean;
   onToggle?: () => void;
 };
 
-export const DashboardSidebar: React.FC<SidebarProps> = ({
-  perms,
-  collapsed = false,
-  onToggle,
-}) => {
+export const DashboardSidebar: React.FC<SidebarProps> = ({ perms }) => {
   const { user } = useAuth();
 
   const isManager = user?.role === "manager";
@@ -44,290 +38,149 @@ export const DashboardSidebar: React.FC<SidebarProps> = ({
   const canViewDashboard = isManager || !!perms?.can_view_dashboard;
   const canManageOrders = isManager || !!perms?.can_manage_orders;
   const canManageProducts = isManager || !!perms?.can_manage_products;
-  const canManageContactMessages =
-    isManager || !!perms?.can_manage_contact_messages;
+  const canManageContactMessages = isManager || !!perms?.can_manage_contact_messages;
   const canManageSupport = isManager || !!perms?.can_manage_support;
   const canViewActivityLog = isManager || !!perms?.can_view_activity_log;
   const canManageUsers = isManager || !!perms?.can_manage_users;
   const canViewUserActivity = isManager || !!perms?.can_view_user_activity;
   const canSeeMyHR = isManager || isSupervisor || isStaff;
-  const canManageStoreSettings =
-    isManager || !!perms?.can_manage_store_settings;
+  const canManageStoreSettings = isManager || !!perms?.can_manage_store_settings;
   const canManageLoyalty = isManager || !!perms?.can_manage_loyalty;
   const canManageCategories = isManager || !!perms?.can_manage_categories;
-  const canManageSubcategories =
-    isManager || !!perms?.can_manage_subcategories;
+  const canManageSubcategories = isManager || !!perms?.can_manage_subcategories;
   const canManageTables = isManager || !!perms?.can_manage_tables;
   const canManageInventory = isManager || !!perms?.can_manage_inventory;
-  const canUseCashier =
-    isManager || !!perms?.can_access_cashier || !!perms?.can_manage_orders;
+  const canUseCashier = isManager || !!perms?.can_access_cashier || !!perms?.can_manage_orders;
+
+  const linkClass = (active: boolean) =>
+    `px-3 py-1.5 rounded-full text-sm ${
+      active ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50 text-gray-700"
+    }`;
+
+  const hasAny =
+    canViewDashboard ||
+    canManageOrders ||
+    canUseCashier ||
+    canSeeMyHR ||
+    canManageProducts ||
+    canManageCategories ||
+    canManageSubcategories ||
+    canManageTables ||
+    canManageInventory ||
+    canManageContactMessages ||
+    canManageSupport ||
+    canViewUserActivity ||
+    canViewActivityLog ||
+    canManageUsers ||
+    canManageStoreSettings ||
+    canManageLoyalty ||
+    isManager;
+
+  if (!hasAny) return null;
 
   return (
-    <aside
-      className={`bg-white rounded-xl shadow p-4 space-y-4 transition-all duration-200 ${
-        collapsed ? "w-20" : "w-64"
-      }`}
-    >
-      <div className="flex items-center justify-between border-b pb-3">
-        {!collapsed && (
-          <div>
-            <h2 className="text-lg font-semibold">لوحة التحكم</h2>
-            <p className="text-xs text-gray-500 mt-1">
-              {isManager
-                ? "مرحباً، لديك صلاحيات كاملة لإدارة المتجر بما في ذلك المستخدمين."
-                : perms?.role === "supervisor"
-                ? "مرحباً، لديك صلاحيات إدارة الطلبات والأطباق والمحادثات حسب ما يحدده المدير."
-                : perms?.role === "staff"
-                ? "مرحباً، يمكنك إدارة الطلبات والمهام الموكلة لك حسب صلاحياتك."
-                : ""}
-            </p>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={onToggle}
-          className="w-7 h-7 flex items-center justify-center rounded-full border text-xs hover:bg-gray-50"
+    <div className="bg-white rounded-xl shadow p-3 w-full max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-2 text-center">
+      {canViewDashboard && (
+        <NavLink to="/dashboard" end className={({ isActive }) => linkClass(isActive)}>
+          لوحة التحكم
+        </NavLink>
+      )}
+      {canManageOrders && (
+        <NavLink to="/dashboard/orders" className={({ isActive }) => linkClass(isActive)}>
+          الطلبات
+        </NavLink>
+      )}
+      {canUseCashier && (
+        <NavLink to="/dashboard/cashier" className={({ isActive }) => linkClass(isActive)}>
+          الكاشير
+        </NavLink>
+      )}
+      {canSeeMyHR && (
+        <NavLink to="/dashboard/my/hr" className={({ isActive }) => linkClass(isActive)}>
+          HR (موظفي)
+        </NavLink>
+      )}
+      {canSeeMyHR && (
+        <NavLink to="/dashboard/my/documents" className={({ isActive }) => linkClass(isActive)}>
+          مستنداتي
+        </NavLink>
+      )}
+      {canManageProducts && (
+        <NavLink to="/dashboard/products" className={({ isActive }) => linkClass(isActive)}>
+          المنتجات/الأطباق
+        </NavLink>
+      )}
+      {canManageCategories && (
+        <NavLink to="/dashboard/categories" className={({ isActive }) => linkClass(isActive)}>
+          الأصناف
+        </NavLink>
+      )}
+      {canManageSubcategories && (
+        <NavLink to="/dashboard/subcategories" className={({ isActive }) => linkClass(isActive)}>
+          الأصناف الفرعية
+        </NavLink>
+      )}
+      {canManageTables && (
+        <NavLink to="/dashboard/tables" className={({ isActive }) => linkClass(isActive)}>
+          الطاولات
+        </NavLink>
+      )}
+      {canManageInventory && (
+        <NavLink to="/dashboard/inventory" className={({ isActive }) => linkClass(isActive)}>
+          المخزون
+        </NavLink>
+      )}
+      {canManageContactMessages && (
+        <NavLink
+          to="/dashboard/contact-messages"
+          className={({ isActive }) => linkClass(isActive)}
         >
-          {collapsed ? "»" : "«"}
-        </button>
-      </div>
-
-      <nav className="flex flex-col gap-2 text-sm">
-        {canViewDashboard && (
-          <NavLink
-            to="/dashboard"
-            end
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            نظرة عامة
-          </NavLink>
-        )}
-
-        {canManageOrders && (
-          <NavLink
-            to="/dashboard/orders"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            إدارة الطلبات
-          </NavLink>
-        )}
-        {canUseCashier && (
-          <NavLink
-            to="/dashboard/cashier"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            شاشة الكاشير
-          </NavLink>
-        )}
-
-        {canSeeMyHR && (
-          <NavLink
-            to="/dashboard/my/hr"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-             (الموارد البشرية)
-          </NavLink>
-        )}
-
-        {canSeeMyHR && (
-          <NavLink
-            to="/dashboard/my/documents"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            رفع المستندات (الموارد البشرية)
-          </NavLink>
-        )}
-
-        {canManageProducts && (
-          <NavLink
-            to="/dashboard/products"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            إدارة الأطباق
-          </NavLink>
-        )}
-
-        {canManageCategories && (
-          <NavLink
-            to="/dashboard/categories"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            إدارة الأصناف
-          </NavLink>
-        )}
-
-        {canManageSubcategories && (
-          <NavLink
-            to="/dashboard/subcategories"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            الأصناف الفرعية
-          </NavLink>
-        )}
-
-        {canManageTables && (
-          <NavLink
-            to="/dashboard/tables"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            إدارة الطاولات
-          </NavLink>
-        )}
-
-        {canManageInventory && (
-          <NavLink
-            to="/dashboard/inventory"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            إدارة المخزون
-          </NavLink>
-        )}
-
-        {canManageContactMessages && (
-          <NavLink
-            to="/dashboard/contact-messages"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            رسائل التواصل
-          </NavLink>
-        )}
-
-        {canManageSupport && (
-          <NavLink
-            to="/dashboard/support-chat"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            محادثات الدعم
-          </NavLink>
-        )}
-
-        {canViewUserActivity && (
-          <NavLink
-            to="/dashboard/user-activity"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            نشاط المستخدمين
-          </NavLink>
-        )}
-
-        {canViewActivityLog && (
-          <NavLink
-            to="/dashboard/activity-log"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            سجل نشاط الموظفين
-          </NavLink>
-        )}
-
-        {canManageUsers && (
-          <NavLink
-            to="/dashboard/users"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            إدارة المستخدمين
-          </NavLink>
-        )}
-
-        {canManageStoreSettings && (
-          <NavLink
-            to="/dashboard/store-settings"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-           تخصيص الواجهة
-          </NavLink>
-        )}
-
-        {canManageLoyalty && (
-          <NavLink
-            to="/dashboard/loyalty"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            برنامج الولاء
-          </NavLink>
-        )}
-
-        {isManager && (
-          <NavLink
-            to="/dashboard/role-permissions"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg ${
-                isActive ? "bg-amber-100 text-amber-700" : "hover:bg-gray-50"
-              }`
-            }
-          >
-            صلاحيات الأدوار
-          </NavLink>
-        )}
-      </nav>
-    </aside>
+          رسائل العملاء
+        </NavLink>
+      )}
+      {canManageSupport && (
+        <NavLink to="/dashboard/support-chat" className={({ isActive }) => linkClass(isActive)}>
+          دعم فني
+        </NavLink>
+      )}
+      {canViewUserActivity && (
+        <NavLink to="/dashboard/user-activity" className={({ isActive }) => linkClass(isActive)}>
+          نشاط المستخدمين
+        </NavLink>
+      )}
+      {canViewActivityLog && (
+        <NavLink to="/dashboard/activity-log" className={({ isActive }) => linkClass(isActive)}>
+          سجل النشاط
+        </NavLink>
+      )}
+      {canManageUsers && (
+        <NavLink to="/dashboard/users" className={({ isActive }) => linkClass(isActive)}>
+          المستخدمون
+        </NavLink>
+      )}
+      {canManageStoreSettings && (
+        <NavLink
+          to="/dashboard/store-settings"
+          className={({ isActive }) => linkClass(isActive)}
+        >
+          إعدادات المتجر
+        </NavLink>
+      )}
+      {canManageLoyalty && (
+        <NavLink to="/dashboard/loyalty" className={({ isActive }) => linkClass(isActive)}>
+          الولاء
+        </NavLink>
+      )}
+      {isManager && (
+        <NavLink
+          to="/dashboard/role-permissions"
+          className={({ isActive }) => linkClass(isActive)}
+        >
+          صلاحيات الأدوار
+        </NavLink>
+      )}
+    </div>
   );
 };
+
+export default DashboardSidebar;

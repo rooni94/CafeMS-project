@@ -13,6 +13,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import AccountingOverview from "../../components/accounting/dashboard/AccountingOverview";
 
 type StatsPoint = {
   period: string;
@@ -227,6 +228,7 @@ const DashboardHome: React.FC = () => {
           </div>
         )}
       </Card>
+      <AccountingOverview title="مؤشرات مالية فورية" />
     </div>
   );
 };

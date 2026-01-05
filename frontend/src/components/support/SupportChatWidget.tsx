@@ -465,8 +465,8 @@ const SupportChatWidget: React.FC = () => {
         sumSquares += v * v;
       }
       const rms = Math.sqrt(sumSquares / dataArrayRef.current.length);
-      const SILENCE_RMS = 0.02;
-      const SILENCE_MS = 1200;
+      const SILENCE_RMS = 0.01;
+      const SILENCE_MS = 900;
       if (rms < SILENCE_RMS && !silenceTimerRef.current) {
         silenceTimerRef.current = window.setTimeout(() => stopRecording(), SILENCE_MS);
       } else if (rms >= SILENCE_RMS && silenceTimerRef.current) {

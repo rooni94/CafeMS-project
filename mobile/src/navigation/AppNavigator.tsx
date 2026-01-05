@@ -44,6 +44,12 @@ import DashboardTables from "../screens/dashboard/DashboardTables";
 import DashboardPOS from "../screens/dashboard/DashboardPOS";
 import DashboardLoyalty from "../screens/dashboard/DashboardLoyalty";
 import HRDashboard from "../screens/dashboard/HRDashboard";
+import QuickInvoiceScreen from "../screens/accounting/QuickInvoiceScreen";
+import ExpenseCaptureScreen from "../screens/accounting/ExpenseCaptureScreen";
+import InventoryCheckScreen from "../screens/accounting/InventoryCheckScreen";
+import PaymentCollectionScreen from "../screens/accounting/PaymentCollectionScreen";
+import DailySummaryScreen from "../screens/accounting/DailySummaryScreen";
+import FinancialOverviewScreen from "../screens/accounting/FinancialOverviewScreen";
 
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -105,6 +111,12 @@ export type AppStackParamList = {
   DashboardHRDocuments: undefined;
   DashboardHRRequests: undefined;
   HRDashboard: undefined;
+  QuickInvoice: undefined;
+  ExpenseCapture: undefined;
+  InventoryCheck: undefined;
+  PaymentCollection: undefined;
+  DailySummary: undefined;
+  FinancialOverview: undefined;
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -211,6 +223,12 @@ const AppNavigator = () => {
         <Stack.Screen name="DashboardHRDocuments" component={DashboardHRDocuments} options={{ title: "وثائق الموارد البشرية" }} />
         <Stack.Screen name="DashboardHRRequests" component={DashboardHRRequests} options={{ title: "طلبات الموارد البشرية" }} />
         <Stack.Screen name="HRDashboard" component={HRDashboard} options={{ title: "لوحة الموارد البشرية" }} />
+        <Stack.Screen name="QuickInvoice" component={QuickInvoiceScreen} options={{ title: "فاتورة سريعة" }} />
+        <Stack.Screen name="ExpenseCapture" component={ExpenseCaptureScreen} options={{ title: "التقاط مصروف" }} />
+        <Stack.Screen name="InventoryCheck" component={InventoryCheckScreen} options={{ title: "جرد المخزون" }} />
+        <Stack.Screen name="PaymentCollection" component={PaymentCollectionScreen} options={{ title: "تحصيل دفعة" }} />
+        <Stack.Screen name="DailySummary" component={DailySummaryScreen} options={{ title: "إقفال اليوم" }} />
+        <Stack.Screen name="FinancialOverview" component={FinancialOverviewScreen} options={{ title: "مؤشرات مالية" }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

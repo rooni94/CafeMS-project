@@ -33,7 +33,6 @@ const Dashboard: React.FC = () => {
 
   const [rolePerms, setRolePerms] = React.useState<RolePermissions | null>(null);
   const [permLoading, setPermLoading] = React.useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
 
   useEffect(() => {
     if (loading) {
@@ -81,6 +80,11 @@ const Dashboard: React.FC = () => {
         can_manage_hr_reports: true,
         can_manage_hr_work_reports: true,
         can_view_hr_performance: true,
+        can_view_accounting: true,
+        can_manage_accounting: true,
+        can_manage_financial_reports: true,
+        can_manage_payments: true,
+        can_manage_suppliers: true,
       });
       setPermLoading(false);
       return;
@@ -153,20 +157,14 @@ const Dashboard: React.FC = () => {
     isManager || !!rolePerms?.can_view_hr_performance;
 
   return (
-    <div className="flex flex-col md:flex-row gap-4">
-      <div
-        className={
-          sidebarCollapsed ? "md:w-20 flex-shrink-0" : "md:w-72 flex-shrink-0"
-        }
-      >
-        <DashboardSidebar
-          perms={rolePerms}
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed((v) => !v)}
-        />
+    <div className="flex flex-col gap-4 items-center">
+      <div className="w-full flex justify-center px-4">
+        <div className="w-full max-w-6xl">
+          <DashboardSidebar perms={rolePerms} />
+        </div>
       </div>
 
-      <div className="flex-1">
+      <div className="flex-1 w-full">
         <Routes>
           {canViewDashboard && <Route path="/" element={<DashboardHome />} />}
 

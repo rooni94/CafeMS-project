@@ -1,0 +1,103 @@
+[
+  {
+    "model": "accounting.accountingperiod",
+    "pk": 1,
+    "fields": {
+      "name_ar": "الفترة الحالية",
+      "name_en": "Current Period",
+      "start_date": "2025-01-01",
+      "end_date": "2025-12-31",
+      "status": "open",
+      "base_currency": "SAR",
+      "is_default": true,
+      "closed_at": null,
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "accounting.chartofaccount",
+    "pk": 1,
+    "fields": {
+      "code": "1000",
+      "name_ar": "الصندوق",
+      "name_en": "Cash",
+      "type": "asset",
+      "parent": null,
+      "description": "حساب الصندوق الرئيسي",
+      "is_active": true,
+      "allow_manual_entries": true,
+      "currency": "SAR",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "accounting.chartofaccount",
+    "pk": 2,
+    "fields": {
+      "code": "1200",
+      "name_ar": "الذمم المدينة",
+      "name_en": "Accounts Receivable",
+      "type": "asset",
+      "parent": null,
+      "description": "ذمم العملاء",
+      "is_active": true,
+      "allow_manual_entries": true,
+      "currency": "SAR",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "accounting.chartofaccount",
+    "pk": 3,
+    "fields": {
+      "code": "2000",
+      "name_ar": "الذمم الدائنة",
+      "name_en": "Accounts Payable",
+      "type": "liability",
+      "parent": null,
+      "description": "موردين",
+      "is_active": true,
+      "allow_manual_entries": true,
+      "currency": "SAR",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "accounting.chartofaccount",
+    "pk": 4,
+    "fields": {
+      "code": "4000",
+      "name_ar": "المبيعات",
+      "name_en": "Sales",
+      "type": "revenue",
+      "parent": null,
+      "description": "إيرادات المبيعات",
+      "is_active": true,
+      "allow_manual_entries": true,
+      "currency": "SAR",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  },
+  {
+    "model": "accounting.chartofaccount",
+    "pk": 5,
+    "fields": {
+      "code": "5000",
+      "name_ar": "تكلفة المبيعات",
+      "name_en": "Cost of Goods Sold",
+      "type": "expense",
+      "parent": null,
+      "description": "تكلفة البضاعة المباعة",
+      "is_active": true,
+      "allow_manual_entries": true,
+      "currency": "SAR",
+      "created_at": "2025-01-01T00:00:00Z",
+      "updated_at": "2025-01-01T00:00:00Z"
+    }
+  }
+]

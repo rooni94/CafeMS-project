@@ -82,6 +82,8 @@ const SupportChatFloating: React.FC = () => {
   const openRef = useRef<boolean>(false);
   const recordingFlagRef = useRef<boolean>(false);
   const sendingAudioRef = useRef<boolean>(false);
+  const silenceSinceRef = useRef<number | null>(null);
+  const activeRecordingRef = useRef<Audio.Recording | null>(null);
 
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -322,7 +324,7 @@ const SupportChatFloating: React.FC = () => {
   const rearmRecordingIfIdle = (delay = 500) => {
     setTimeout(() => {
       if (!voiceOverlayRef.current || !openRef.current) return;
-      if (recordingFlagRef.current || sendingAudioRef.current || soundRef.current) return;
+      if (recordingFlagRef.current || sendingAudioRef.current || soundRef.current || activeRecordingRef.current) return;
       startVoiceRecording(true).catch(() => undefined);
     }, delay);
   };
@@ -331,6 +333,7 @@ const SupportChatFloating: React.FC = () => {
     voiceOverlayRef.current = true;
     setVoiceOverlay(true);
     if (!force && (recordingFlagRef.current || sendingAudioRef.current)) return;
+    if (recordingFlagRef.current || activeRecordingRef.current) return;
     if (!conversationId) {
       setGuestError("???? ???????? ????? ??? ??????? ??????.");
       return;
@@ -338,29 +341,69 @@ const SupportChatFloating: React.FC = () => {
     await stopBotAudio();
     clearVoiceTimer();
     try {
-      const perm = await Audio.requestPermissionsAsync();
+      const perm = await Audio.getPermissionsAsync();
       if (!perm.granted) {
-        setGuestError("??? ??? ??? ?????????? ?????? ?????.");
-        return;
+        const req = await Audio.requestPermissionsAsync();
+        if (!req.granted) {
+          setGuestError("??? ??? ??? ?????????? ?????? ?????.");
+          return;
+        }
       }
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
         playsInSilentModeIOS: true,
         staysActiveInBackground: false,
-        interruptionModeIOS: Audio.INTERRUPTION_MODE_IOS_DO_NOT_MIX,
-        interruptionModeAndroid: Audio.INTERRUPTION_MODE_ANDROID_DO_NOT_MIX,
         shouldDuckAndroid: true,
       });
-      const rec = new Audio.Recording();
-      await rec.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await rec.startAsync();
-      setRecording(rec);
+      const recordingOptions: Audio.RecordingOptions = {
+        android: {
+          extension: ".m4a",
+          outputFormat: Audio.RECORDING_OPTION_ANDROID_OUTPUT_FORMAT_MPEG_4,
+          audioEncoder: Audio.RECORDING_OPTION_ANDROID_AUDIO_ENCODER_AAC,
+          sampleRate: 44100,
+          numberOfChannels: 1,
+          bitRate: 128000,
+        },
+        ios: {
+          extension: ".m4a",
+          outputFormat: Audio.RECORDING_OPTION_IOS_OUTPUT_FORMAT_MPEG4AAC,
+          audioQuality: Audio.RECORDING_OPTION_IOS_AUDIO_QUALITY_HIGH,
+          sampleRate: 44100,
+          numberOfChannels: 1,
+          bitRate: 128000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        isMeteringEnabled: true,
+      };
+      const { recording: rec } = await Audio.Recording.createAsync(recordingOptions, (status) => {
+        if (!status || !status.canRecord) return;
+        const now = Date.now();
+        const level = (status as any).metering;
+        if (typeof level === "number" && level < -50) {
+          if (silenceSinceRef.current === null) silenceSinceRef.current = now;
+          if (silenceSinceRef.current && now - silenceSinceRef.current > 1400) {
+            stopVoiceRecording(true).catch(() => undefined);
+          }
+        } else {
+          silenceSinceRef.current = null;
+        }
+      });
       recordingFlagRef.current = true;
+      activeRecordingRef.current = rec;
+      silenceSinceRef.current = null;
+      setRecording(rec);
       voiceTimeoutRef.current = setTimeout(() => stopVoiceRecording(true), 35000);
-    } catch {
+    } catch (err) {
+      console.error("voice start failed", err);
       setRecording(null);
       recordingFlagRef.current = false;
+      activeRecordingRef.current = null;
+      silenceSinceRef.current = null;
       setGuestError("???? ??? ???????. ???? ?? ???????? ????? ??? ????.");
+      setVoiceOverlay(false);
+      voiceOverlayRef.current = false;
     }
   };
 
@@ -368,6 +411,8 @@ const SupportChatFloating: React.FC = () => {
     clearVoiceTimer();
     if (!recording) {
       recordingFlagRef.current = false;
+      activeRecordingRef.current = null;
+      silenceSinceRef.current = null;
       return;
     }
     try {
@@ -375,10 +420,15 @@ const SupportChatFloating: React.FC = () => {
       const uri = recording.getURI();
       setRecording(null);
       recordingFlagRef.current = false;
+      activeRecordingRef.current = null;
+      silenceSinceRef.current = null;
       if (uri) await sendVoice(uri);
-    } catch {
+    } catch (err) {
+      console.error("voice stop failed", err);
       setRecording(null);
       recordingFlagRef.current = false;
+      activeRecordingRef.current = null;
+      silenceSinceRef.current = null;
     }
   };
 

@@ -228,3 +228,26 @@ class CanManageHRReports(HasFeaturePermission):
 
 class CanViewHRPerformance(HasFeaturePermission):
     feature_name = "can_view_hr_performance"
+
+
+# ===== Accounting / Finance permissions =====
+
+
+class CanViewAccounting(HasFeaturePermission):
+    feature_name = "can_view_accounting"
+
+
+class CanManageAccounting(HasFeaturePermission):
+    feature_name = "can_manage_accounting"
+
+
+class CanManageFinancialReports(HasFeaturePermission):
+    feature_name = "can_manage_financial_reports"
+
+
+class CanManagePayments(HasFeaturePermission):
+    feature_name = "can_manage_payments"
+
+
+class CanManageSuppliers(HasFeaturePermission):
+    feature_name = "can_manage_suppliers"

@@ -273,6 +273,11 @@ class RolePermissionSerializer(serializers.ModelSerializer):
             "can_manage_hr_reports",
             "can_manage_hr_work_reports",
             "can_view_hr_performance",
+            "can_view_accounting",
+            "can_manage_accounting",
+            "can_manage_financial_reports",
+            "can_manage_payments",
+            "can_manage_suppliers",
         ]
 
 class UserActivitySerializer(serializers.ModelSerializer):

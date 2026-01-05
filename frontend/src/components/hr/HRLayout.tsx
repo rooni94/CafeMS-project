@@ -20,7 +20,6 @@ export type HRPermissions = {
 
 const HRLayout: React.FC = () => {
   const { user } = useAuth();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [permissions, setPermissions] = useState<HRPermissions | null>(null);
   const [loadingPerms, setLoadingPerms] = useState(true);
 
@@ -118,16 +117,14 @@ const HRLayout: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap-4">
-      <HRSidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((c) => !c)}
-        permissions={permissions || undefined}
-      />
-      <div className="flex-1">
-        <div className="max-w-full bg-white rounded-xl shadow p-4 min-h-[400px]">
-          <Outlet />
+    <div className="flex flex-col gap-4">
+      <div className="w-full flex justify-center px-4">
+        <div className="w-full max-w-6xl">
+          <HRSidebar permissions={permissions || undefined} />
         </div>
+      </div>
+      <div className="max-w-full bg-white rounded-xl shadow p-4 min-h-[400px]">
+        <Outlet />
       </div>
     </div>
   );

@@ -36,6 +36,7 @@ import HRWorkReportsPage from "./pages/hr/HRWorkReportsPage";
 import HRAlertsDashboard from "./pages/hr/HRAlertsDashboard";
 import HRPerformancePage from "./pages/hr/HRPerformancePage";
 import { useStoreSettings } from "./context/StoreSettingsContext";
+import AccountingLayout from "./pages/accounting/AccountingLayout";
 
 const App: React.FC = () => {
   const { settings } = useStoreSettings();
@@ -157,15 +158,17 @@ const App: React.FC = () => {
           />
 
           <Route
-            path="/dashboard/hr/performance"
-            element={
-              <HRRouteGuard>
-                <HRPerformancePage />
-              </HRRouteGuard>
-            }
-          />
-        </Routes>
-      </main>
+          path="/dashboard/hr/performance"
+          element={
+            <HRRouteGuard>
+              <HRPerformancePage />
+            </HRRouteGuard>
+          }
+        />
+
+        <Route path="/accounting/*" element={<AccountingLayout />} />
+      </Routes>
+    </main>
 
       <footer className="border-t border-amber-100 bg-white py-4 mt-4">
         <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-gray-500">

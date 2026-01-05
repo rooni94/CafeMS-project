@@ -67,6 +67,7 @@ export const Navbar: React.FC = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [canAccessHR, setCanAccessHR] = useState(false);
+  const [canAccessAccounting, setCanAccessAccounting] = useState(false);
 
   const cartCount = totalQuantity;
 
@@ -92,9 +93,11 @@ export const Navbar: React.FC = () => {
       .then((res) => {
         const data = res.data || {};
         const p = data.permissions || {};
-        const allowed =
+        const role = (user as any)?.role;
+        const hrAllowed =
           data.is_superuser ||
           data.is_staff ||
+          role === "manager" ||
           !!p.can_view_hr_dashboard ||
           !!p.can_manage_employees ||
           !!p.can_manage_attendance ||
@@ -103,11 +106,20 @@ export const Navbar: React.FC = () => {
           !!p.can_manage_hr_documents ||
           !!p.can_manage_hr_work_reports ||
           !!p.can_manage_hr_reports;
-        setCanAccessHR(allowed);
+        setCanAccessHR(hrAllowed);
+
+        const accAllowed =
+          data.is_superuser ||
+          role === "manager" ||
+          !!p.can_view_accounting ||
+          !!p.can_manage_accounting ||
+          !!p.can_manage_financial_reports;
+        setCanAccessAccounting(accAllowed);
       })
       .catch((err) => {
-        console.error("Failed to load HR permissions in navbar", err);
+        console.error("Failed to load HR/accounting permissions in navbar", err);
         setCanAccessHR(false);
+        setCanAccessAccounting(false);
       });
   }, [user]);
 
@@ -384,6 +396,15 @@ export const Navbar: React.FC = () => {
               </Link>
             )}
 
+            {canAccessAccounting && (
+              <Link
+                to="/accounting"
+                className={navLinkClass(location.pathname.startsWith("/accounting"))}
+              >
+                المحاسبة
+              </Link>
+            )}
+
             {headerLinks.length > 0 &&
               headerLinks.map((link) => renderExtraLink(link))}
           </div>
@@ -483,6 +504,16 @@ export const Navbar: React.FC = () => {
                     )}
                   >
                     الموارد البشرية
+                  </Link>
+                )}
+
+                {canAccessAccounting && (
+                  <Link
+                    to="/accounting"
+                    onClick={() => setMobileOpen(false)}
+                    className={navLinkClass(location.pathname.startsWith("/accounting"))}
+                  >
+                    المحاسبة
                   </Link>
                 )}
 

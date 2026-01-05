@@ -28,7 +28,12 @@ type PermissionKey =
   | "can_manage_hr_documents"
   | "can_manage_hr_work_reports"
   | "can_manage_hr_reports"
-  | "can_view_hr_performance";
+  | "can_view_hr_performance"
+  | "can_view_accounting"
+  | "can_manage_accounting"
+  | "can_manage_financial_reports"
+  | "can_manage_payments"
+  | "can_manage_suppliers";
 
 type RolePermissionRow = {
   id: number;
@@ -57,6 +62,11 @@ type RolePermissionRow = {
   can_manage_hr_work_reports: boolean;
   can_manage_hr_reports: boolean;
   can_view_hr_performance: boolean;
+  can_view_accounting: boolean;
+  can_manage_accounting: boolean;
+  can_manage_financial_reports: boolean;
+  can_manage_payments: boolean;
+  can_manage_suppliers: boolean;
 };
 
 const DashboardRolePermissions: React.FC = () => {
@@ -86,6 +96,11 @@ const DashboardRolePermissions: React.FC = () => {
             can_manage_subcategories: !!row.can_manage_subcategories,
             can_manage_hr_reports: !!row.can_manage_hr_reports,
             can_view_hr_performance: !!row.can_view_hr_performance,
+            can_view_accounting: !!row.can_view_accounting,
+            can_manage_accounting: !!row.can_manage_accounting,
+            can_manage_financial_reports: !!row.can_manage_financial_reports,
+            can_manage_payments: !!row.can_manage_payments,
+            can_manage_suppliers: !!row.can_manage_suppliers,
           }))
         );
       })
@@ -156,6 +171,11 @@ const DashboardRolePermissions: React.FC = () => {
     { key: "can_view_user_activity", label: "عرض نشاط المستخدمين" },
     { key: "can_manage_store_settings", label: "تخصيص الواجهة" },
     { key: "can_manage_loyalty", label: "إدارة الولاء" },
+    { key: "can_view_accounting", label: "عرض المحاسبة" },
+    { key: "can_manage_accounting", label: "إدارة المحاسبة والقيود" },
+    { key: "can_manage_financial_reports", label: "تقارير مالية وضريبية" },
+    { key: "can_manage_payments", label: "المدفوعات والمطابقة البنكية" },
+    { key: "can_manage_suppliers", label: "الموردون والمشتريات" },
   ];
 
   const hrPermissions: { key: PermissionKey; label: string }[] = [
