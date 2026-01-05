@@ -73,6 +73,9 @@ class OrderSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(
         required=False, allow_blank=True, allow_null=True
     )
+    customer_id = serializers.IntegerField(
+        write_only=True, required=False, allow_null=True
+    )
     token = serializers.CharField(write_only=True, required=False, allow_blank=True)
     table = TableSerializer(read_only=True)
     table_id = serializers.PrimaryKeyRelatedField(
@@ -91,6 +94,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "user",
             "user_name",
             "customer_name",
+            "customer_id",
             "token",
             "status",
             "status_display",
@@ -145,6 +149,9 @@ class OrderSerializer(serializers.ModelSerializer):
         # نفصل بيانات العناصر
         items_data = validated_data.pop("items", [])
         raw_token_from_payload = validated_data.pop("token", None)
+        # ignore client-supplied id; auth decides user
+        validated_data.pop("customer_id", None)
+        customer_name = validated_data.pop("customer_name", None)
 
         # لو جا user من serializer.save(user=...) نحذفه من validated_data
         user_from_kwargs = validated_data.pop("user", None)
@@ -182,11 +189,9 @@ class OrderSerializer(serializers.ModelSerializer):
         order = Order.objects.create(
             user=user,
             status="pending",
-            customer_name=(
-                validated_data.get("customer_name")
-                or (user.get_full_name() if user else None)
-                or (user.username if user else None)
-            ),
+            customer_name=customer_name
+            or (user.get_full_name() if user else None)
+            or (user.username if user else None),
             # payment_status يبقى "pending" افتراضياً
             served_by=served_by,
             **validated_data,

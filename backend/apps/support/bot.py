@@ -251,7 +251,10 @@ def _add_item_to_order(order: Order, product: Product, qty: int, note: Optional[
 
 
 def _format_invoice_hint(order_id: int) -> str:
-    return f"أرسل لك الفاتورة للطلب #{order_id}. تقدر تفتحها من الرابط /api/invoices/public/by-order/{order_id}/ أو من صفحة الطلبات."
+    return (
+        f"أرسل لك الفاتورة للطلب #{order_id}. تقدر تتابع الطلب وتشوف الفاتورة من صفحة تتبع الطلب: "
+        f"/order-tracking?order={order_id} أو من صفحة الطلبات."
+    )
 
 
 # ========= سياق المحادثة =========

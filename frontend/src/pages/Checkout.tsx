@@ -21,7 +21,7 @@ type OrderSuccessState = {
 
 const Checkout: React.FC = () => {
   const { items, total, clearCart, removeItem } = useCart();
-  const { accessToken } = useAuth();
+  const { user, accessToken } = useAuth();
   const [deliveryType, setDeliveryType] = useState<"pickup" | "delivery">(
     "pickup"
   );
@@ -160,14 +160,15 @@ const Checkout: React.FC = () => {
       (i) => !i || typeof i.id !== "number" || i.quantity <= 0
     );
     if (invalid) {
-      if (err?.response?.status === 401) {
-        nav(`/login?next=${encodeURIComponent("/checkout")}`);
-        return;
-      }
-
       setError(
         "هناك مشكلة في بيانات السلة، حاول إزالة العناصر وإضافتها من جديد."
       );
+      return;
+    }
+
+    if (!user) {
+      setError("يجب تسجيل الدخول لإتمام الطلب");
+      nav(`/login?next=${encodeURIComponent("/checkout")}`);
       return;
     }
 
@@ -191,6 +192,7 @@ const Checkout: React.FC = () => {
           paymentMethod === "card" ? "card_pos" : paymentMethod, // تتوافق مع الباكند
         // ???????: ???? ??? ???????? ??????? ??? ????? ?????? Authorization ?????? ??? proxy
         customer_name: user?.username,
+        customer_id: user?.id,
         token: accessToken || localStorage.getItem("access"),
         items: items.map((i) => ({
           product_id: i.id,

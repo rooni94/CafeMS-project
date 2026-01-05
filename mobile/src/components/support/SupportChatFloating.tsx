@@ -381,9 +381,11 @@ const SupportChatFloating: React.FC = () => {
         if (!status || !status.canRecord) return;
         const now = Date.now();
         const level = (status as any).metering;
-        if (typeof level === "number" && level < -50) {
+        const SILENCE_DB = -40; // more sensitive to silence
+        const SILENCE_MS = 900;
+        if (typeof level === "number" && level < SILENCE_DB) {
           if (silenceSinceRef.current === null) silenceSinceRef.current = now;
-          if (silenceSinceRef.current && now - silenceSinceRef.current > 1400) {
+          if (silenceSinceRef.current && now - silenceSinceRef.current > SILENCE_MS) {
             stopVoiceRecording(true).catch(() => undefined);
           }
         } else {
