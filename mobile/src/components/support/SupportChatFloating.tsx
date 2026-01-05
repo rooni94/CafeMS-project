@@ -455,7 +455,17 @@ const SupportChatFloating: React.FC = () => {
       addMessagesUnique(
         [res.data.customer_message, res.data.guest_message, res.data.bot_reply].filter(Boolean) as SupportMessage[],
       );
-      await playBotAudio(res.data);
+      const audioPayload = res.data.bot_reply
+        ? {
+            ...res.data.bot_reply,
+            bot_audio_base64: res.data.bot_audio_base64,
+            bot_audio_mime: res.data.bot_audio_mime,
+            tts_audio_base64: res.data.tts_audio_base64,
+            audio_base64: res.data.bot_audio_base64 || res.data.tts_audio_base64,
+            audio_mime: res.data.bot_audio_mime,
+          }
+        : res.data;
+      await playBotAudio(audioPayload);
     } catch (err: any) {
       setGuestError(err?.response?.data?.detail || "??? ??? ?? ??? ?????? ??????.");
     } finally {
