@@ -246,6 +246,9 @@ const RegisterScreen: React.FC = () => {
                   placeholder={t("auth.usernamePlaceholder", "اكتب اسم المستخدم")}
                   value={username}
                   onChangeText={setUsername}
+                  autoComplete="username"
+                  textContentType="username"
+                  importantForAutofill="yes"
                 />
 
                 {method === "email" ? (
@@ -256,6 +259,9 @@ const RegisterScreen: React.FC = () => {
                     onChangeText={setEmail}
                     keyboardType="email-address"
                     autoCapitalize="none"
+                    autoComplete="email"
+                    textContentType="emailAddress"
+                    importantForAutofill="yes"
                   />
                 ) : null}
 
@@ -273,6 +279,9 @@ const RegisterScreen: React.FC = () => {
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
+                  autoComplete="tel"
+                  textContentType="telephoneNumber"
+                  importantForAutofill="yes"
                 />
 
                 <Input
@@ -281,6 +290,9 @@ const RegisterScreen: React.FC = () => {
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  importantForAutofill="yes"
                 />
                 <Input
                   label={t("auth.confirmPasswordLabel", "تأكيد كلمة المرور")}
@@ -288,6 +300,9 @@ const RegisterScreen: React.FC = () => {
                   secureTextEntry
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
+                  autoComplete="new-password"
+                  textContentType="newPassword"
+                  importantForAutofill="yes"
                 />
 
                 <View style={styles.checklist}>

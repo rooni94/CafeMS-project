@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.example.cafems",
+      "sha256_cert_fingerprints": ["BF:71:F2:C9:1F:89:25:38:7D:FC:FA:5B:98:01:9F:48:C2:C3:F5:5C:95:78:ED:30:7F:D7:8F:17:7E:76:A3:7B"]
+    }
+  }
+]

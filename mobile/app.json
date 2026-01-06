@@ -17,6 +17,7 @@
       "buildNumber": "4",
       "supportsTablet": true,
       "bundleIdentifier": "com.example.cafems",
+      "associatedDomains": ["webcredentials:example.invalid"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "نستخدم الميكروفون لتسجيل رسائل الدعم الصوتية.",
