@@ -21,6 +21,7 @@ import { useTheme } from "../../theme";
 import { api, parseApiError } from "../../services/api";
 import { AppStackParamList } from "../../navigation/AppNavigator";
 import { safeGoBack } from "../../navigation/helpers";
+import { useI18n } from "../../i18n";
 
 type Message = {
   id: number;
@@ -45,6 +46,7 @@ const DashboardSupportChat: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const qc = useQueryClient();
+  const { t } = useI18n();
   const { id, owner_name, subject, guest_email, is_guest } = route.params || {};
   const [reply, setReply] = useState("");
 
@@ -77,7 +79,11 @@ const DashboardSupportChat: React.FC = () => {
       setReply("");
       qc.invalidateQueries({ queryKey: ["support-messages-admin", id] });
     },
-    onError: (err) => Alert.alert("تعذر الإرسال", parseApiError(err) || "تعذر إرسال الرسالة."),
+    onError: (err) =>
+      Alert.alert(
+        t("dashboard.supportChatSendErrorTitle", "تعذر الإرسال"),
+        parseApiError(err, t("dashboard.supportChatSendErrorBody", "تعذر إرسال الرسالة."))
+      ),
   });
 
   const closeConversation = useMutation({
@@ -87,9 +93,16 @@ const DashboardSupportChat: React.FC = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["support-conversation-admin", id] });
       qc.invalidateQueries({ queryKey: ["support-conversations-admin"] });
-      Alert.alert("تم", "تم إنهاء المحادثة.");
+      Alert.alert(
+        t("dashboard.supportChatClosedTitle", "تم"),
+        t("dashboard.supportChatClosedBody", "تم إنهاء المحادثة.")
+      );
     },
-    onError: (err) => Alert.alert("خطأ", parseApiError(err) || "تعذر إنهاء المحادثة."),
+    onError: (err) =>
+      Alert.alert(
+        t("common.errorTitle", "خطأ"),
+        parseApiError(err, t("dashboard.supportChatCloseError", "تعذر إنهاء المحادثة."))
+      ),
   });
 
   const deleteConversation = useMutation({
@@ -102,11 +115,15 @@ const DashboardSupportChat: React.FC = () => {
       qc.invalidateQueries({ queryKey: ["support-messages-admin", id] });
       safeGoBack(navigation, { stack: "DashboardSupport" });
     },
-    onError: (err) => Alert.alert("خطأ", parseApiError(err) || "تعذر حذف المحادثة."),
+    onError: (err) =>
+      Alert.alert(
+        t("common.errorTitle", "خطأ"),
+        parseApiError(err, t("dashboard.supportChatDeleteError", "تعذر حذف المحادثة."))
+      ),
   });
 
   const chatTitle = useMemo(
-    () => conversation?.owner_name || owner_name || subject || `محادثة #${id}`,
+    () => conversation?.owner_name || owner_name || subject || `${t("dashboard.conversationLabel", "محادثة")} #${id}`,
     [conversation?.owner_name, owner_name, subject, id]
   );
 
@@ -125,8 +142,12 @@ const DashboardSupportChat: React.FC = () => {
 
             <View style={{ flex: 1, alignItems: "flex-end" }}>
               <Text style={styles.chatTitle}>{chatTitle}</Text>
-              <Text style={styles.helper}>{subject || "دردشة دعم"}</Text>
-              {is_guest && guest_email ? <Text style={styles.helper}>بريد الضيف: {guest_email}</Text> : null}
+              <Text style={styles.helper}>{subject || t("dashboard.supportChatHelper", "دردشة دعم")}</Text>
+              {is_guest && guest_email ? (
+                <Text style={styles.helper}>
+                  {t("dashboard.supportChatGuestEmail", "بريد الضيف")}: {guest_email}
+                </Text>
+              ) : null}
             </View>
 
             <View style={{ flexDirection: "row", gap: 8 }}>
@@ -173,7 +194,7 @@ const DashboardSupportChat: React.FC = () => {
           <View style={styles.composer}>
             <TextInput
               style={styles.input}
-              placeholder="اكتب رسالتك..."
+              placeholder={t("dashboard.supportChatPlaceholder", "اكتب رسالتك...")}
               value={reply}
               onChangeText={setReply}
               multiline

@@ -14,17 +14,7 @@ import { Address, DeliveryMode, PaymentMethod } from "../../types";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import DashboardTile from "../dashboard/components/DashboardTile";
-
-const paymentLabel = (method: PaymentMethod) => {
-  if (method === "cash") return "دفع نقدي عند الاستلام";
-  if (method === "card") return "بطاقة (جهاز نقاط البيع)";
-  return "محفظة رقمية";
-};
-
-const deliveryLabel = (mode: DeliveryMode) => {
-  if (mode === "pickup") return "استلام من المتجر";
-  return "توصيل للعنوان";
-};
+import { useI18n } from "../../i18n";
 
 const CheckoutScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -32,6 +22,7 @@ const CheckoutScreen: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { user } = useAuth();
   const { items, totalPrice, clearCart, removeItem } = useCart();
+  const { t } = useI18n();
 
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("pickup");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
@@ -75,32 +66,43 @@ const CheckoutScreen: React.FC = () => {
       ? customAddress.trim()
       : addresses.find((addr) => addr.id === addressId)?.details || "";
 
+  const paymentLabel = (method: PaymentMethod) => {
+    if (method === "cash") return t("checkout.paymentCash", "دفع نقدي عند الاستلام");
+    if (method === "card") return t("checkout.paymentCard", "بطاقة (جهاز نقاط البيع)");
+    return t("checkout.paymentWallet", "محفظة رقمية");
+  };
+
+  const deliveryLabel = (mode: DeliveryMode) => {
+    if (mode === "pickup") return t("checkout.deliveryPickup", "استلام من المتجر");
+    return t("checkout.deliveryDelivery", "توصيل للعنوان");
+  };
+
   const summaryRows = useMemo(
     () => [
-      { label: "قيمة الأصناف", kind: "currency" as const, value: totalPrice },
+      { label: t("checkout.itemsTotal", "قيمة الأصناف"), kind: "currency" as const, value: totalPrice },
       {
-        label: "رسوم التوصيل",
+        label: t("checkout.deliveryFee", "رسوم التوصيل"),
         kind: deliveryMode === "delivery" ? ("text" as const) : ("currency" as const),
-        value: deliveryMode === "delivery" ? "يتم حسابها عند التأكيد" : 0,
+        value: deliveryMode === "delivery" ? t("checkout.deliveryFeePending", "يتم حسابها عند التأكيد") : 0,
       },
-      { label: "الإجمالي المبدئي", kind: "currency" as const, value: totalPrice },
+      { label: t("checkout.subtotal", "الإجمالي المبدئي"), kind: "currency" as const, value: totalPrice },
     ],
-    [totalPrice, deliveryMode]
+    [totalPrice, deliveryMode, t]
   );
 
   const handleSubmit = async () => {
     if (!user) {
-      Alert.alert("تسجيل الدخول مطلوب", "يرجى تسجيل الدخول أو إنشاء حساب لإكمال الطلب.", [
-        { text: "تسجيل الدخول", onPress: () => navigation.navigate("Login") },
-        { text: "إنشاء حساب", onPress: () => navigation.navigate("Register") },
-        { text: "إلغاء", style: "cancel" },
+      Alert.alert(t("checkout.authRequiredTitle", "تسجيل الدخول مطلوب"), t("checkout.authRequiredBody", "يرجى تسجيل الدخول أو إنشاء حساب لإكمال الطلب."), [
+        { text: t("auth.loginTitle", "تسجيل الدخول"), onPress: () => navigation.navigate("Login") },
+        { text: t("auth.createAccount", "إنشاء حساب"), onPress: () => navigation.navigate("Register") },
+        { text: t("common.cancel", "إلغاء"), style: "cancel" },
       ]);
       return;
     }
 
     if (!items.length) return;
     if (deliveryMode === "delivery" && (!selectedAddress || !selectedAddress.trim())) {
-      setError("يرجى إدخال عنوان التوصيل.");
+      setError(t("checkout.deliveryAddressRequired", "يرجى إدخال عنوان التوصيل."));
       return;
     }
     setSubmitting(true);
@@ -122,10 +124,13 @@ const CheckoutScreen: React.FC = () => {
       };
       const res = await api.post("orders/", payload);
       clearCart();
-      Alert.alert("تم إنشاء الطلب", "تم إرسال طلبك بنجاح، يمكنك متابعة حالته الآن.");
+      Alert.alert(
+        t("checkout.orderCreatedTitle", "تم إنشاء الطلب"),
+        t("checkout.orderCreatedBody", "تم إرسال طلبك بنجاح، يمكنك متابعة حالته الآن.")
+      );
       navigation.navigate("OrderTracking", { orderId: res.data?.id });
     } catch (err) {
-      setError(parseApiError(err));
+      setError(parseApiError(err, t("checkout.submitError", "تعذر إرسال الطلب. حاول مرة أخرى.")));
     } finally {
       setSubmitting(false);
     }
@@ -133,9 +138,9 @@ const CheckoutScreen: React.FC = () => {
 
   if (!hasItems) {
     return (
-      <DashboardShell title="إتمام الطلب" subtitle="أضف أصنافاً للسلة للمتابعة بإتمام الطلب.">
+      <DashboardShell title={t("checkout.title", "إتمام الطلب")} subtitle={t("checkout.emptySubtitle", "أضف أصنافاً للسلة للمتابعة بإتمام الطلب.")}>
         <DashboardSection>
-          <EmptyState title="لا يوجد طلب" description="أضف أصنافاً للسلة للمتابعة بإتمام الطلب." />
+          <EmptyState title={t("checkout.emptyTitle", "لا يوجد طلب")} description={t("checkout.emptySubtitle", "أضف أصنافاً للسلة للمتابعة بإتمام الطلب.")} />
         </DashboardSection>
       </DashboardShell>
     );
@@ -143,20 +148,20 @@ const CheckoutScreen: React.FC = () => {
 
   if (!user) {
     return (
-      <DashboardShell title="إتمام الطلب" subtitle="سجّل دخولك لإتمام الطلب وتتبع حالته.">
-        <DashboardSection title="قبل إتمام الطلب" subtitle="نحتاج حسابك لحفظ العنوان والدفع وتتبع الطلب.">
+      <DashboardShell title={t("checkout.title", "إتمام الطلب")} subtitle={t("checkout.guestSubtitle", "سجّل دخولك لإتمام الطلب وتتبع حالته.")}>
+        <DashboardSection title={t("checkout.guestTitle", "قبل إتمام الطلب")} subtitle={t("checkout.guestBody", "نحتاج حسابك لحفظ العنوان والدفع وتتبع الطلب.")}>
           <View style={{ gap: 8 }}>
             <DashboardTile
-              title="تسجيل الدخول"
-              subtitle="ادخل إلى حسابك"
+              title={t("auth.loginTitle", "تسجيل الدخول")}
+              subtitle={t("profile.tileLoginSubtitle", "ادخل إلى حسابك")}
               icon="log-in-outline"
               onPress={() => navigation.navigate("Login")}
               color={theme.palette.accent}
               style={{ width: "100%" }}
             />
             <DashboardTile
-              title="إنشاء حساب"
-              subtitle="حساب جديد خلال دقيقة"
+              title={t("auth.createAccount", "إنشاء حساب")}
+              subtitle={t("profile.tileRegisterSubtitle", "حساب جديد خلال دقيقة")}
               icon="person-add-outline"
               onPress={() => navigation.navigate("Register")}
               color={theme.palette.accentSoft}
@@ -169,8 +174,8 @@ const CheckoutScreen: React.FC = () => {
   }
 
   return (
-    <DashboardShell title="إتمام الطلب" subtitle="راجع طلبك ثم اختر طريقة الاستلام والدفع.">
-      <DashboardSection title="مراجعة الطلب" subtitle="تأكد من الأصناف والكميات.">
+    <DashboardShell title={t("checkout.title", "إتمام الطلب")} subtitle={t("checkout.subtitle", "راجع طلبك ثم اختر طريقة الاستلام والدفع.")}>
+      <DashboardSection title={t("checkout.reviewTitle", "مراجعة الطلب")} subtitle={t("checkout.reviewSubtitle", "تأكد من الأصناف والكميات.")}>
         <View style={{ gap: 8 }}>
           {items.map((item) => (
             <View key={item.key} style={[styles.lineRow, { borderColor: theme.palette.border }]}>
@@ -190,7 +195,7 @@ const CheckoutScreen: React.FC = () => {
               </View>
 
               <Button
-                title="حذف"
+                title={t("common.delete", "حذف")}
                 variant="ghost"
                 color="transparent"
                 textColor={theme.palette.danger}
@@ -216,7 +221,7 @@ const CheckoutScreen: React.FC = () => {
         </View>
       </DashboardSection>
 
-      <DashboardSection title="طريقة الاستلام" subtitle={`المحدد حالياً: ${deliveryLabel(deliveryMode)}`}>
+      <DashboardSection title={t("checkout.deliveryTitle", "طريقة الاستلام")} subtitle={`${t("checkout.deliverySelectedPrefix", "المحدد حالياً:")} ${deliveryLabel(deliveryMode)}`}>
         <View style={styles.chipGroup}>
           {(["pickup", "delivery"] as DeliveryMode[]).map((mode) => {
             const active = deliveryMode === mode;
@@ -243,7 +248,7 @@ const CheckoutScreen: React.FC = () => {
 
         {deliveryMode === "delivery" ? (
           <View style={{ gap: 8 }}>
-            {addressesLoading ? <LoadingState message="جارٍ تحميل العناوين..." /> : null}
+            {addressesLoading ? <LoadingState message={t("checkout.addressesLoading", "جارٍ تحميل العناوين...")} /> : null}
             {!addressesLoading && addresses.length ? (
               <View style={{ gap: 8 }}>
                 {addresses.map((addr) => {
@@ -269,8 +274,8 @@ const CheckoutScreen: React.FC = () => {
             ) : null}
 
             <Input
-              label="عنوان التوصيل (يدوي)"
-              placeholder="اكتب عنوان التوصيل بالتفصيل"
+              label={t("checkout.deliveryAddressManualLabel", "عنوان التوصيل (يدوي)")}
+              placeholder={t("checkout.deliveryAddressPlaceholder", "اكتب عنوان التوصيل بالتفصيل")}
               value={addressId === "custom" ? customAddress : selectedAddress}
               onChangeText={(text) => {
                 setAddressId("custom");
@@ -283,9 +288,9 @@ const CheckoutScreen: React.FC = () => {
         ) : null}
       </DashboardSection>
 
-      <DashboardSection title="طريقة الدفع" subtitle="اختر طريقة الدفع من القائمة.">
+      <DashboardSection title={t("checkout.paymentTitle", "طريقة الدفع")} subtitle={t("checkout.paymentSubtitle", "اختر طريقة الدفع من القائمة.")}>
         <Select
-          label="طريقة الدفع"
+          label={t("checkout.paymentTitle", "طريقة الدفع")}
           value={paymentMethod}
           onChange={(v) => setPaymentMethod(v as PaymentMethod)}
           options={[
@@ -303,7 +308,12 @@ const CheckoutScreen: React.FC = () => {
       ) : null}
 
       <DashboardSection>
-        <Button title={submitting ? "جارٍ التأكيد..." : "تأكيد الطلب"} onPress={handleSubmit} disabled={submitting} loading={submitting} />
+        <Button
+          title={submitting ? t("checkout.submitting", "جارٍ التأكيد...") : t("checkout.confirm", "تأكيد الطلب")}
+          onPress={handleSubmit}
+          disabled={submitting}
+          loading={submitting}
+        />
       </DashboardSection>
     </DashboardShell>
   );

@@ -119,6 +119,13 @@ DATABASES = {
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
 
+# ================== Expo Push Notifications ==================
+EXPO_ACCESS_TOKEN = env("EXPO_ACCESS_TOKEN", default="").strip()
+EXPO_PUSH_URL = env(
+    "EXPO_PUSH_URL",
+    default="https://exp.host/--/api/v2/push/send",
+).strip()
+
 # ================== Authentica OTP (Phone Verification) ==================
 # IMPORTANT: Do not hardcode API keys in source control. Configure via environment variables.
 AUTHENTICA_API_KEY = env("AUTHENTICA_API_KEY", default="").strip()

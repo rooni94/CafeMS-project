@@ -21,6 +21,7 @@ from .views import (
     MyPermissionsAPIView,
     PhoneRegisterStartView,
     PhoneRegisterVerifyView,
+    PushTokenView,
 )
 
 router = DefaultRouter()
@@ -59,6 +60,7 @@ urlpatterns = [
     path("role-permissions/me/", MyRolePermissionView.as_view(), name="my-role-permissions"),
     path("user-activity/", UserActivityListView.as_view(), name="user-activity"),
     path("my-permissions/", MyPermissionsAPIView.as_view(), name="my-permissions"),
+    path("push-tokens/", PushTokenView.as_view(), name="push-tokens"),
     path("", include(router.urls)),
 ]
 

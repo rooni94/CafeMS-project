@@ -3,11 +3,28 @@ import { ENV } from "../config/env";
 
 export const api = axios.create({
   baseURL: ENV.apiUrl,
-  timeout: 20000,
+  timeout: 65000,
   headers: {
     Accept: "application/json",
-    "Content-Type": "application/json",
   },
+});
+
+api.interceptors.request.use((config) => {
+  const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
+  if (isFormData) {
+    if (config.headers) {
+      delete (config.headers as any)["Content-Type"];
+      delete (config.headers as any)["content-type"];
+    }
+    config.transformRequest = [(data) => data];
+  } else {
+    config.headers = {
+      ...(config.headers || {}),
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    };
+  }
+  return config;
 });
 
 export const setAuthToken = (token?: string | null) => {
@@ -21,7 +38,7 @@ export const setAuthToken = (token?: string | null) => {
   }
 };
 
-export const parseApiError = (error: any): string => {
+export const parseApiError = (error: any, fallback?: string): string => {
   if (error?.response?.data) {
     const data = error.response.data;
     if (typeof data === "string") return data;
@@ -34,5 +51,5 @@ export const parseApiError = (error: any): string => {
   if (error?.message) {
     return error.message;
   }
-  return "حدث خطأ غير متوقع، حاول مرة أخرى.";
+  return fallback || "حدث خطأ غير متوقع، حاول مرة أخرى.";
 };

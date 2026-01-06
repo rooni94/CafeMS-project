@@ -2,11 +2,13 @@ import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import { Button } from "../../components/ui";
 import { accountingApi } from "../../services/accounting";
+import { useI18n } from "../../i18n";
 
 const QuickInvoiceScreen: React.FC = () => {
   const [orderId, setOrderId] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const { t } = useI18n();
 
   const submit = async () => {
     setMessage(null);
@@ -15,31 +17,31 @@ const QuickInvoiceScreen: React.FC = () => {
         order: Number(orderId) || null,
         total_amount: Number(amount) || 0,
       });
-      setMessage("تم إنشاء فاتورة سريعة");
+      setMessage(t("accounting.quickInvoiceSuccess", "تم إنشاء فاتورة سريعة"));
     } catch (err: any) {
-      setMessage("تعذر إنشاء الفاتورة");
+      setMessage(t("accounting.quickInvoiceError", "تعذر إنشاء الفاتورة"));
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>فاتورة سريعة</Text>
+      <Text style={styles.title}>{t("accounting.quickInvoiceTitle", "فاتورة سريعة")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="رقم الطلب"
+        placeholder={t("accounting.orderIdPlaceholder", "رقم الطلب")}
         keyboardType="numeric"
         value={orderId}
         onChangeText={setOrderId}
       />
       <TextInput
         style={styles.input}
-        placeholder="المبلغ"
+        placeholder={t("accounting.amountPlaceholder", "المبلغ")}
         keyboardType="numeric"
         value={amount}
         onChangeText={setAmount}
       />
       {message && <Text style={styles.message}>{message}</Text>}
-      <Button label="حفظ" onPress={submit} />
+      <Button label={t("common.save", "حفظ")} onPress={submit} />
     </View>
   );
 };

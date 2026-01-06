@@ -4,6 +4,7 @@ import { Product, ProductAddon } from "../types";
 import { useTheme } from "../theme";
 import CurrencyAmount from "./CurrencyAmount";
 import { Button } from "./ui";
+import { useI18n } from "../i18n";
 
 type ProductAddonsModalProps = {
   visible: boolean;
@@ -19,6 +20,7 @@ const ProductAddonsModal: React.FC<ProductAddonsModalProps> = ({
   onConfirm,
 }) => {
   const theme = useTheme();
+  const { t } = useI18n();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   useEffect(() => {
@@ -87,21 +89,21 @@ const ProductAddonsModal: React.FC<ProductAddonsModalProps> = ({
                 );
               })
             ) : (
-              <Text style={styles.empty}>لا توجد إضافات لهذا المنتج.</Text>
+              <Text style={styles.empty}>{t("product.addonsEmpty", "لا توجد إضافات لهذا المنتج.")}</Text>
             )}
           </ScrollView>
 
           <View style={styles.summary}>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>السعر الأساسي</Text>
+              <Text style={styles.summaryLabel}>{t("product.basePrice", "السعر الأساسي")}</Text>
               <CurrencyAmount value={basePrice} symbolSize={12} textStyle={styles.summaryValue} color={theme.palette.text} />
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>إجمالي إضافات</Text>
+              <Text style={styles.summaryLabel}>{t("product.addonsTotal", "إجمالي الإضافات")}</Text>
               <CurrencyAmount value={addonsTotal} symbolSize={12} textStyle={styles.summaryValue} color={theme.palette.text} />
             </View>
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, styles.summaryTotal]}>الإجمالي</Text>
+              <Text style={[styles.summaryLabel, styles.summaryTotal]}>{t("product.total", "الإجمالي")}</Text>
               <CurrencyAmount
                 value={basePrice + addonsTotal}
                 symbolSize={12}
@@ -112,8 +114,8 @@ const ProductAddonsModal: React.FC<ProductAddonsModalProps> = ({
           </View>
 
           <View style={styles.actions}>
-            <Button title="أضف إلى السلة" onPress={() => onConfirm(selectedAddons)} style={{ width: "100%" }} />
-            <Button title="إلغاء" variant="secondary" onPress={onClose} style={{ width: "100%" }} />
+            <Button title={t("product.addToCart", "إضافة إلى السلة")} onPress={() => onConfirm(selectedAddons)} style={{ width: "100%" }} />
+            <Button title={t("common.cancel", "إلغاء")} variant="secondary" onPress={onClose} style={{ width: "100%" }} />
           </View>
         </View>
       </View>

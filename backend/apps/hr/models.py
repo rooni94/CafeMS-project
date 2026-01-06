@@ -463,7 +463,7 @@ def create_notification_for_employee(
     if not employee or not getattr(employee, "user", None):
         return
 
-    Notification.objects.create(
+    notification = Notification.objects.create(
         user=employee.user,
         title=title,
         message=message,
@@ -471,6 +471,24 @@ def create_notification_for_employee(
         related_object=related_object or "",
         related_id=related_id,
     )
+
+    try:
+        from apps.accounts.push import notify_user
+
+        notify_user(
+            employee.user,
+            title=title,
+            body=message,
+            data={
+                "type": "hr",
+                "category": category,
+                "notification_id": notification.id,
+                "related_object": related_object or "",
+                "related_id": related_id,
+            },
+        )
+    except Exception as exc:
+        print("push notification error:", exc)
 
 
 class SalaryRaiseRequest(models.Model):

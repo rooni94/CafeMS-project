@@ -10,6 +10,7 @@ import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
 import { has } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type ContactMessage = {
   id: number;
@@ -26,6 +27,7 @@ const DashboardMessages: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
+  const { t } = useI18n();
 
   const allowed = has(user, permissions, "can_manage_contact_messages");
 
@@ -46,7 +48,10 @@ const DashboardMessages: React.FC = () => {
 
   const sendReply = async () => {
     if (!selectedId || !reply.trim()) {
-      Alert.alert("بيانات ناقصة", "اختر رسالة واكتب الرد.");
+      Alert.alert(
+        t("dashboard.messagesMissingTitle", "بيانات ناقصة"),
+        t("dashboard.messagesMissingBody", "اختر رسالة واكتب الرد.")
+      );
       return;
     }
     setSending(true);
@@ -54,36 +59,51 @@ const DashboardMessages: React.FC = () => {
       await api.post(`contact/messages/${selectedId}/reply/`, { reply: reply.trim() });
       setReply("");
       qc.invalidateQueries({ queryKey: ["dashboard", "contact-messages"] });
-      Alert.alert("تم الإرسال", "تم إرسال الرد بنجاح.");
+      Alert.alert(
+        t("dashboard.messagesSentTitle", "تم الإرسال"),
+        t("dashboard.messagesSentBody", "تم إرسال الرد بنجاح.")
+      );
     } catch {
-      Alert.alert("تعذر الإرسال", "حدث خطأ أثناء إرسال الرد.");
+      Alert.alert(
+        t("dashboard.messagesSendErrorTitle", "تعذر الإرسال"),
+        t("dashboard.messagesSendErrorBody", "حدث خطأ أثناء إرسال الرد.")
+      );
     } finally {
       setSending(false);
     }
   };
 
   if (!allowed) {
-    return <DashboardAccessDenied title="رسائل التواصل" subtitle="قراءة الرسائل والرد عليها من لوحة التحكم." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.messagesTitle", "رسائل التواصل")}
+        subtitle={t("dashboard.messagesSubtitle", "قراءة الرسائل والرد عليها من لوحة التحكم.")}
+      />
+    );
   }
 
   return (
-    <DashboardShell title="رسائل التواصل" subtitle="قراءة الرسائل والرد عليها من لوحة التحكم.">
-      <DashboardSection title="الرسائل" subtitle={isLoading ? "جاري التحميل..." : "اضغط على رسالة لعرض التفاصيل."}>
+    <DashboardShell title={t("dashboard.messagesTitle", "رسائل التواصل")} subtitle={t("dashboard.messagesSubtitle", "قراءة الرسائل والرد عليها من لوحة التحكم.")}>
+      <DashboardSection title={t("dashboard.messagesListTitle", "الرسائل")} subtitle={isLoading ? t("common.loading", "جاري التحميل...") : t("dashboard.messagesListSubtitle", "اضغط على رسالة لعرض التفاصيل.")}>
         {messages.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد رسائل.</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>{t("dashboard.messagesEmpty", "لا توجد رسائل.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {messages.slice(0, 40).map((msg) => (
               <DashboardListItem
                 key={msg.id}
-                title={msg.subject?.trim() ? msg.subject : "بدون عنوان"}
-                subtitle={`${msg.name || "غير معروف"} • ${msg.email || msg.phone || "لا يوجد تواصل"}${msg.message ? ` • ${msg.message}` : ""}`}
+                title={msg.subject?.trim() ? msg.subject : t("dashboard.messagesNoSubject", "بدون عنوان")}
+                subtitle={`${msg.name || t("dashboard.messagesUnknown", "غير معروف")} • ${
+                  msg.email || msg.phone || t("dashboard.messagesNoContact", "لا يوجد تواصل")
+                }${msg.message ? ` • ${msg.message}` : ""}`}
                 icon="mail-unread-outline"
                 onPress={() => setSelectedId(msg.id)}
                 style={selectedId === msg.id ? { borderColor: theme.palette.accentSoft, backgroundColor: theme.palette.surfaceAlt } : undefined}
                 right={
                   <View style={[styles.badge, { backgroundColor: msg.is_read ? theme.palette.border : `${theme.palette.accent}22` }]}>
-                    <Text style={[styles.badgeText, { color: theme.palette.text }]}>{msg.is_read ? "مقروءة" : "جديدة"}</Text>
+                    <Text style={[styles.badgeText, { color: theme.palette.text }]}>
+                      {msg.is_read ? t("dashboard.messagesRead", "مقروءة") : t("dashboard.messagesNew", "جديدة")}
+                    </Text>
                   </View>
                 }
               />
@@ -92,33 +112,33 @@ const DashboardMessages: React.FC = () => {
         )}
       </DashboardSection>
 
-      <DashboardSection title="تفاصيل ورد" subtitle={selected ? "اكتب الرد ثم إرسال." : "اختر رسالة من الأعلى."}>
+      <DashboardSection title={t("dashboard.messagesReplyTitle", "تفاصيل ورد")} subtitle={selected ? t("dashboard.messagesReplySubtitle", "اكتب الرد ثم إرسال.") : t("dashboard.messagesSelectPrompt", "اختر رسالة من الأعلى.")}>
         {selected ? (
           <View style={{ gap: 10 }}>
             <View style={styles.detailRow}>
-              <Text style={[styles.detailKey, { color: theme.palette.muted }]}>المرسل</Text>
+              <Text style={[styles.detailKey, { color: theme.palette.muted }]}>{t("dashboard.messagesSenderLabel", "المرسل")}</Text>
               <Text style={[styles.detailVal, { color: theme.palette.text }]}>{selected.name || "-"}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={[styles.detailKey, { color: theme.palette.muted }]}>التواصل</Text>
+              <Text style={[styles.detailKey, { color: theme.palette.muted }]}>{t("dashboard.messagesContactLabel", "التواصل")}</Text>
               <Text style={[styles.detailVal, { color: theme.palette.text }]}>{selected.email || selected.phone || "-"}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={[styles.detailKey, { color: theme.palette.muted }]}>الموضوع</Text>
+              <Text style={[styles.detailKey, { color: theme.palette.muted }]}>{t("dashboard.messagesSubjectLabel", "الموضوع")}</Text>
               <Text style={[styles.detailVal, { color: theme.palette.text }]}>{selected.subject || "-"}</Text>
             </View>
             {selected.message ? (
               <View>
-                <Text style={[styles.detailKey, { color: theme.palette.muted, marginBottom: 6 }]}>نص الرسالة</Text>
+                <Text style={[styles.detailKey, { color: theme.palette.muted, marginBottom: 6 }]}>{t("dashboard.messagesBodyLabel", "نص الرسالة")}</Text>
                 <Text style={[styles.messageBody, { color: theme.palette.text }]}>{selected.message}</Text>
               </View>
             ) : null}
 
-            <Input label="الرد" value={reply} onChangeText={setReply} multiline numberOfLines={4} placeholder="اكتب الرد هنا..." />
-            <Button title={sending ? "جارٍ الإرسال..." : "إرسال الرد"} onPress={sendReply} disabled={sending} />
+            <Input label={t("dashboard.messagesReplyLabel", "الرد")} value={reply} onChangeText={setReply} multiline numberOfLines={4} placeholder={t("dashboard.messagesReplyPlaceholder", "اكتب الرد هنا...")} />
+            <Button title={sending ? t("common.sending", "جارٍ الإرسال...") : t("dashboard.messagesSendReply", "إرسال الرد")} onPress={sendReply} disabled={sending} />
           </View>
         ) : (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>اختر رسالة أولاً.</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>{t("dashboard.messagesSelectFirst", "اختر رسالة أولاً.")}</Text>
         )}
       </DashboardSection>
     </DashboardShell>

@@ -10,7 +10,7 @@ import { useTheme } from "../../theme";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import DashboardListItem from "../dashboard/components/DashboardListItem";
-import { copy } from "../../config/copy";
+import { useI18n } from "../../i18n";
 
 type MyLeave = {
   id: number;
@@ -138,6 +138,7 @@ const safeNumber = (value: string) => {
 const MyHRScreen: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { copy } = useI18n();
   const qc = useQueryClient();
 
   const [attendanceMsg, setAttendanceMsg] = useState<string | null>(null);

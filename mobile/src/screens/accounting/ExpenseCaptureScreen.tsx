@@ -3,12 +3,14 @@ import { View, Text, TextInput, StyleSheet } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Button } from "../../components/ui";
 import { accountingApi } from "../../services/accounting";
+import { useI18n } from "../../i18n";
 
 const ExpenseCaptureScreen: React.FC = () => {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [attachment, setAttachment] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const { t } = useI18n();
 
   const pickImage = async () => {
     const res = await ImagePicker.launchCameraAsync({ base64: false });
@@ -26,32 +28,36 @@ const ExpenseCaptureScreen: React.FC = () => {
     };
     try {
       await accountingApi.recordExpense(payload);
-      setMessage("تم حفظ المصروف.");
+      setMessage(t("accounting.expenseSaveSuccess", "تم حفظ المصروف."));
     } catch {
-      setMessage("تعذر حفظ المصروف.");
+      setMessage(t("accounting.expenseSaveError", "تعذر حفظ المصروف."));
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>التقاط إيصال</Text>
+      <Text style={styles.title}>{t("accounting.expenseCaptureTitle", "التقاط إيصال")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="وصف المصروف"
+        placeholder={t("accounting.expenseDescriptionPlaceholder", "وصف المصروف")}
         value={title}
         onChangeText={setTitle}
       />
       <TextInput
         style={styles.input}
-        placeholder="المبلغ"
+        placeholder={t("accounting.amountPlaceholder", "المبلغ")}
         keyboardType="numeric"
         value={amount}
         onChangeText={setAmount}
       />
-      <Button label="التقاط إيصال" onPress={pickImage} />
-      {attachment && <Text style={styles.note}>تم إرفاق صورة: {attachment.fileName || "receipt"}</Text>}
+      <Button label={t("accounting.captureReceiptButton", "التقاط إيصال")} onPress={pickImage} />
+      {attachment && (
+        <Text style={styles.note}>
+          {t("accounting.attachmentAdded", "تم إرفاق صورة")}: {attachment.fileName || "receipt"}
+        </Text>
+      )}
       {message && <Text style={styles.message}>{message}</Text>}
-      <Button label="حفظ المصروف" onPress={submit} />
+      <Button label={t("accounting.saveExpenseButton", "حفظ المصروف")} onPress={submit} />
     </View>
   );
 };

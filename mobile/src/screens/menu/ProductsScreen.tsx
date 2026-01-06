@@ -12,12 +12,13 @@ import { Button, Card, Input } from "../../components/ui";
 import { useCart } from "../../context/CartContext";
 import { api } from "../../services/api";
 import { Product, ProductAddon } from "../../types";
-import { copy } from "../../config/copy";
 import { normalizeArabicText } from "../../utils/text";
+import { useI18n } from "../../i18n";
 
 const ProductsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { addItem, totalQuantity } = useCart();
+  const { copy, t } = useI18n();
   const [search, setSearch] = useState("");
   const [addonProduct, setAddonProduct] = useState<Product | null>(null);
 
@@ -83,7 +84,10 @@ const ProductsScreen: React.FC = () => {
   if (isError) {
     return (
       <Screen>
-        <EmptyState title="تعذر تحميل المنتجات" description="حدث خطأ أثناء تحميل المنتجات. حاول مرة أخرى لاحقاً." />
+        <EmptyState
+          title={t("products.loadErrorTitle", "تعذر تحميل المنتجات")}
+          description={t("products.loadErrorBody", "حدث خطأ أثناء تحميل المنتجات. حاول مرة أخرى لاحقاً.")}
+        />
       </Screen>
     );
   }
@@ -91,13 +95,20 @@ const ProductsScreen: React.FC = () => {
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>تصفّح المنتجات</Text>
+        <Text style={styles.title}>{t("products.title", "تصفّح المنتجات")}</Text>
         <Text style={styles.body}>
-          ابحث عن المنتج وأضفه للسلة بسرعة. إذا كان للمنتج إضافات ستظهر لك نافذة لاختيارها قبل الإضافة.
+          {t(
+            "products.subtitle",
+            "ابحث عن المنتج وأضفه للسلة بسرعة. إذا كان للمنتج إضافات ستظهر لك نافذة لاختيارها قبل الإضافة."
+          )}
         </Text>
         <Input placeholder={copy.menu.searchPlaceholder} value={search} onChangeText={setSearch} />
         <Button
-          title={totalQuantity > 0 ? `اذهب إلى السلة (${totalQuantity})` : "اذهب إلى السلة"}
+          title={
+            totalQuantity > 0
+              ? `${t("products.goToCart", "اذهب إلى السلة")} (${totalQuantity})`
+              : t("products.goToCart", "اذهب إلى السلة")
+          }
           variant="secondary"
           onPress={() => navigation.navigate("Cart")}
         />
@@ -154,4 +165,3 @@ const styles = StyleSheet.create({
 });
 
 export default ProductsScreen;
-

@@ -8,20 +8,22 @@ import { goToTab } from "../../navigation/helpers";
 import { useTheme } from "../../theme";
 import { Card, Button } from "../../components/ui";
 import CurrencyAmount from "../../components/CurrencyAmount";
+import { useI18n } from "../../i18n";
 
 const CartScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { items, totalPrice, updateQuantity, removeItem, clearCart } = useCart();
   const theme = useTheme();
+  const { t } = useI18n();
 
   if (items.length === 0) {
     return (
       <Screen scrollable={false}>
         <EmptyState
-          title="السلة فارغة"
-          description="أضف اختياراتك من القائمة لنجهزها لك فوراً."
+          title={t("cart.emptyTitle", "السلة فارغة")}
+          description={t("cart.emptyDescription", "أضف اختياراتك من القائمة لنجهزها لك فوراً.")}
         >
-          <Button title="استكشف القائمة" onPress={() => goToTab(navigation, "Menu")} style={{ width: "100%" }} />
+          <Button title={t("cart.browseMenu", "استكشف القائمة")} onPress={() => goToTab(navigation, "Menu")} style={{ width: "100%" }} />
         </EmptyState>
       </Screen>
     );
@@ -42,7 +44,7 @@ const CartScreen: React.FC = () => {
                   <Image source={{ uri: item.image }} style={styles.cartImage} />
                 ) : (
                   <View style={[styles.cartImage, styles.cartImageFallback]}>
-                    <Text style={styles.fallbackText}>لا توجد صورة</Text>
+                    <Text style={styles.fallbackText}>{t("product.noImage", "لا توجد صورة")}</Text>
                   </View>
                 )}
                 <View style={{ flex: 1, gap: 4, alignItems: "flex-end" }}>
@@ -52,7 +54,7 @@ const CartScreen: React.FC = () => {
                   ) : null}
                   <View style={styles.cartPriceRow}>
                     <CurrencyAmount value={item.price} color={theme.palette.accent} symbolSize={12} textStyle={styles.cartPrice} />
-                    <Text style={styles.cartPriceLabel}>لكل وحدة</Text>
+                    <Text style={styles.cartPriceLabel}>{t("cart.perItem", "لكل وحدة")}</Text>
                   </View>
                   <CurrencyAmount value={lineTotal} color={theme.palette.accent} symbolSize={14} textStyle={styles.cartLineTotal} />
                   <View style={styles.quantityControls}>
@@ -66,7 +68,7 @@ const CartScreen: React.FC = () => {
                   </View>
                 </View>
                 <Pressable onPress={() => removeItem(item.key)} style={styles.removeButton}>
-                  <Text style={styles.removeText}>إزالة</Text>
+                  <Text style={styles.removeText}>{t("cart.remove", "إزالة")}</Text>
                 </Pressable>
               </Card>
             );
@@ -75,12 +77,12 @@ const CartScreen: React.FC = () => {
 
         <Card style={styles.summaryCard}>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>الإجمالي</Text>
+            <Text style={styles.summaryLabel}>{t("cart.totalLabel", "الإجمالي")}</Text>
             <CurrencyAmount value={totalPrice} color={theme.palette.accent} symbolSize={16} textStyle={styles.summaryValue} />
           </View>
           <View style={styles.actionsRow}>
-            <Button title="تفريغ السلة" variant="danger" onPress={clearCart} style={{ flex: 1 }} />
-            <Button title="إتمام الطلب" onPress={() => navigation.navigate("Checkout")} style={{ flex: 1 }} />
+            <Button title={t("cart.clear", "تفريغ السلة")} variant="danger" onPress={clearCart} style={{ flex: 1 }} />
+            <Button title={t("cart.checkout", "إتمام الطلب")} onPress={() => navigation.navigate("Checkout")} style={{ flex: 1 }} />
           </View>
         </Card>
       </View>

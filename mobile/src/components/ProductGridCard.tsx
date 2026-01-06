@@ -4,6 +4,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Product } from "../types";
 import { useTheme } from "../theme";
 import CurrencyAmount from "./CurrencyAmount";
+import { useI18n } from "../i18n";
 
 type Props = {
   product: Product & { image?: string | null };
@@ -15,6 +16,7 @@ type Props = {
 
 const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, priceColor }) => {
   const theme = useTheme();
+  const { t } = useI18n();
   const styles = React.useMemo(() => createStyles(theme), [theme]);
 
   return (
@@ -31,7 +33,7 @@ const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, pric
           <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
         ) : (
           <View style={styles.imageFallback}>
-            <Text style={styles.imageFallbackText}>لا توجد صورة</Text>
+            <Text style={styles.imageFallbackText}>{t("product.noImage", "لا توجد صورة")}</Text>
           </View>
         )}
       </View>
@@ -53,7 +55,7 @@ const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, pric
             e.stopPropagation();
             onAdd();
           }}
-          accessibilityLabel="إضافة إلى السلة"
+          accessibilityLabel={t("product.addToCart", "إضافة إلى السلة")}
         >
           <Ionicons name="add" size={18} color="#fff" />
         </Pressable>

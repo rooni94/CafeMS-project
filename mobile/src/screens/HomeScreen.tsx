@@ -15,15 +15,14 @@ import { useStoreSettings } from "../context/StoreSettingsContext";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../theme";
-import { copy } from "../config/copy";
 import { resolveMediaUrl } from "../utils/media";
 import { decodeUnicodeEscapes, normalizeArabicText, normalizeBrandName } from "../utils/text";
 import { goToStack, goToTab } from "../navigation/helpers";
 import ProductAddonsModal from "../components/ProductAddonsModal";
 import DashboardSection from "./dashboard/components/DashboardSection";
 import DashboardTile from "./dashboard/components/DashboardTile";
+import { useI18n } from "../i18n";
 
-const HERO_FALLBACK = copy.heroFallback;
 const HERO_PLAY_INTERVAL = 6500;
 const HERO_HEIGHT = 240;
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -70,9 +69,11 @@ const parseCategoryIdFromLink = (link?: string | null) => {
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
+  const { copy } = useI18n();
   const { settings } = useStoreSettings();
   const { addItem, totalQuantity } = useCart();
   const { user } = useAuth();
+  const heroFallback = copy.heroFallback;
 
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [addonProduct, setAddonProduct] = useState<Product | null>(null);
@@ -122,9 +123,9 @@ const HomeScreen: React.FC = () => {
   );
 
   const heroSlides: HeroSlide[] = useMemo(() => {
-    const source = settings?.hero_cards && settings.hero_cards.length > 0 ? settings.hero_cards : HERO_FALLBACK;
+    const source = settings?.hero_cards && settings.hero_cards.length > 0 ? settings.hero_cards : heroFallback;
     return source.map((card, index) => {
-      const fallback = HERO_FALLBACK[index % HERO_FALLBACK.length];
+      const fallback = heroFallback[index % heroFallback.length];
       return {
         title: normalizeArabicText(card.title || fallback.title),
         description: normalizeArabicText(card.description || fallback.description),
@@ -133,7 +134,7 @@ const HomeScreen: React.FC = () => {
         image: resolveMediaUrl(card.image || fallback.image),
       };
     });
-  }, [settings?.hero_cards]);
+  }, [settings?.hero_cards, heroFallback]);
 
   useEffect(() => {
     setHeroIndex(0);

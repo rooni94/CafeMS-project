@@ -3,10 +3,12 @@ import { View, Text, TextInput, StyleSheet, FlatList } from "react-native";
 import { Button } from "../../components/ui";
 import { accountingApi } from "../../services/accounting";
 import { InventoryItem } from "../../types";
+import { useI18n } from "../../i18n";
 
 const InventoryCheckScreen: React.FC = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [query, setQuery] = useState("");
+  const { t } = useI18n();
 
   useEffect(() => {
     accountingApi.listInventory().then(setItems).catch(() => {});
@@ -16,10 +18,10 @@ const InventoryCheckScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>جرد سريع</Text>
+      <Text style={styles.title}>{t("accounting.inventoryCheckTitle", "جرد سريع")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="بحث بالاسم أو الباركود"
+        placeholder={t("accounting.inventorySearchPlaceholder", "بحث بالاسم أو الباركود")}
         value={query}
         onChangeText={setQuery}
       />
@@ -30,13 +32,13 @@ const InventoryCheckScreen: React.FC = () => {
           <View style={styles.row}>
             <View>
               <Text style={styles.rowTitle}>{item.name_ar}</Text>
-              <Text style={styles.rowSub}>SKU: {item.sku}</Text>
+              <Text style={styles.rowSub}>{t("accounting.skuLabel", "SKU")}: {item.sku}</Text>
             </View>
             <Text style={styles.rowQty}>{item.quantity_on_hand}</Text>
           </View>
         )}
       />
-      <Button label="تحديث" onPress={() => accountingApi.listInventory().then(setItems)} />
+      <Button label={t("common.refresh", "تحديث")} onPress={() => accountingApi.listInventory().then(setItems)} />
     </View>
   );
 };

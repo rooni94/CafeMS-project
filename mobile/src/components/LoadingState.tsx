@@ -1,16 +1,20 @@
 import React from "react";
 import { ActivityIndicator, Text, View, StyleSheet } from "react-native";
+import { useI18n } from "../i18n";
 
 type LoadingStateProps = {
   message?: string;
 };
 
-const LoadingState: React.FC<LoadingStateProps> = ({ message }) => (
-  <View style={styles.container}>
-    <ActivityIndicator color="#f59e0b" />
-    <Text style={styles.text}>{message || "جاري التحميل..."}</Text>
-  </View>
-);
+const LoadingState: React.FC<LoadingStateProps> = ({ message }) => {
+  const { t } = useI18n();
+  return (
+    <View style={styles.container}>
+      <ActivityIndicator color="#f59e0b" />
+      <Text style={styles.text}>{message || t("common.loading", "جارٍ التحميل...")}</Text>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {

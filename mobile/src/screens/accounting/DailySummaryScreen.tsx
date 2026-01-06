@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Button } from "../../components/ui";
 import { accountingApi } from "../../services/accounting";
+import { useI18n } from "../../i18n";
 
 const DailySummaryScreen: React.FC = () => {
   const [data, setData] = useState<{ incoming: number; outgoing: number; net: number }>({
@@ -9,6 +10,7 @@ const DailySummaryScreen: React.FC = () => {
     outgoing: 0,
     net: 0,
   });
+  const { t } = useI18n();
 
   const load = async () => {
     const res = await accountingApi.cashflow();
@@ -21,20 +23,20 @@ const DailySummaryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>جرد نهاية اليوم</Text>
+      <Text style={styles.title}>{t("accounting.dailySummaryTitle", "جرد نهاية اليوم")}</Text>
       <View style={styles.card}>
-        <Text style={styles.label}>وارد</Text>
+        <Text style={styles.label}>{t("accounting.incomingLabel", "وارد")}</Text>
         <Text style={styles.value}>{data.incoming?.toFixed?.(2)}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.label}>صادر</Text>
+        <Text style={styles.label}>{t("accounting.outgoingLabel", "صادر")}</Text>
         <Text style={[styles.value, { color: "#b91c1c" }]}>{data.outgoing?.toFixed?.(2)}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.label}>صافي</Text>
+        <Text style={styles.label}>{t("accounting.netLabel", "صافي")}</Text>
         <Text style={styles.value}>{data.net?.toFixed?.(2)}</Text>
       </View>
-      <Button label="تحديث" onPress={load} />
+      <Button label={t("common.refresh", "تحديث")} onPress={load} />
     </View>
   );
 };

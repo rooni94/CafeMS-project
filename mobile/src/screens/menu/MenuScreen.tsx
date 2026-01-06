@@ -10,7 +10,6 @@ import LoadingState from "../../components/LoadingState";
 import { api } from "../../services/api";
 import { Category, Product, ProductAddon } from "../../types";
 import { useCart } from "../../context/CartContext";
-import { copy } from "../../config/copy";
 import { resolveMediaUrl } from "../../utils/media";
 import { normalizeArabicText } from "../../utils/text";
 import FloatingCart from "../../components/FloatingCart";
@@ -19,6 +18,7 @@ import ProductAddonsModal from "../../components/ProductAddonsModal";
 import ProductGridCard from "../../components/ProductGridCard";
 import { Card } from "../../components/ui";
 import { safeGoBack } from "../../navigation/helpers";
+import { useI18n } from "../../i18n";
 
 type MenuCategory = {
   id: number;
@@ -31,6 +31,7 @@ const MenuScreen: React.FC = () => {
   const route = useRoute<any>();
   const { addItem } = useCart();
   const theme = useTheme();
+  const { copy, t } = useI18n();
   const initialCategory: number | null = route.params?.categoryId ?? null;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -76,12 +77,12 @@ const MenuScreen: React.FC = () => {
         resolveMediaUrl(category.image) ||
         copy.categoryFallbacks[index % copy.categoryFallbacks.length].image,
     }));
-  }, [categories]);
+  }, [categories, copy]);
 
   const activeCategoryName = useMemo(() => {
     if (activeCategory == null) return copy.menu.allCategories;
     return decoratedCategories.find((cat) => cat.id === activeCategory)?.name || copy.menu.allCategories;
-  }, [activeCategory, decoratedCategories]);
+  }, [activeCategory, decoratedCategories, copy]);
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -105,7 +106,7 @@ const MenuScreen: React.FC = () => {
 
   const toastAdded = () => {
     if (Platform.OS === "android") {
-      ToastAndroid.show("تمت إضافة المنتج إلى السلة", ToastAndroid.SHORT);
+      ToastAndroid.show(t("menu.addedToCart", "تمت إضافة المنتج إلى السلة"), ToastAndroid.SHORT);
     }
   };
 
@@ -306,4 +307,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default MenuScreen;
-

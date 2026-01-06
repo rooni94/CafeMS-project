@@ -20,6 +20,7 @@ import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
 import { ENV } from "../../config/env";
 import { Button } from "../ui";
+import { useI18n } from "../../i18n";
 
 type SupportMessage = {
   id: number;
@@ -60,7 +61,6 @@ const b64ToUri = async (base64?: string | null, mime = "audio/mpeg") => {
   if (!base64 || typeof base64 !== "string") return null;
 
   // base64 لازم يكون حجمه معقول عشان ما نحاول نشغّل نص/بيانات ناقصة
-  if (base64.length < 1000) return null;
 
   const ext = mime.includes("wav") ? "wav" : "mp3";
   const cacheDir = (FileSystem as any).cacheDirectory ?? (FileSystem as any).documentDirectory ?? "";
@@ -72,6 +72,7 @@ const b64ToUri = async (base64?: string | null, mime = "audio/mpeg") => {
 
 const SupportChatFloating: React.FC = () => {
   const { user, accessToken } = useAuth();
+  const { t } = useI18n();
   const isGuest = !user;
 
   const [open, setOpen] = useState(false);
@@ -164,7 +165,7 @@ const SupportChatFloating: React.FC = () => {
     const mime = payload?.bot_audio_mime || payload?.audio_mime || "audio/mpeg";
 
     // لو ما فيه صوت: رجّع الاستماع لو كنا في وضع المحادثة الصوتية المستمرة
-    if (!base64 || typeof base64 !== "string" || base64.length < 1000) {
+    if (!base64 || typeof base64 !== "string") {
       if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) {
         rearmRecordingIfIdle(450);
       }
@@ -308,7 +309,7 @@ const SupportChatFloating: React.FC = () => {
   const handleGuestRequestCode = async () => {
     setGuestError(null);
     if (!guestName.trim() || !guestEmail.trim()) {
-      setGuestError("يرجى إدخال الاسم والبريد الإلكتروني.");
+      setGuestError(t("supportChat.guestMissing", "يرجى إدخال الاسم والبريد الإلكتروني."));
       return;
     }
     setGuestSubmitting(true);
@@ -321,7 +322,7 @@ const SupportChatFloating: React.FC = () => {
       setGuestStep("code");
       await AsyncStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify({ name: guestName.trim(), email: guestEmail.trim() }));
     } catch (err: any) {
-      setGuestError(err?.response?.data?.detail || "تعذر إرسال الكود. حاول لاحقاً.");
+      setGuestError(err?.response?.data?.detail || t("supportChat.sendCodeError", "تعذر إرسال الكود. حاول لاحقاً."));
     } finally {
       setGuestSubmitting(false);
     }
@@ -330,12 +331,12 @@ const SupportChatFloating: React.FC = () => {
   const handleGuestVerifyCode = async () => {
     setGuestError(null);
     if (!guestRequestId) {
-      setGuestError("انتهت صلاحية الطلب، أعد طلب كود جديد.");
+      setGuestError(t("supportChat.requestExpired", "انتهت صلاحية الطلب، أعد طلب كود جديد."));
       setGuestStep("form");
       return;
     }
     if (!guestCode.trim()) {
-      setGuestError("أدخل كود التحقق.");
+      setGuestError(t("supportChat.enterCode", "أدخل كود التحقق."));
       return;
     }
     setGuestSubmitting(true);
@@ -347,7 +348,12 @@ const SupportChatFloating: React.FC = () => {
       const convId = res.data.conversation.id as number;
       const token = (res.data.guest_token as string | undefined) || null;
       if (!token) {
-        setGuestError("تم التحقق لكن لم يصل guest_token. حدّث الباكند ثم حاول مجدداً.");
+        setGuestError(
+          t(
+            "supportChat.missingGuestToken",
+            "تم التحقق لكن لم يصل guest_token. حدّث الباكند ثم حاول مجدداً."
+          )
+        );
         return;
       }
       setConversationId(convId);
@@ -359,7 +365,7 @@ const SupportChatFloating: React.FC = () => {
       );
       await initForGuestIfHasConversation(convId, token);
     } catch (err: any) {
-      setGuestError(err?.response?.data?.detail || "كود غير صحيح أو منتهي.");
+      setGuestError(err?.response?.data?.detail || t("supportChat.invalidCode", "كود غير صحيح أو منتهي."));
     } finally {
       setGuestSubmitting(false);
     }
@@ -375,13 +381,13 @@ const SupportChatFloating: React.FC = () => {
     if (recordingFlagRef.current || activeRecordingRef.current) return;
 
     if (!conversationId) {
-      setGuestError("ابدأ المحادثة أولاً قبل التسجيل الصوتي.");
+      setGuestError(t("supportChat.startChatFirstVoice", "ابدأ المحادثة أولاً قبل التسجيل الصوتي."));
       return;
     }
 
     // لو مستخدم مسجّل ومافي توكن: لا تحاول ترسل وتاخذ 401
     if (!isGuest && !accessToken) {
-      setGuestError("انتهت الجلسة. أعد تسجيل الدخول ثم حاول.");
+      setGuestError(t("supportChat.sessionExpired", "انتهت الجلسة. أعد تسجيل الدخول ثم حاول."));
       return;
     }
 
@@ -393,7 +399,7 @@ const SupportChatFloating: React.FC = () => {
       if (!perm.granted) {
         const req = await Audio.requestPermissionsAsync();
         if (!req.granted) {
-          setGuestError("يرجى السماح بصلاحية المايكروفون.");
+          setGuestError(t("supportChat.micPermission", "يرجى السماح بصلاحية المايكروفون."));
           return;
         }
       }
@@ -450,7 +456,7 @@ const SupportChatFloating: React.FC = () => {
       recordingFlagRef.current = false;
       activeRecordingRef.current = null;
       silenceSinceRef.current = null;
-      setGuestError("تعذر بدء التسجيل. حاول مرة أخرى.");
+      setGuestError(t("supportChat.recordingStartError", "تعذر بدء التسجيل. حاول مرة أخرى."));
       setVoiceOverlay(false);
       voiceOverlayRef.current = false;
       voiceSessionRef.current = false;
@@ -506,9 +512,22 @@ const SupportChatFloating: React.FC = () => {
   const sendVoice = async (uri: string) => {
     if (!conversationId) return;
 
-    // لو مستخدم مسجّل ومافي توكن: لا تحاول
     if (!isGuest && !accessToken) {
-      setGuestError("انتهت الجلسة. أعد تسجيل الدخول ثم حاول.");
+      setGuestError(t("supportChat.sessionExpired", "انتهت الجلسة. أعد تسجيل الدخول ثم حاول."));
+      return;
+    }
+
+    let fixedUri = uri;
+    if (Platform.OS === "android" && !fixedUri.startsWith("file://")) {
+      fixedUri = `file://${fixedUri}`;
+    }
+
+    const info = await FileSystem.getInfoAsync(fixedUri);
+    if (!info.exists || !info.size || info.size < 1024) {
+      setGuestError(t("supportChat.audioTooShort", "الملف الصوتي قصير جداً أو غير صالح. حاول مرة أخرى."));
+      if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) {
+        rearmRecordingIfIdle(500);
+      }
       return;
     }
 
@@ -518,11 +537,10 @@ const SupportChatFloating: React.FC = () => {
     try {
       const form = new FormData();
 
-      // ملاحظة: لا تضبط Content-Type يدوياً (Axios لازم يضيف boundary)
       form.append(
         "audio",
         {
-          uri,
+          uri: fixedUri,
           name: `voice-${Date.now()}.m4a`,
           type: Platform.OS === "ios" ? "audio/m4a" : "audio/mp4",
         } as any,
@@ -532,8 +550,9 @@ const SupportChatFloating: React.FC = () => {
       const guestHeaders = isGuest && guestToken ? { "X-Guest-Token": guestToken } : undefined;
 
       const res = await api.post(url, form, {
-        headers: { ...(guestHeaders || {}) }, // ✅ بدون Content-Type
-        timeout: 65000, // Whisper + TTS قد تأخذ وقت على السيرفر الضعيف
+        headers: { ...(guestHeaders || {}), Accept: "application/json" },
+        timeout: 65000,
+        transformRequest: (data) => data,
       });
 
       addMessagesUnique(
@@ -551,13 +570,13 @@ const SupportChatFloating: React.FC = () => {
           }
         : res.data;
 
-      // يشغل الصوت.. وبعد ما يخلص يرجع يسجل تلقائيًا (لأن voiceSessionRef.current = true)
       await playBotAudio(audioPayload);
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
-      setGuestError(detail || "لم يتم إرسال الرسالة الصوتية. حاول مرة أخرى.");
-      // في حال فشل الإرسال: ارجع للاستماع
-      if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) rearmRecordingIfIdle(600);
+      setGuestError(detail || t("supportChat.voiceSendError", "تعذر إرسال الرسالة الصوتية. حاول مرة أخرى."));
+      if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) {
+        rearmRecordingIfIdle(600);
+      }
     } finally {
       setSendingAudio(false);
       sendingAudioRef.current = false;
@@ -591,7 +610,7 @@ const SupportChatFloating: React.FC = () => {
     const text = input.trim();
 
     if (!conversationId) {
-      setGuestError("ابدأ المحادثة أولاً قبل الإرسال.");
+      setGuestError(t("supportChat.startChatFirstSend", "ابدأ المحادثة أولاً قبل الإرسال."));
       return;
     }
 
@@ -700,9 +719,12 @@ const SupportChatFloating: React.FC = () => {
     return (
       <View style={styles.voiceOverlay}>
         <View style={styles.voiceCard}>
-          <Text style={styles.voiceTitle}>وضع المحادثة الصوتية</Text>
+          <Text style={styles.voiceTitle}>{t("supportChat.voiceModeTitle", "وضع المحادثة الصوتية")}</Text>
           <Text style={styles.voiceHint}>
-            يتوقف تلقائياً عند الصمت أو بعد 35 ثانية، يُرسل فوراً، ثم ينتظر رد البوت، وبعد ما يخلص الرد يرجع يسجّل تلقائياً.
+            {t(
+              "supportChat.voiceModeHint",
+              "يتوقف تلقائياً عند الصمت أو بعد 35 ثانية، يُرسل فوراً، ثم ينتظر رد البوت، وبعد ما يخلص الرد يرجع يسجّل تلقائياً."
+            )}
           </Text>
 
           <View style={styles.waveRow}>
@@ -713,17 +735,17 @@ const SupportChatFloating: React.FC = () => {
 
           <Text style={styles.voiceStatus}>
             {sendingAudio
-              ? "يتم إرسال الصوت..."
+              ? t("supportChat.voiceStatusSending", "يتم إرسال الصوت...")
               : isPlayingRef.current
-              ? "يتم تشغيل رد البوت..."
+              ? t("supportChat.voiceStatusPlaying", "يتم تشغيل رد البوت...")
               : recording
-              ? "يتم التسجيل..."
-              : "يتم الاستعداد..."}
+              ? t("supportChat.voiceStatusRecording", "يتم التسجيل...")
+              : t("supportChat.voiceStatusReady", "يتم الاستعداد...")}
           </Text>
 
           <View style={styles.voiceActions}>
             <Pressable onPress={() => stopVoiceSession()} style={styles.secondaryButton}>
-              <Text style={styles.secondaryButtonText}>إيقاف الوضع الصوتي</Text>
+              <Text style={styles.secondaryButtonText}>{t("supportChat.voiceStop", "إيقاف الوضع الصوتي")}</Text>
             </Pressable>
           </View>
 
@@ -745,7 +767,7 @@ const SupportChatFloating: React.FC = () => {
           <View style={[styles.panelWrap, { bottom: keyboardHeight ? keyboardHeight + 16 : 80 }]}>
             <Pressable style={styles.panel} onPress={() => undefined}>
               <View style={styles.header}>
-                <Text style={styles.headerTitle}>دعم CafeMS Demo</Text>
+                <Text style={styles.headerTitle}>{t("supportChat.headerTitle", "دعم CafeMS Demo")}</Text>
                 <View style={styles.headerActions}>
                   {(user || (isGuest && guestStep === "chat")) && (
                     <Pressable
@@ -763,7 +785,7 @@ const SupportChatFloating: React.FC = () => {
                         }
                       }}
                     >
-                      <Text style={styles.headerButtonText}>إنهاء</Text>
+                      <Text style={styles.headerButtonText}>{t("supportChat.endChat", "إنهاء")}</Text>
                     </Pressable>
                   )}
                   <Pressable onPress={handleClose}>
@@ -774,11 +796,19 @@ const SupportChatFloating: React.FC = () => {
 
               {isGuest && guestStep === "form" && (
                 <View style={styles.body}>
-                  <Text style={styles.bodyTitle}>تواصل معنا كضيف</Text>
-                  <Text style={styles.bodyHint}>أدخل الاسم والبريد الإلكتروني لإرسال كود تحقق إلى بريدك.</Text>
-                  <Text style={styles.inputLabel}>الاسم</Text>
-                  <TextInput value={guestName} onChangeText={setGuestName} style={styles.input} textAlign="right" placeholder="الاسم" />
-                  <Text style={styles.inputLabel}>البريد الإلكتروني</Text>
+                  <Text style={styles.bodyTitle}>{t("supportChat.guestTitle", "تواصل معنا كضيف")}</Text>
+                  <Text style={styles.bodyHint}>
+                    {t("supportChat.guestHint", "أدخل الاسم والبريد الإلكتروني لإرسال كود تحقق إلى بريدك.")}
+                  </Text>
+                  <Text style={styles.inputLabel}>{t("supportChat.nameLabel", "الاسم")}</Text>
+                  <TextInput
+                    value={guestName}
+                    onChangeText={setGuestName}
+                    style={styles.input}
+                    textAlign="right"
+                    placeholder={t("supportChat.namePlaceholder", "الاسم")}
+                  />
+                  <Text style={styles.inputLabel}>{t("supportChat.emailLabel", "البريد الإلكتروني")}</Text>
                   <TextInput
                     value={guestEmail}
                     onChangeText={setGuestEmail}
@@ -788,22 +818,38 @@ const SupportChatFloating: React.FC = () => {
                     keyboardType="email-address"
                   />
                   {guestError ? <Text style={styles.error}>{guestError}</Text> : null}
-                  <Button title={guestSubmitting ? "يتم الإرسال..." : "إرسال الكود"} onPress={handleGuestRequestCode} disabled={guestSubmitting} />
+                  <Button
+                    title={
+                      guestSubmitting
+                        ? t("supportChat.sendingCode", "يتم الإرسال...")
+                        : t("supportChat.sendCode", "إرسال الكود")
+                    }
+                    onPress={handleGuestRequestCode}
+                    disabled={guestSubmitting}
+                  />
                 </View>
               )}
 
               {isGuest && guestStep === "code" && (
                 <View style={styles.body}>
-                  <Text style={styles.bodyTitle}>أدخل كود التحقق</Text>
-                  <Text style={styles.bodyHint}>الكود صالح لمدة قصيرة. راجع بريدك.</Text>
-                  <Text style={styles.inputLabel}>الكود</Text>
+                  <Text style={styles.bodyTitle}>{t("supportChat.codeTitle", "أدخل كود التحقق")}</Text>
+                  <Text style={styles.bodyHint}>{t("supportChat.codeHint", "الكود صالح لمدة قصيرة. راجع بريدك.")}</Text>
+                  <Text style={styles.inputLabel}>{t("supportChat.codeLabel", "الكود")}</Text>
                   <TextInput value={guestCode} onChangeText={setGuestCode} style={styles.input} textAlign="center" keyboardType="numeric" maxLength={6} />
                   {guestError ? <Text style={styles.error}>{guestError}</Text> : null}
                   <View style={styles.codeRow}>
                     <Pressable onPress={() => { setGuestStep("form"); setGuestCode(""); }} style={styles.secondaryButton}>
-                      <Text style={styles.secondaryButtonText}>رجوع</Text>
+                      <Text style={styles.secondaryButtonText}>{t("supportChat.back", "رجوع")}</Text>
                     </Pressable>
-                    <Button title={guestSubmitting ? "يتم التحقق..." : "تحقق"} onPress={handleGuestVerifyCode} disabled={guestSubmitting} />
+                    <Button
+                      title={
+                        guestSubmitting
+                          ? t("supportChat.verifying", "يتم التحقق...")
+                          : t("supportChat.verify", "تحقق")
+                      }
+                      onPress={handleGuestVerifyCode}
+                      disabled={guestSubmitting}
+                    />
                   </View>
                 </View>
               )}
@@ -814,11 +860,17 @@ const SupportChatFloating: React.FC = () => {
                     {(loading || connecting) && (
                       <View style={styles.loadingRow}>
                         <ActivityIndicator color="#f59e0b" />
-                        <Text style={styles.loadingText}>{loading ? "جاري تحميل المحادثة..." : "جاري الاتصال..."}</Text>
+                        <Text style={styles.loadingText}>
+                          {loading
+                            ? t("supportChat.loadingConversation", "جاري تحميل المحادثة...")
+                            : t("supportChat.connecting", "جاري الاتصال...")}
+                        </Text>
                       </View>
                     )}
                     {!loading && !connecting && messages.length === 0 && (
-                      <Text style={styles.emptyText}>لا توجد رسائل بعد. ابدأ بالسؤال أو سجّل صوتياً.</Text>
+                      <Text style={styles.emptyText}>
+                        {t("supportChat.empty", "لا توجد رسائل بعد. ابدأ بالسؤال أو سجّل صوتياً.")}
+                      </Text>
                     )}
                     <ScrollView ref={scrollRef} contentContainerStyle={{ gap: 8, paddingBottom: 8 }} keyboardShouldPersistTaps="handled">
                       {messages.map((m) => {
@@ -827,7 +879,13 @@ const SupportChatFloating: React.FC = () => {
                         return (
                           <View key={m.id} style={[styles.messageRow, isMe ? styles.messageRowEnd : styles.messageRowStart]}>
                             <View style={[styles.messageBubble, isMe ? styles.messageMine : isBot ? styles.messageBot : styles.messageOther]}>
-                              {!isMe && <Text style={styles.messageSender}>{isBot ? "دعم آلي" : m.sender_name || "الدعم"}</Text>}
+                              {!isMe && (
+                                <Text style={styles.messageSender}>
+                                  {isBot
+                                    ? t("supportChat.botName", "دعم آلي")
+                                    : m.sender_name || t("supportChat.supportName", "الدعم")}
+                                </Text>
+                              )}
                               <Text style={[styles.messageText, isMe && { color: "#fff" }]}>{m.content}</Text>
                               <Text style={styles.messageTime}>{new Date(m.created_at).toLocaleTimeString()}</Text>
                             </View>
@@ -840,7 +898,7 @@ const SupportChatFloating: React.FC = () => {
                   <View style={styles.chatInputRow}>
                     <TextInput
                       style={styles.chatInput}
-                      placeholder="اكتب رسالتك..."
+                      placeholder={t("supportChat.inputPlaceholder", "اكتب رسالتك...")}
                       value={input}
                       onChangeText={setInput}
                       editable={!loading && !connecting && !sendingAudio}
@@ -874,7 +932,7 @@ const SupportChatFloating: React.FC = () => {
                       onPress={sendText}
                       disabled={!input.trim() || sendingAudio || (isGuest && guestStep !== "chat")}
                     >
-                      <Text style={styles.sendButtonText}>إرسال</Text>
+                      <Text style={styles.sendButtonText}>{t("supportChat.send", "إرسال")}</Text>
                     </Pressable>
                   </View>
                 </>

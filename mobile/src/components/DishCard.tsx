@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Product } from "../types";
 import CurrencyAmount from "./CurrencyAmount";
+import { useI18n } from "../i18n";
 
 type DishCardProps = {
   product: Product;
@@ -22,43 +23,46 @@ const DishCard: React.FC<DishCardProps> = ({
   onPress,
   onAdd,
   style,
-}) => (
-  <Pressable
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.card,
-      style,
-      pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
-    ]}
-  >
-    {product.image ? (
-      <Image source={{ uri: product.image }} style={styles.image} />
-    ) : (
-      <View style={[styles.image, styles.imageFallback]}>
-        <Text style={styles.imageFallbackText}>لا تتوفر صورة</Text>
-      </View>
-    )}
+}) => {
+  const { t } = useI18n();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        style,
+        pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
+      ]}
+    >
+      {product.image ? (
+        <Image source={{ uri: product.image }} style={styles.image} />
+      ) : (
+        <View style={[styles.image, styles.imageFallback]}>
+          <Text style={styles.imageFallbackText}>{t("product.noImage", "لا تتوفر صورة")}</Text>
+        </View>
+      )}
 
-    <View style={styles.info}>
-      <Text style={styles.name} numberOfLines={1}>
-        {product.name}
-      </Text>
-      {product.description ? (
-        <Text style={styles.description} numberOfLines={2}>
-          {product.description}
+      <View style={styles.info}>
+        <Text style={styles.name} numberOfLines={1}>
+          {product.name}
         </Text>
-      ) : null}
-      <View style={styles.row}>
-        <CurrencyAmount value={product.price} color="#b45309" symbolSize={14} textStyle={styles.price} />
-        {onAdd ? (
-          <Pressable onPress={onAdd} style={styles.addButton}>
-            <Text style={styles.addButtonText}>أضف</Text>
-          </Pressable>
+        {product.description ? (
+          <Text style={styles.description} numberOfLines={2}>
+            {product.description}
+          </Text>
         ) : null}
+        <View style={styles.row}>
+          <CurrencyAmount value={product.price} color="#b45309" symbolSize={14} textStyle={styles.price} />
+          {onAdd ? (
+            <Pressable onPress={onAdd} style={styles.addButton}>
+              <Text style={styles.addButtonText}>{t("common.add", "أضف")}</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
-    </View>
-  </Pressable>
-);
+    </Pressable>
+  );
+};
 
 const styles = StyleSheet.create({
   card: {

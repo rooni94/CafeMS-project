@@ -9,6 +9,7 @@ import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
 import { has } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type ActivityRow = {
   id: number;
@@ -22,6 +23,7 @@ const DashboardActivity: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { user, permissions } = useAuth();
+  const { t } = useI18n();
   const allowed = has(user, permissions, "can_view_activity_log");
 
   const { data: activities = [], isLoading } = useQuery<ActivityRow[]>({
@@ -34,21 +36,29 @@ const DashboardActivity: React.FC = () => {
   });
 
   if (!allowed) {
-    return <DashboardAccessDenied title="سجل الطلبات" subtitle="متابعة آخر الأحداث المرتبطة بالطلبات." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.activityTitle", "سجل الطلبات")}
+        subtitle={t("dashboard.activitySubtitle", "متابعة آخر الأحداث المرتبطة بالطلبات.")}
+      />
+    );
   }
 
   return (
-    <DashboardShell title="سجل الطلبات" subtitle="متابعة آخر الأحداث المرتبطة بالطلبات.">
-      <DashboardSection title="الأنشطة" subtitle={isLoading ? "جاري التحميل..." : "آخر 50 نشاطاً."}>
+    <DashboardShell title={t("dashboard.activityTitle", "سجل الطلبات")} subtitle={t("dashboard.activitySubtitle", "متابعة آخر الأحداث المرتبطة بالطلبات.")}>
+      <DashboardSection
+        title={t("dashboard.activitySectionTitle", "الأنشطة")}
+        subtitle={isLoading ? t("dashboard.activityLoading", "جاري التحميل...") : t("dashboard.activityLatest", "آخر 50 نشاطاً.")}
+      >
         {activities.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا يوجد نشاط.</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>{t("dashboard.activityEmpty", "لا يوجد نشاط.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {activities.slice(0, 50).map((a) => (
               <DashboardListItem
                 key={a.id}
-                title={a.action?.trim() ? a.action : "نشاط"}
-                subtitle={`${a.order ? `طلب #${a.order}` : "—"} • ${new Date(a.created_at).toLocaleString()}${a.notes ? ` • ${a.notes}` : ""}`}
+                title={a.action?.trim() ? a.action : t("dashboard.activityDefaultAction", "نشاط")}
+                subtitle={`${a.order ? `${t("common.orderLabel", "طلب")} #${a.order}` : "—"} • ${new Date(a.created_at).toLocaleString()}${a.notes ? ` • ${a.notes}` : ""}`}
                 icon="time-outline"
               />
             ))}

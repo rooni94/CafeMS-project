@@ -16,14 +16,15 @@ import { useAuth } from "../../context/AuthContext";
 import { useStoreSettings } from "../../context/StoreSettingsContext";
 import { safeGoBack } from "../../navigation/helpers";
 import { useTheme } from "../../theme";
-import { copy } from "../../config/copy";
 import { normalizeBrandName } from "../../utils/text";
+import { useI18n } from "../../i18n";
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { settings } = useStoreSettings();
+  const { copy, t } = useI18n();
   const { login, loading } = useAuth();
   const brandName = normalizeBrandName(settings?.store_name, copy.brandFallback);
 
@@ -34,14 +35,14 @@ const LoginScreen: React.FC = () => {
   const handleSubmit = async () => {
     setError(null);
     if (!username.trim() || !password.trim()) {
-      Alert.alert("تنبيه", copy.messages.required);
+      Alert.alert(t("auth.alertTitle", "تنبيه"), copy.messages.required);
       return;
     }
     try {
       await login(username.trim(), password);
       safeGoBack(navigation, { tab: "Profile" });
     } catch (err: any) {
-      setError(err?.message || "تعذر تسجيل الدخول. تأكد من البيانات وحاول مرة أخرى.");
+      setError(err?.message || t("auth.loginError", "تعذر تسجيل الدخول. تأكد من البيانات وحاول مرة أخرى."));
     }
   };
 
@@ -60,45 +61,45 @@ const LoginScreen: React.FC = () => {
                   { backgroundColor: theme.palette.accentSoft, color: theme.palette.accent },
                 ]}
               >
-                تسجيل الدخول
+                {t("auth.loginTitle", "تسجيل الدخول")}
               </Text>
             </View>
             <Text style={[styles.subtitle, { color: theme.palette.muted }]}>
-              سجّل دخولك للوصول إلى طلباتك وحفظ عناوينك ونقاط الولاء.
+              {t("auth.loginSubtitle", "سجّل دخولك للوصول إلى طلباتك وحفظ عناوينك ونقاط الولاء.")}
             </Text>
           </Card>
 
           <Card style={styles.card} contentStyle={{ gap: 12 }}>
             <Input
-              label="اسم المستخدم"
-              placeholder="اكتب اسم المستخدم"
+              label={t("auth.usernameLabel", "اسم المستخدم")}
+              placeholder={t("auth.usernamePlaceholder", "اكتب اسم المستخدم")}
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
             />
             <Input
-              label="كلمة المرور"
-              placeholder="اكتب كلمة المرور"
+              label={t("auth.passwordLabel", "كلمة المرور")}
+              placeholder={t("auth.passwordPlaceholder", "اكتب كلمة المرور")}
               secureTextEntry
               value={password}
               onChangeText={setPassword}
             />
 
             <Button
-              title={loading ? copy.messages.loading : "تسجيل الدخول"}
+              title={loading ? copy.messages.loading : t("auth.loginTitle", "تسجيل الدخول")}
               onPress={handleSubmit}
               disabled={loading}
             />
 
             <View style={styles.linksRow}>
               <Button
-                title="إنشاء حساب"
+                title={t("auth.createAccount", "إنشاء حساب")}
                 variant="link"
                 size="sm"
                 onPress={() => navigation.navigate("Register")}
               />
               <Button
-                title="نسيت كلمة المرور؟"
+                title={t("auth.forgotPassword", "نسيت كلمة المرور؟")}
                 variant="link"
                 size="sm"
                 onPress={() => navigation.navigate("ResetPassword")}

@@ -15,12 +15,13 @@ import { AppStackParamList } from "../../navigation/AppNavigator";
 import CurrencyAmount from "../../components/CurrencyAmount";
 import { Button } from "../../components/ui";
 import { normalizeArabicText } from "../../utils/text";
-import { copy } from "../../config/copy";
+import { useI18n } from "../../i18n";
 
 const ProductDetailsScreen: React.FC = () => {
   const route = useRoute<RouteProp<AppStackParamList, "ProductDetails">>();
   const { addItem } = useCart();
   const theme = useTheme();
+  const { copy, t } = useI18n();
   const [quantity, setQuantity] = useState(1);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
@@ -81,7 +82,10 @@ const ProductDetailsScreen: React.FC = () => {
   if (isError || !safeProduct) {
     return (
       <Screen>
-        <EmptyState title="تعذر تحميل المنتج" description="حدث خطأ أثناء تحميل تفاصيل المنتج. حاول مرة أخرى." />
+        <EmptyState
+          title={t("product.loadErrorTitle", "تعذر تحميل المنتج")}
+          description={t("product.loadErrorBody", "حدث خطأ أثناء تحميل تفاصيل المنتج. حاول مرة أخرى.")}
+        />
       </Screen>
     );
   }
@@ -93,7 +97,7 @@ const ProductDetailsScreen: React.FC = () => {
           <Image source={{ uri: safeProduct.image }} style={styles.image} />
         ) : (
           <View style={[styles.image, styles.imageFallback]}>
-            <Text style={styles.imageFallbackText}>لا توجد صورة</Text>
+            <Text style={styles.imageFallbackText}>{t("product.noImage", "لا توجد صورة")}</Text>
           </View>
         )}
 
@@ -102,9 +106,11 @@ const ProductDetailsScreen: React.FC = () => {
           {safeProduct.description ? <Text style={styles.description}>{safeProduct.description}</Text> : null}
 
           <View style={styles.metaRow}>
-            <Text style={styles.badge}>{safeProduct.available ? "متاح" : "غير متاح"}</Text>
+            <Text style={styles.badge}>
+              {safeProduct.available ? t("product.available", "متاح") : t("product.unavailable", "غير متاح")}
+            </Text>
             <View style={styles.basePriceRow}>
-              <Text style={styles.basePriceLabel}>السعر:</Text>
+              <Text style={styles.basePriceLabel}>{t("product.priceLabel", "السعر:")}</Text>
               <CurrencyAmount value={basePrice} color={theme.palette.accent} symbolSize={12} textStyle={styles.basePriceValue} />
             </View>
           </View>
@@ -113,7 +119,7 @@ const ProductDetailsScreen: React.FC = () => {
 
       {addons.length > 0 ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>إضافات</Text>
+          <Text style={styles.sectionTitle}>{t("product.addonsTitle", "إضافات")}</Text>
           <View style={styles.addonList}>
             {addons.map((addon) => {
               const checked = selectedIds.includes(addon.id);
@@ -149,7 +155,7 @@ const ProductDetailsScreen: React.FC = () => {
       ) : null}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>الكمية</Text>
+        <Text style={styles.sectionTitle}>{t("product.quantityTitle", "الكمية")}</Text>
         <View style={styles.quantityRow}>
           <Pressable onPress={() => setQuantity((q) => Math.max(1, q - 1))} style={styles.qtyButton}>
             <Text style={styles.qtyButtonText}>-</Text>
@@ -164,18 +170,18 @@ const ProductDetailsScreen: React.FC = () => {
       <View style={styles.summary}>
         {addons.length > 0 ? (
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>إجمالي الإضافات</Text>
+            <Text style={styles.summaryLabel}>{t("product.addonsTotal", "إجمالي الإضافات")}</Text>
             <CurrencyAmount value={addonsTotal} symbolSize={12} color={theme.palette.text} textStyle={styles.summaryValue} />
           </View>
         ) : null}
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>الإجمالي</Text>
+          <Text style={styles.summaryLabel}>{t("product.total", "الإجمالي")}</Text>
           <CurrencyAmount value={total} symbolSize={14} color={theme.palette.accent} textStyle={styles.summaryTotal} />
         </View>
       </View>
 
       <Button
-        title="إضافة إلى السلة"
+        title={t("product.addToCart", "إضافة إلى السلة")}
         onPress={handleAddToCart}
         disabled={!safeProduct.available}
         style={styles.addToCart}
@@ -381,4 +387,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default ProductDetailsScreen;
-

@@ -6,12 +6,13 @@ import Screen from "../../components/Screen";
 import { Button, Input, Card } from "../../components/ui";
 import { useTheme } from "../../theme";
 import { api } from "../../services/api";
-import { copy } from "../../config/copy";
+import { useI18n } from "../../i18n";
 
 const ResetPasswordScreen: React.FC = () => {
   const theme = useTheme();
   const navigation = useNavigation<any>();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { copy, t } = useI18n();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ const ResetPasswordScreen: React.FC = () => {
   const handleSubmit = async () => {
     setError(null);
     if (!email.trim()) {
-      Alert.alert("تنبيه", "يرجى إدخال البريد الإلكتروني.");
+      Alert.alert(t("auth.alertTitle", "تنبيه"), t("auth.resetEmailRequired", "يرجى إدخال البريد الإلكتروني."));
       return;
     }
     setLoading(true);
@@ -28,7 +29,7 @@ const ResetPasswordScreen: React.FC = () => {
       await api.post("auth/password-reset/", { email: email.trim() });
       setSent(true);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "تعذر إرسال الرابط. حاول مرة أخرى لاحقاً.");
+      setError(err?.response?.data?.detail || t("auth.resetError", "تعذر إرسال الرابط. حاول مرة أخرى لاحقاً."));
     } finally {
       setLoading(false);
     }
@@ -37,15 +38,15 @@ const ResetPasswordScreen: React.FC = () => {
   return (
     <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
       <View style={styles.header}>
-        <Text style={styles.title}>إعادة تعيين كلمة المرور</Text>
+        <Text style={styles.title}>{t("auth.resetTitle", "إعادة تعيين كلمة المرور")}</Text>
         <Text style={styles.subtitle}>
-          أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور.
+          {t("auth.resetSubtitle", "أدخل بريدك الإلكتروني وسنرسل لك رابط إعادة تعيين كلمة المرور.")}
         </Text>
       </View>
 
       <Card>
         <Input
-          label="البريد الإلكتروني"
+          label={t("auth.emailLabel", "البريد الإلكتروني")}
           placeholder="example@mail.com"
           value={email}
           onChangeText={setEmail}
@@ -56,15 +57,23 @@ const ResetPasswordScreen: React.FC = () => {
         {error ? <Text style={[styles.status, { color: theme.palette.danger }]}>{error}</Text> : null}
         {sent ? (
           <Text style={[styles.status, { color: theme.palette.success }]}>
-            تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني.
+            {t("auth.resetSent", "تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني.")}
           </Text>
         ) : null}
 
-        <Button title={loading ? copy.messages.loading : "إرسال الرابط"} onPress={handleSubmit} disabled={loading} />
+        <Button
+          title={loading ? copy.messages.loading : t("auth.resetSubmit", "إرسال الرابط")}
+          onPress={handleSubmit}
+          disabled={loading}
+        />
       </Card>
 
       <View style={styles.footer}>
-        <Button title="العودة لتسجيل الدخول" variant="ghost" onPress={() => navigation.navigate("Login")} />
+        <Button
+          title={t("auth.backToLogin", "العودة لتسجيل الدخول")}
+          variant="ghost"
+          onPress={() => navigation.navigate("Login")}
+        />
       </View>
     </Screen>
   );
@@ -105,4 +114,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default ResetPasswordScreen;
-

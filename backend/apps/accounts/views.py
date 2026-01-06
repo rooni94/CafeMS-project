@@ -20,7 +20,7 @@ from .serializers import (
     PhoneRegisterStartSerializer,
     PhoneRegisterVerifySerializer,
 )
-from .models import Address, RolePermission, UserActivity
+from .models import Address, RolePermission, UserActivity, PushToken
 from .emails import safe_send_mail, build_frontend_url
 from .tokens import account_activation_token, password_reset_token
 from .permissions import IsManager, CanManageUsers, CanViewUserActivity, get_role_permission
@@ -504,4 +504,47 @@ class MyPermissionsAPIView(APIView):
                 "permissions": rp_data,
             }
         )
+
+
+class PushTokenView(APIView):
+    """
+    Register or deactivate push tokens for the current user.
+    POST /api/auth/push-tokens/
+    DELETE /api/auth/push-tokens/?token=...
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        token = (request.data.get("token") or "").strip()
+        if not token:
+            return Response({"detail": "token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        platform = (request.data.get("platform") or "unknown").strip().lower()
+        device_id = (request.data.get("device_id") or "").strip()
+        device_name = (request.data.get("device_name") or "").strip()
+
+        push_token, created = PushToken.objects.update_or_create(
+            token=token,
+            defaults={
+                "user": request.user,
+                "platform": platform,
+                "device_id": device_id,
+                "device_name": device_name,
+                "is_active": True,
+            },
+        )
+
+        return Response(
+            {"id": push_token.id, "token": push_token.token},
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+    def delete(self, request, *args, **kwargs):
+        token = (request.data.get("token") or request.query_params.get("token") or "").strip()
+        if not token:
+            return Response({"detail": "token is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        PushToken.objects.filter(user=request.user, token=token).update(is_active=False)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 

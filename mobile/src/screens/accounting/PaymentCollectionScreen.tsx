@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import { Button } from "../../components/ui";
 import { accountingApi } from "../../services/accounting";
+import { useI18n } from "../../i18n";
 
 const PaymentCollectionScreen: React.FC = () => {
   const [customer, setCustomer] = useState("");
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const { t } = useI18n();
 
   const submit = async () => {
     setMessage(null);
@@ -18,36 +20,36 @@ const PaymentCollectionScreen: React.FC = () => {
         customer,
         reference,
       });
-      setMessage("تم تسجيل الدفعة.");
+      setMessage(t("accounting.paymentCollectionSuccess", "تم تسجيل الدفعة."));
     } catch (err) {
-      setMessage("تعذر تسجيل الدفعة.");
+      setMessage(t("accounting.paymentCollectionError", "تعذر تسجيل الدفعة."));
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>تحصيل دفعة</Text>
+      <Text style={styles.title}>{t("accounting.paymentCollectionTitle", "تحصيل دفعة")}</Text>
       <TextInput
         style={styles.input}
-        placeholder="المعرف / العميل"
+        placeholder={t("accounting.paymentCollectionCustomerPlaceholder", "المعرف / العميل")}
         value={customer}
         onChangeText={setCustomer}
       />
       <TextInput
         style={styles.input}
-        placeholder="المبلغ"
+        placeholder={t("accounting.amountPlaceholder", "المبلغ")}
         keyboardType="numeric"
         value={amount}
         onChangeText={setAmount}
       />
       <TextInput
         style={styles.input}
-        placeholder="مرجع"
+        placeholder={t("accounting.referencePlaceholder", "مرجع")}
         value={reference}
         onChangeText={setReference}
       />
       {message && <Text style={styles.message}>{message}</Text>}
-      <Button label="حفظ" onPress={submit} />
+      <Button label={t("common.save", "حفظ")} onPress={submit} />
     </View>
   );
 };

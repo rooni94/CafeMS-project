@@ -2,8 +2,9 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { api, parseApiError, setAuthToken } from "../services/api";
+import { clearPushToken, syncPushToken } from "../services/pushNotifications";
 import { RolePermissions, User } from "../types";
-import { copy } from "../config/copy";
+import { useI18n } from "../i18n";
 
 type AuthContextValue = {
   user: User | null;
@@ -101,6 +102,7 @@ const clearTokens = async () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { copy } = useI18n();
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
@@ -187,6 +189,7 @@ const fetchProfile = useCallback(
       (response) => response,
       async (error) => {
         if (error?.response?.status === 401) {
+          await clearPushToken();
           await clearTokens();
           setAuthToken(null);
           setAccessToken(null);
@@ -208,6 +211,11 @@ const fetchProfile = useCallback(
       setUser(null);
     }
   }, [accessToken]);
+
+  useEffect(() => {
+    if (!accessToken || !user) return;
+    syncPushToken().catch((error) => console.warn("push token sync error", error));
+  }, [accessToken, user]);
 
   // Ensure permissions are loaded for employee roles when authenticated.
   useEffect(() => {
@@ -261,12 +269,12 @@ const fetchProfile = useCallback(
         await fetchProfile(access);
         await fetchPermissions(access);
       } catch (error) {
-        throw new Error(parseApiError(error) || copy.messages.genericError);
+        throw new Error(parseApiError(error, copy.messages.genericError) || copy.messages.genericError);
       } finally {
         setLoading(false);
       }
     },
-    [fetchProfile, fetchPermissions]
+    [copy, fetchProfile, fetchPermissions]
   );
 
   const register = useCallback(
@@ -275,12 +283,12 @@ const fetchProfile = useCallback(
       try {
         await api.post("auth/register/", { ...payload, role: "customer" });
       } catch (error) {
-        throw new Error(parseApiError(error) || copy.messages.genericError);
+        throw new Error(parseApiError(error, copy.messages.genericError) || copy.messages.genericError);
       } finally {
         setLoading(false);
       }
     },
-    []
+    [copy]
   );
 
   const startPhoneRegistration = useCallback(
@@ -290,12 +298,12 @@ const fetchProfile = useCallback(
         const res = await api.post("auth/phone/register/", payload);
         return res.data;
       } catch (error) {
-        throw new Error(parseApiError(error) || copy.messages.genericError);
+        throw new Error(parseApiError(error, copy.messages.genericError) || copy.messages.genericError);
       } finally {
         setLoading(false);
       }
     },
-    []
+    [copy]
   );
 
   const verifyPhoneOtp = useCallback(
@@ -312,15 +320,16 @@ const fetchProfile = useCallback(
         await fetchProfile(access);
         await fetchPermissions(access);
       } catch (error) {
-        throw new Error(parseApiError(error) || copy.messages.genericError);
+        throw new Error(parseApiError(error, copy.messages.genericError) || copy.messages.genericError);
       } finally {
         setLoading(false);
       }
     },
-    [fetchProfile, fetchPermissions]
+    [copy, fetchProfile, fetchPermissions]
   );
 
   const logout = useCallback(async () => {
+    await clearPushToken();
     setUser(null);
     setAccessToken(null);
     setRefreshToken(null);

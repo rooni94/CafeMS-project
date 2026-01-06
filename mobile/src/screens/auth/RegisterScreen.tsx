@@ -18,21 +18,10 @@ import { useAuth } from "../../context/AuthContext";
 import { useStoreSettings } from "../../context/StoreSettingsContext";
 import { safeGoBack } from "../../navigation/helpers";
 import { useTheme } from "../../theme";
-import { copy } from "../../config/copy";
 import { normalizeBrandName } from "../../utils/text";
+import { useI18n } from "../../i18n";
 
 type Check = { key: string; label: string; ok: boolean };
-
-const buildPasswordChecks = (password: string): Check[] => {
-  const pw = password || "";
-  return [
-    { key: "len", label: "٨ أحرف على الأقل", ok: pw.length >= 8 },
-    { key: "lower", label: "حرف صغير (a-z)", ok: /[a-z]/.test(pw) },
-    { key: "upper", label: "حرف كبير (A-Z)", ok: /[A-Z]/.test(pw) },
-    { key: "digit", label: "رقم (0-9)", ok: /\d/.test(pw) },
-    { key: "special", label: "رمز خاص (!@#..)", ok: /[^\w\s]/.test(pw) },
-  ];
-};
 
 const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -40,6 +29,7 @@ const RegisterScreen: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { settings } = useStoreSettings();
   const { register, startPhoneRegistration, verifyPhoneOtp, loading } = useAuth();
+  const { copy, t } = useI18n();
   const brandName = normalizeBrandName(settings?.store_name, copy.brandFallback);
 
   const [method, setMethod] = useState<"email" | "phone">("email");
@@ -56,7 +46,16 @@ const RegisterScreen: React.FC = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const checks = useMemo(() => buildPasswordChecks(password), [password]);
+  const checks = useMemo<Check[]>(() => {
+    const pw = password || "";
+    return [
+      { key: "len", label: t("auth.passwordCheckLength", "٨ أحرف على الأقل"), ok: pw.length >= 8 },
+      { key: "lower", label: t("auth.passwordCheckLower", "حرف صغير (a-z)"), ok: /[a-z]/.test(pw) },
+      { key: "upper", label: t("auth.passwordCheckUpper", "حرف كبير (A-Z)"), ok: /[A-Z]/.test(pw) },
+      { key: "digit", label: t("auth.passwordCheckDigit", "رقم (0-9)"), ok: /\d/.test(pw) },
+      { key: "special", label: t("auth.passwordCheckSpecial", "رمز خاص (!@#..)"), ok: /[^\w\s]/.test(pw) },
+    ];
+  }, [password, t]);
   const allChecksPassed = checks.every((c) => c.ok);
 
   useEffect(() => {
@@ -68,27 +67,33 @@ const RegisterScreen: React.FC = () => {
   const handleSubmit = async () => {
     setError(null);
     if (!username.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert("تنبيه", copy.messages.required);
+      Alert.alert(t("auth.alertTitle", "تنبيه"), copy.messages.required);
       return;
     }
     if (method === "email" && !email.trim()) {
-      Alert.alert("تنبيه", copy.messages.required);
+      Alert.alert(t("auth.alertTitle", "تنبيه"), copy.messages.required);
       return;
     }
     if (method === "phone" && !phone.trim()) {
-      Alert.alert("تنبيه", copy.messages.required);
+      Alert.alert(t("auth.alertTitle", "تنبيه"), copy.messages.required);
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("تنبيه", copy.messages.passwordMismatch);
+      Alert.alert(t("auth.alertTitle", "تنبيه"), copy.messages.passwordMismatch);
       return;
     }
     if (!allChecksPassed) {
-      Alert.alert("تنبيه", "يرجى التأكد من أن كلمة المرور تطابق المتطلبات.");
+      Alert.alert(
+        t("auth.alertTitle", "تنبيه"),
+        t("auth.passwordRequirements", "يرجى التأكد من أن كلمة المرور تطابق المتطلبات.")
+      );
       return;
     }
     if (!acceptedTerms) {
-      Alert.alert("تنبيه", "يرجى الموافقة على الشروط والأحكام وسياسة الخصوصية للمتابعة.");
+      Alert.alert(
+        t("auth.alertTitle", "تنبيه"),
+        t("auth.acceptTerms", "يرجى الموافقة على الشروط والأحكام وسياسة الخصوصية للمتابعة.")
+      );
       return;
     }
 
@@ -100,7 +105,10 @@ const RegisterScreen: React.FC = () => {
           phone: phone.trim() || undefined,
           password,
         });
-        Alert.alert("تم", "تم إنشاء الحساب. يرجى تفعيل الحساب عبر البريد الإلكتروني ثم تسجيل الدخول.");
+        Alert.alert(
+          t("auth.doneTitle", "تم"),
+          t("auth.registerEmailSuccess", "تم إنشاء الحساب. يرجى تفعيل الحساب عبر البريد الإلكتروني ثم تسجيل الدخول.")
+        );
         navigation.navigate("Login");
         return;
       }
@@ -114,21 +122,24 @@ const RegisterScreen: React.FC = () => {
       setOtpPhone(res?.phone || phone.trim());
       setResendLeft(Number(res?.resend_seconds || 60));
       setStage("otp");
-      Alert.alert("تم", res?.detail || "تم إرسال رمز التحقق إلى رقم الهاتف.");
+      Alert.alert(
+        t("auth.doneTitle", "تم"),
+        res?.detail || t("auth.otpSentPhone", "تم إرسال رمز التحقق إلى رقم الهاتف.")
+      );
     } catch (err: any) {
-      setError(err?.message || "تعذر إنشاء الحساب. حاول مرة أخرى.");
+      setError(err?.message || t("auth.registerError", "تعذر إنشاء الحساب. حاول مرة أخرى."));
     }
   };
 
   const handleVerifyOtp = async () => {
     setError(null);
     if (!otp.trim()) {
-      Alert.alert("تنبيه", "أدخل رمز التحقق.");
+      Alert.alert(t("auth.alertTitle", "تنبيه"), t("auth.otpRequired", "أدخل رمز التحقق."));
       return;
     }
     try {
       await verifyPhoneOtp(otpPhone || phone.trim(), otp.trim());
-      Alert.alert("تم", "تم تفعيل الحساب بنجاح.");
+      Alert.alert(t("auth.doneTitle", "تم"), t("auth.otpVerified", "تم تفعيل الحساب بنجاح."));
       safeGoBack(navigation, { tab: "Profile" });
     } catch (err: any) {
       setError(err?.message || copy.messages.genericError);
@@ -144,7 +155,10 @@ const RegisterScreen: React.FC = () => {
         password,
       });
       setResendLeft(Number(res?.resend_seconds || 60));
-      Alert.alert("تم", res?.detail || "تم إرسال رمز التحقق.");
+      Alert.alert(
+        t("auth.doneTitle", "تم"),
+        res?.detail || t("auth.otpResent", "تم إرسال رمز التحقق.")
+      );
     } catch (err: any) {
       setError(err?.message || copy.messages.genericError);
     }
@@ -160,11 +174,11 @@ const RegisterScreen: React.FC = () => {
                 {brandName}
               </Text>
               <Text style={[styles.badge, { backgroundColor: theme.palette.accentSoft, color: theme.palette.accent }]}>
-                إنشاء حساب
+                {t("auth.createAccount", "إنشاء حساب")}
               </Text>
             </View>
             <Text style={[styles.subtitle, { color: theme.palette.muted }]}>
-              أنشئ حساباً جديداً للوصول إلى الطلبات والعناوين ونقاط الولاء.
+              {t("auth.registerSubtitle", "أنشئ حساباً جديداً للوصول إلى الطلبات والعناوين ونقاط الولاء.")}
             </Text>
           </Card>
 
@@ -184,7 +198,7 @@ const RegisterScreen: React.FC = () => {
                 ]}
               >
                 <Text style={[styles.methodText, { color: method === "email" ? theme.paper.colors.onPrimary : theme.palette.muted }]}>
-                  بالبريد الإلكتروني
+                  {t("auth.registerByEmail", "بالبريد الإلكتروني")}
                 </Text>
               </Pressable>
 
@@ -202,44 +216,50 @@ const RegisterScreen: React.FC = () => {
                 ]}
               >
                 <Text style={[styles.methodText, { color: method === "phone" ? theme.paper.colors.onPrimary : theme.palette.muted }]}>
-                  برقم الهاتف
+                  {t("auth.registerByPhone", "برقم الهاتف")}
                 </Text>
               </Pressable>
             </View>
 
             {method === "phone" && stage === "otp" ? (
               <>
-                <Input label="رقم الهاتف" value={otpPhone || phone} editable={false} />
+                <Input label={t("auth.phoneLabel", "رقم الهاتف")} value={otpPhone || phone} editable={false} />
                 <Input
-                  label="رمز التحقق"
+                  label={t("auth.otpLabel", "رمز التحقق")}
                   placeholder="123456"
                   value={otp}
                   onChangeText={setOtp}
                   keyboardType="number-pad"
                 />
 
-                <Button title={loading ? copy.messages.loading : "تحقق"} onPress={handleVerifyOtp} disabled={loading} />
+                <Button
+                  title={loading ? copy.messages.loading : t("auth.verifyOtp", "تحقق")}
+                  onPress={handleVerifyOtp}
+                  disabled={loading}
+                />
                 <Button
                   title={
-                    resendLeft > 0 ? `إعادة الإرسال بعد ${resendLeft}s` : "إعادة إرسال الرمز"
+                    resendLeft > 0
+                      ? `${t("auth.otpResendAfter", "إعادة الإرسال بعد")} ${resendLeft}s`
+                      : t("auth.otpResend", "إعادة إرسال الرمز")
                   }
                   onPress={handleResendOtp}
                   disabled={loading || resendLeft > 0}
                 />
-                <Button title="رجوع" variant="link" size="sm" onPress={() => setStage("form")} />
+                <Button title={t("auth.back", "رجوع")} variant="link" size="sm" onPress={() => setStage("form")} />
               </>
             ) : (
               <>
                 <Input
-                  label="اسم المستخدم"
-                  placeholder="اكتب اسم المستخدم"
+                  label={t("auth.usernameLabel", "اسم المستخدم")}
+                  placeholder={t("auth.usernamePlaceholder", "اكتب اسم المستخدم")}
                   value={username}
                   onChangeText={setUsername}
                 />
 
                 {method === "email" ? (
                   <Input
-                    label="البريد الإلكتروني"
+                    label={t("auth.emailLabel", "البريد الإلكتروني")}
                     placeholder="example@mail.com"
                     value={email}
                     onChangeText={setEmail}
@@ -249,23 +269,31 @@ const RegisterScreen: React.FC = () => {
                 ) : null}
 
                 <Input
-                  label={method === "phone" ? "رقم الهاتف" : "رقم الجوال (اختياري)"}
-                  placeholder={method === "phone" ? "+9665XXXXXXXXX" : "05xxxxxxxx"}
+                  label={
+                    method === "phone"
+                      ? t("auth.phoneLabel", "رقم الهاتف")
+                      : t("auth.mobileOptionalLabel", "رقم الجوال (اختياري)")
+                  }
+                  placeholder={
+                    method === "phone"
+                      ? t("auth.phonePlaceholder", "+9665XXXXXXXXX")
+                      : t("auth.mobilePlaceholder", "05xxxxxxxx")
+                  }
                   value={phone}
                   onChangeText={setPhone}
                   keyboardType="phone-pad"
                 />
 
                 <Input
-                  label="كلمة المرور"
-                  placeholder="اكتب كلمة المرور"
+                  label={t("auth.passwordLabel", "كلمة المرور")}
+                  placeholder={t("auth.passwordPlaceholder", "اكتب كلمة المرور")}
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
                 />
                 <Input
-                  label="تأكيد كلمة المرور"
-                  placeholder="أعد كتابة كلمة المرور"
+                  label={t("auth.confirmPasswordLabel", "تأكيد كلمة المرور")}
+                  placeholder={t("auth.confirmPasswordPlaceholder", "أعد كتابة كلمة المرور")}
                   secureTextEntry
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
@@ -299,7 +327,9 @@ const RegisterScreen: React.FC = () => {
                       color={acceptedTerms ? theme.palette.success : theme.palette.muted}
                     />
                   </View>
-                  <Text style={[styles.termsText, { color: theme.palette.text }]}>أوافق على الشروط والأحكام</Text>
+                  <Text style={[styles.termsText, { color: theme.palette.text }]}>
+                    {t("auth.acceptTermsText", "أوافق على الشروط والأحكام")}
+                  </Text>
                 </Pressable>
 
                 <Button
@@ -307,8 +337,8 @@ const RegisterScreen: React.FC = () => {
                     loading
                       ? copy.messages.loading
                       : method === "email"
-                      ? "إنشاء حساب"
-                      : "إرسال رمز التحقق"
+                      ? t("auth.createAccount", "إنشاء حساب")
+                      : t("auth.sendOtp", "إرسال رمز التحقق")
                   }
                   onPress={handleSubmit}
                   disabled={loading}
@@ -317,8 +347,13 @@ const RegisterScreen: React.FC = () => {
             )}
 
             <View style={styles.bottomRow}>
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>لديك حساب؟</Text>
-              <Button title="تسجيل الدخول" variant="link" size="sm" onPress={() => navigation.navigate("Login")} />
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>{t("auth.haveAccount", "لديك حساب؟")}</Text>
+              <Button
+                title={t("auth.loginTitle", "تسجيل الدخول")}
+                variant="link"
+                size="sm"
+                onPress={() => navigation.navigate("Login")}
+              />
             </View>
 
             {error ? <Text style={[styles.error, { color: theme.palette.danger }]}>{error}</Text> : null}

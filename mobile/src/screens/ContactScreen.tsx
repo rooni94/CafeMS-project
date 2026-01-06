@@ -9,6 +9,7 @@ import { api, parseApiError } from "../services/api";
 import { normalizeArabicText } from "../utils/text";
 import DashboardShell from "./dashboard/components/DashboardShell";
 import DashboardSection from "./dashboard/components/DashboardSection";
+import { useI18n } from "../i18n";
 
 const extractFirstUrlFromEmbed = (html?: string | null) => {
   if (!html) return null;
@@ -43,14 +44,19 @@ const ContactScreen: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { settings } = useStoreSettings();
+  const { t } = useI18n();
 
-  const title = normalizeArabicText((settings as any)?.contact_title) || "تواصل معنا";
+  const title = normalizeArabicText((settings as any)?.contact_title) || t("contact.title", "تواصل معنا");
   const subtitle =
-    normalizeArabicText((settings as any)?.contact_subtitle) || "رأيك يهمنا ويساعدنا على التطوير المستمر لخدمتنا.";
+    normalizeArabicText((settings as any)?.contact_subtitle) ||
+    t("contact.subtitle", "رأيك يهمنا ويساعدنا على التطوير المستمر لخدمتنا.");
 
   const description =
     normalizeArabicText((settings as any)?.contact_description) ||
-    "رأيك يهمنا. شاركنا رأيك حول الخدمة أو الجودة أو إذا كان عندك أي شكوى حول الخدمة المقدمة وسنقوم بمتابعة ملاحظتك خلال 24 ساعة";
+    t(
+      "contact.description",
+      "رأيك يهمنا. شاركنا رأيك حول الخدمة أو الجودة أو إذا كان عندك أي شكوى حول الخدمة المقدمة وسنقوم بمتابعة ملاحظتك خلال 24 ساعة"
+    );
 
   const fallbackPhone = String((settings as any)?.contact_phone || "+10000000000").trim();
   const fallbackWhatsapp = String((settings as any)?.contact_whatsapp || "+10000000000").trim();
@@ -74,7 +80,10 @@ const ContactScreen: React.FC = () => {
 
   const handleSend = async () => {
     if (!name.trim() || !email.trim() || !message.trim()) {
-      Alert.alert("بيانات ناقصة", "يرجى إدخال الاسم والبريد الإلكتروني والرسالة.");
+      Alert.alert(
+        t("contact.missingTitle", "بيانات ناقصة"),
+        t("contact.missingBody", "يرجى إدخال الاسم والبريد الإلكتروني والرسالة.")
+      );
       return;
     }
 
@@ -94,7 +103,10 @@ const ContactScreen: React.FC = () => {
       setMessage("");
     } catch (error) {
       setStatus("error");
-      Alert.alert("تعذر الإرسال", parseApiError(error));
+      Alert.alert(
+        t("contact.sendErrorTitle", "تعذر الإرسال"),
+        parseApiError(error, t("contact.sendErrorBody", "حدث خطأ أثناء الإرسال، حاول مرة أخرى."))
+      );
     } finally {
       setSending(false);
     }
@@ -102,7 +114,7 @@ const ContactScreen: React.FC = () => {
 
   return (
     <DashboardShell title={title} subtitle={subtitle} contentContainerStyle={{ paddingBottom: 18 }}>
-      <DashboardSection title="بيانات التواصل" subtitle={description}>
+      <DashboardSection title={t("contact.detailsTitle", "بيانات التواصل")} subtitle={description}>
         <View style={styles.contactList}>
           {fallbackPhone ? (
             <Pressable
@@ -150,7 +162,9 @@ const ContactScreen: React.FC = () => {
             </View>
           ) : null}
 
-          {mapUrl ? <Button title="موقعنا على الخريطة" variant="secondary" onPress={() => Linking.openURL(mapUrl)} /> : null}
+          {mapUrl ? (
+            <Button title={t("contact.mapButton", "موقعنا على الخريطة")} variant="secondary" onPress={() => Linking.openURL(mapUrl)} />
+          ) : null}
         </View>
 
         {socialEntries.length > 0 ? (
@@ -162,23 +176,27 @@ const ContactScreen: React.FC = () => {
               </Pressable>
             ))}
           </View>
-        ) : null}
-      </DashboardSection>
+      ) : null}
+    </DashboardSection>
 
-      <DashboardSection title="إرسال رسالة" subtitle="شاركنا استفسارك أو ملاحظتك.">
-        <Input label="الاسم الكامل" value={name} onChangeText={setName} placeholder="اكتب اسمك" />
-        <Input label="رقم الجوال" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+966" />
-        <Input label="البريد الإلكتروني" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="example@mail.com" />
-        <Input label="محتوى الرسالة" value={message} onChangeText={setMessage} multiline numberOfLines={4} />
+      <DashboardSection title={t("contact.formTitle", "إرسال رسالة")} subtitle={t("contact.formSubtitle", "شاركنا استفسارك أو ملاحظتك.")}>
+        <Input label={t("contact.nameLabel", "الاسم الكامل")} value={name} onChangeText={setName} placeholder={t("contact.namePlaceholder", "اكتب اسمك")} />
+        <Input label={t("contact.phoneLabel", "رقم الجوال")} value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="+966" />
+        <Input label={t("auth.emailLabel", "البريد الإلكتروني")} value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="example@mail.com" />
+        <Input label={t("contact.messageLabel", "محتوى الرسالة")} value={message} onChangeText={setMessage} multiline numberOfLines={4} />
 
         {status === "success" ? (
-          <Text style={[styles.status, { color: theme.palette.success }]}>تم إرسال رسالتك بنجاح، شكراً لتواصلك معنا.</Text>
+          <Text style={[styles.status, { color: theme.palette.success }]}>{t("contact.success", "تم إرسال رسالتك بنجاح، شكراً لتواصلك معنا.")}</Text>
         ) : null}
         {status === "error" ? (
-          <Text style={[styles.status, { color: theme.palette.danger }]}>حدث خطأ أثناء الإرسال، حاول مرة أخرى.</Text>
+          <Text style={[styles.status, { color: theme.palette.danger }]}>{t("contact.sendErrorBody", "حدث خطأ أثناء الإرسال، حاول مرة أخرى.")}</Text>
         ) : null}
 
-        <Button title={sending ? "جاري الإرسال..." : "إرسال الرسالة"} onPress={handleSend} disabled={sending} />
+        <Button
+          title={sending ? t("contact.sending", "جاري الإرسال...") : t("contact.sendButton", "إرسال الرسالة")}
+          onPress={handleSend}
+          disabled={sending}
+        />
       </DashboardSection>
     </DashboardShell>
   );

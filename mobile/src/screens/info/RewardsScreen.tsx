@@ -14,7 +14,7 @@ import { useTheme } from "../../theme";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import DashboardListItem from "../dashboard/components/DashboardListItem";
-import { copy } from "../../config/copy";
+import { useI18n } from "../../i18n";
 
 type LoyaltyProfile = {
   points?: number;
@@ -63,6 +63,7 @@ const RewardsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { copy } = useI18n();
   const { user, accessToken } = useAuth();
   const isAuthenticated = !!user && !!accessToken;
   const isGuest = !isAuthenticated;

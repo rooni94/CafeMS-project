@@ -12,6 +12,7 @@ import DashboardListItem from "./components/DashboardListItem";
 import DashboardSection from "./components/DashboardSection";
 import DashboardShell from "./components/DashboardShell";
 import { has } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type Conversation = {
   id: number;
@@ -32,6 +33,7 @@ const DashboardSupport: React.FC = () => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { user, permissions } = useAuth();
+  const { t } = useI18n();
   const allowed = has(user, permissions, "can_manage_support");
 
   const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
@@ -57,14 +59,14 @@ const DashboardSupport: React.FC = () => {
         normalizeDisplayText(c.customer_name) ||
         normalizeDisplayText(c.guest_email) ||
         normalizeDisplayText(c.customer_email) ||
-        "ضيف"
+        t("dashboard.supportGuestLabel", "ضيف")
       );
     }
     return (
       normalizeDisplayText(c.owner_name) ||
       normalizeDisplayText(c.customer_name) ||
       normalizeDisplayText(c.customer_email) ||
-      "مستخدم"
+      t("dashboard.supportUserLabel", "مستخدم")
     );
   };
 
@@ -72,28 +74,36 @@ const DashboardSupport: React.FC = () => {
     const email = c.is_guest ? (c.guest_email || c.customer_email) : c.customer_email;
     const when = c.last_message_at || c.created_at;
     const parts = [
-      email ? (c.is_guest ? `ضيف: ${email}` : `البريد: ${email}`) : null,
+      email ? (c.is_guest ? `${t("dashboard.supportGuestLabel", "ضيف")}: ${email}` : `${t("dashboard.supportEmailLabel", "البريد")}: ${email}`) : null,
       when ? new Date(when).toLocaleString() : null,
       `#${c.id}`,
-      c.is_closed ? "مغلقة" : null,
+      c.is_closed ? t("dashboard.supportClosed", "مغلقة") : null,
     ].filter(Boolean) as string[];
     return parts.join(" • ");
   };
 
   if (!allowed) {
-    return <DashboardAccessDenied title="محادثات الدعم" subtitle="لا تملك صلاحية الوصول لمحادثات الدعم." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.supportConversationsTitle", "محادثات الدعم")}
+        subtitle={t("dashboard.supportAccessDenied", "لا تملك صلاحية الوصول لمحادثات الدعم.")}
+      />
+    );
   }
 
   return (
-    <DashboardShell title="محادثات الدعم" subtitle="تابع محادثات الدعم مع العملاء والضيوف.">
-      <DashboardSection title="المحادثات" subtitle={isLoading ? "جاري تحميل المحادثات..." : "اضغط على محادثة لفتحها والرد."}>
+    <DashboardShell title={t("dashboard.supportConversationsTitle", "محادثات الدعم")} subtitle={t("dashboard.supportConversationsSubtitle", "تابع محادثات الدعم مع العملاء والضيوف.")}>
+      <DashboardSection
+        title={t("dashboard.supportConversationsListTitle", "المحادثات")}
+        subtitle={isLoading ? t("dashboard.supportLoading", "جاري تحميل المحادثات...") : t("dashboard.supportListSubtitle", "اضغط على محادثة لفتحها والرد.")}
+      >
         {isLoading ? (
           <View style={styles.loadingRow}>
             <ActivityIndicator size="small" color={theme.palette.accent} />
-            <Text style={[styles.loadingText, { color: theme.palette.muted }]}>جاري التحميل...</Text>
+            <Text style={[styles.loadingText, { color: theme.palette.muted }]}>{t("common.loading", "جاري التحميل...")}</Text>
           </View>
         ) : conversations.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد محادثات حالياً.</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>{t("dashboard.supportEmpty", "لا توجد محادثات حالياً.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {conversations.slice(0, 80).map((c) => {

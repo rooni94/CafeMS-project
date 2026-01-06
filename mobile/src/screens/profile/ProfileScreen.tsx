@@ -6,14 +6,14 @@ import QRCode from "react-native-qrcode-svg";
 import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../theme";
-import { Button, Input } from "../../components/ui";
+import { Button, Input, Select } from "../../components/ui";
 import CurrencyAmount from "../../components/CurrencyAmount";
 import FloatingCart from "../../components/FloatingCart";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import DashboardListItem from "../dashboard/components/DashboardListItem";
 import DashboardTile from "../dashboard/components/DashboardTile";
-import { decodeUnicodeEscapes } from "../../utils/text";
+import { useI18n } from "../../i18n";
 
 type Address = { id: number; label: string; details: string; is_default?: boolean };
 type OrderRow = { id: number; status: string; total: number; created_at: string };
@@ -27,6 +27,7 @@ type LoyaltyProfile = {
 
 const PasswordChangeForm: React.FC = () => {
   const theme = useTheme();
+  const { t } = useI18n();
   const { accessToken } = useAuth();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword1, setNewPassword1] = useState("");
@@ -36,11 +37,17 @@ const PasswordChangeForm: React.FC = () => {
   const handleChange = async () => {
     if (!accessToken) return;
     if (!oldPassword.trim() || !newPassword1.trim() || !newPassword2.trim()) {
-      Alert.alert("بيانات ناقصة", "يرجى إدخال كلمة المرور الحالية والجديدة.");
+      Alert.alert(
+        t("profile.passwordMissingTitle", "بيانات ناقصة"),
+        t("profile.passwordMissingBody", "يرجى إدخال كلمة المرور الحالية والجديدة.")
+      );
       return;
     }
     if (newPassword1 !== newPassword2) {
-      Alert.alert("غير متطابقة", "كلمة المرور الجديدة غير متطابقة.");
+      Alert.alert(
+        t("profile.passwordMismatchTitle", "غير متطابقة"),
+        t("profile.passwordMismatchBody", "كلمة المرور الجديدة غير متطابقة.")
+      );
       return;
     }
 
@@ -54,9 +61,18 @@ const PasswordChangeForm: React.FC = () => {
       setOldPassword("");
       setNewPassword1("");
       setNewPassword2("");
-      Alert.alert("تم", "تم تغيير كلمة المرور بنجاح.");
+      Alert.alert(
+        t("profile.passwordChangeSuccessTitle", "تم"),
+        t("profile.passwordChangeSuccessBody", "تم تغيير كلمة المرور بنجاح.")
+      );
     } catch (err: any) {
-      Alert.alert("تعذر التغيير", "تحقق من كلمة المرور الحالية أو من قوة كلمة المرور الجديدة.");
+      Alert.alert(
+        t("profile.passwordChangeErrorTitle", "تعذر التغيير"),
+        t(
+          "profile.passwordChangeErrorBody",
+          "تحقق من كلمة المرور الحالية أو من قوة كلمة المرور الجديدة."
+        )
+      );
     } finally {
       setSaving(false);
     }
@@ -64,11 +80,30 @@ const PasswordChangeForm: React.FC = () => {
 
   return (
     <View style={{ gap: 10 }}>
-      <Input label="كلمة المرور الحالية" value={oldPassword} onChangeText={setOldPassword} secureTextEntry />
-      <Input label="كلمة المرور الجديدة" value={newPassword1} onChangeText={setNewPassword1} secureTextEntry />
-      <Input label="تأكيد كلمة المرور الجديدة" value={newPassword2} onChangeText={setNewPassword2} secureTextEntry />
+      <Input
+        label={t("profile.passwordCurrentLabel", "كلمة المرور الحالية")}
+        value={oldPassword}
+        onChangeText={setOldPassword}
+        secureTextEntry
+      />
+      <Input
+        label={t("profile.passwordNewLabel", "كلمة المرور الجديدة")}
+        value={newPassword1}
+        onChangeText={setNewPassword1}
+        secureTextEntry
+      />
+      <Input
+        label={t("profile.passwordConfirmLabel", "تأكيد كلمة المرور الجديدة")}
+        value={newPassword2}
+        onChangeText={setNewPassword2}
+        secureTextEntry
+      />
       <Button
-        title={saving ? "جارٍ التغيير..." : "تغيير كلمة المرور"}
+        title={
+          saving
+            ? t("profile.passwordChanging", "جارٍ التغيير...")
+            : t("profile.passwordChangeButton", "تغيير كلمة المرور")
+        }
         onPress={handleChange}
         disabled={saving}
         style={{ width: "100%" }}
@@ -82,7 +117,7 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const t = decodeUnicodeEscapes;
+  const { locale, setLocale, t } = useI18n();
   const { user, accessToken, permissions, logout } = useAuth();
 
   const isAuthenticated = !!user && !!accessToken;
@@ -165,9 +200,15 @@ const ProfileScreen: React.FC = () => {
     setSavingProfile(true);
     try {
       await api.patch("auth/me/", { email: email.trim() || undefined, phone: phone.trim() || undefined });
-      Alert.alert("تم الحفظ", "تم تحديث بيانات الحساب.");
+      Alert.alert(
+        t("profile.saveSuccessTitle", "تم الحفظ"),
+        t("profile.saveSuccessBody", "تم تحديث بيانات الحساب.")
+      );
     } catch {
-      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء حفظ البيانات.");
+      Alert.alert(
+        t("profile.saveErrorTitle", "تعذر الحفظ"),
+        t("profile.saveErrorBody", "حدث خطأ أثناء حفظ البيانات.")
+      );
     } finally {
       setSavingProfile(false);
     }
@@ -175,7 +216,10 @@ const ProfileScreen: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    Alert.alert("تم تسجيل الخروج", "تم تسجيل الخروج بنجاح.");
+    Alert.alert(
+      t("profile.logoutSuccessTitle", "تم تسجيل الخروج"),
+      t("profile.logoutSuccessBody", "تم تسجيل الخروج بنجاح.")
+    );
   };
 
   const tiles = useMemo(
@@ -189,15 +233,15 @@ const ProfileScreen: React.FC = () => {
     if (!isAuthenticated) {
       return [
         {
-          title: "تسجيل الدخول",
-          subtitle: "ادخل إلى حسابك",
+          title: t("profile.tileLoginTitle", "تسجيل الدخول"),
+          subtitle: t("profile.tileLoginSubtitle", "ادخل إلى حسابك"),
           icon: "log-in-outline" as const,
           onPress: () => navigation.navigate("Login"),
           color: theme.palette.accent,
         },
         {
-          title: "إنشاء حساب",
-          subtitle: "حساب جديد خلال دقيقة",
+          title: t("profile.tileRegisterTitle", "إنشاء حساب"),
+          subtitle: t("profile.tileRegisterSubtitle", "حساب جديد خلال دقيقة"),
           icon: "person-add-outline" as const,
           onPress: () => navigation.navigate("Register"),
           color: theme.palette.accentSoft,
@@ -214,8 +258,8 @@ const ProfileScreen: React.FC = () => {
         color: string;
       }[] = [
         {
-          title: "طلباتي",
-          subtitle: "الحضور والطلبات HR",
+          title: t("profile.tileMyRequestsTitle", "طلباتي"),
+          subtitle: t("profile.tileMyRequestsSubtitle", "الحضور والطلبات HR"),
           icon: "calendar-outline" as const,
           onPress: () => navigation.navigate("MyHR"),
           color: "#8b5cf6",
@@ -223,8 +267,8 @@ const ProfileScreen: React.FC = () => {
       ];
       if (canManageSupport) {
         base.push({
-          title: "الدعم",
-          subtitle: "تذاكر ومحادثات الدعم",
+          title: t("profile.tileSupportTitle", "الدعم"),
+          subtitle: t("profile.tileSupportSubtitle", "تذاكر ومحادثات الدعم"),
           icon: "chatbubble-ellipses-outline" as const,
           onPress: () => navigation.navigate("DashboardSupport"),
           color: "#f97316",
@@ -235,55 +279,82 @@ const ProfileScreen: React.FC = () => {
 
     return [
       {
-        title: "طلباتي",
-        subtitle: "آخر الطلبات والتتبع",
+        title: t("profile.tileOrdersTitle", "طلباتي"),
+        subtitle: t("profile.tileOrdersSubtitle", "آخر الطلبات والتتبع"),
         icon: "receipt-outline" as const,
         onPress: () => navigation.navigate("OrderTracking"),
         color: theme.palette.accent,
       },
       {
-        title: "الولاء",
-        subtitle: "نقاط وعضوية",
+        title: t("profile.tileLoyaltyTitle", "الولاء"),
+        subtitle: t("profile.tileLoyaltySubtitle", "نقاط وعضوية"),
         icon: "sparkles-outline" as const,
         onPress: () => navigation.navigate("Rewards"),
         color: "#22c55e",
       },
       {
-        title: "تواصل معنا",
-        subtitle: "الدعم وخدمة العملاء",
+        title: t("profile.tileContactTitle", "تواصل معنا"),
+        subtitle: t("profile.tileContactSubtitle", "الدعم وخدمة العملاء"),
         icon: "call-outline" as const,
         onPress: () => navigation.navigate("Contact"),
         color: theme.palette.accentSoft,
       },
     ];
   },
-    [isAuthenticated, isEmployee, canManageSupport, navigation, theme.palette]
+    [isAuthenticated, isEmployee, canManageSupport, navigation, theme.palette, t]
   );
+
+  const languageOptions = useMemo(
+    () => [
+      { value: "ar", label: t("settings.languageArabic", "العربية") },
+      { value: "en", label: t("settings.languageEnglish", "English") },
+    ],
+    [t]
+  );
+
+  const welcomeSubtitle = isAuthenticated
+    ? `${t("profile.welcomeGreeting", "مرحباً")} ${user?.username || ""} ${t(
+        "profile.welcomeSuffix",
+        "— إدارة الحساب والإعدادات."
+      )}`
+    : t("profile.welcomeGuest", "سجّل دخولك للوصول إلى طلباتك ونقاط الولاء.");
+
+  const ordersSubtitle = ordersLoading
+    ? t("profile.ordersLoading", "جاري التحميل...")
+    : orders.length
+    ? t("profile.ordersSubtitle", "آخر 5 طلبات.")
+    : t("profile.ordersEmptySubtitle", "لا توجد طلبات بعد.");
+
+  const addressesSubtitle = addressesLoading
+    ? t("profile.addressesLoading", "جاري التحميل...")
+    : addresses.length
+    ? t("profile.addressesSubtitle", "عناوينك المحفوظة.")
+    : t("profile.addressesEmptySubtitle", "لا توجد عناوين بعد.");
+
+  const loyaltySubtitle = loyaltyLoading
+    ? t("profile.loyaltyLoading", "جاري التحميل...")
+    : t("profile.loyaltySubtitle", "نقاطك وعضويتك.");
 
   return (
     <View style={{ flex: 1 }}>
       <DashboardShell
-      title="حسابي"
-      subtitle={
-        isAuthenticated
-          ? `مرحباً ${user?.username || ""} — إدارة الحساب والإعدادات.`
-          : "سجّل دخولك للوصول إلى طلباتك ونقاط الولاء."
-      }
+      title={t("profile.title", "حسابي")}
+      subtitle={welcomeSubtitle}
     >
-      <DashboardSection title="اختصارات" subtitle="وصول سريع للأقسام الأكثر استخداماً.">
+      <DashboardSection title={t("profile.shortcutsTitle", "اختصارات")} subtitle={t("profile.shortcutsSubtitle", "وصول سريع للأقسام الأكثر استخداماً.")}>
         {!isAuthenticated ? (
           <View style={{ gap: 8 }}>
             <DashboardTile
-              title="تسجيل الدخول"
-              subtitle="ادخل إلى حسابك"
+              title={t("profile.tileLoginTitle", "تسجيل الدخول")}
+              subtitle={t("profile.tileLoginSubtitle", "ادخل إلى حسابك")}
               icon="log-in-outline"
               onPress={() => navigation.navigate("Login")}
               color={theme.palette.accent}
               style={{ width: "100%" }}
             />
             <DashboardTile
-              title="إنشاء حساب"
-              subtitle="حساب جديد خلال دقيقة"
+              title={t("profile.tileRegisterTitle", "إنشاء حساب")}
+              subtitle={t("profile.tileRegisterSubtitle", "حساب جديد خلال دقيقة")}
               icon="person-add-outline"
               onPress={() => navigation.navigate("Register")}
               color={theme.palette.accentSoft}
@@ -309,19 +380,23 @@ const ProfileScreen: React.FC = () => {
       </DashboardSection>
 
       {isAuthenticated ? (
-        <DashboardSection title="بيانات الحساب" subtitle="حدّث بياناتك ثم احفظ.">
-          <Input label="اسم المستخدم" value={user?.username || ""} editable={false} />
-          <Input label="البريد الإلكتروني" value={email} onChangeText={setEmail} keyboardType="email-address" />
-          <Input label="رقم الجوال" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <DashboardSection title={t("profile.accountDataTitle", "بيانات الحساب")} subtitle={t("profile.accountDataSubtitle", "حدّث بياناتك ثم احفظ.")}>
+          <Input label={t("profile.usernameLabel", "اسم المستخدم")} value={user?.username || ""} editable={false} />
+          <Input label={t("auth.emailLabel", "البريد الإلكتروني")} value={email} onChangeText={setEmail} keyboardType="email-address" />
+          <Input label={t("auth.phoneLabel", "رقم الجوال")} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
           <View style={{ gap: 10 }}>
             <Button
-              title={savingProfile ? "جارٍ الحفظ..." : "حفظ التعديلات"}
+              title={
+                savingProfile
+                  ? t("common.saving", "جارٍ الحفظ...")
+                  : t("profile.saveChanges", "حفظ التعديلات")
+              }
               onPress={saveProfile}
               disabled={savingProfile}
               style={{ width: "100%" }}
             />
             <Button
-              title="تسجيل الخروج"
+              title={t("profile.logoutTitle", "تسجيل الخروج")}
               icon="logout"
               variant="ghost"
               style={{ display: "none" }}
@@ -333,36 +408,48 @@ const ProfileScreen: React.FC = () => {
         </DashboardSection>
       ) : null}
 
+      <DashboardSection
+        title={t("settings.languageTitle", "اللغة")}
+        subtitle={t("settings.languageSubtitle", "اختر لغة التطبيق")}
+      >
+        <Select
+          label={t("settings.languageTitle", "اللغة")}
+          value={locale}
+          options={languageOptions}
+          onChange={(value) => setLocale(value as any)}
+        />
+      </DashboardSection>
+      
       {isAuthenticated ? (
-        <DashboardSection title="تغيير كلمة المرور" subtitle="حدّث كلمة المرور لحماية حسابك.">
+        <DashboardSection title={t("profile.passwordChangeTitle", "تغيير كلمة المرور")} subtitle={t("profile.passwordChangeSubtitle", "حدّث كلمة المرور لحماية حسابك.")}>
           <PasswordChangeForm />
         </DashboardSection>
       ) : null}
 
       {!isEmployee ? (
-        <DashboardSection title="روابط" subtitle="معلومات وبيانات المتجر.">
+        <DashboardSection title={t("profile.linksTitle", "روابط")} subtitle={t("profile.linksSubtitle", "معلومات وبيانات المتجر.")}>
           <View style={{ gap: 10 }}>
-            <DashboardListItem title="من نحن" subtitle="تعرف على CafeMS Demo" icon="business-outline" onPress={() => navigation.navigate("About")} />
-            <DashboardListItem title="الشروط والأحكام" subtitle="سياسات الاستخدام" icon="document-text-outline" onPress={() => navigation.navigate("Terms")} />
-            <DashboardListItem title="سياسة الخصوصية" subtitle="حماية البيانات والخصوصية" icon="shield-checkmark-outline" onPress={() => navigation.navigate("Privacy")} />
-            <DashboardListItem title="تواصل معنا" subtitle="دعم وخدمة العملاء" icon="call-outline" onPress={() => navigation.navigate("Contact")} />
+            <DashboardListItem title={t("profile.aboutTitle", "من نحن")} subtitle={t("profile.aboutSubtitle", "تعرف على CafeMS Demo")} icon="business-outline" onPress={() => navigation.navigate("About")} />
+            <DashboardListItem title={t("profile.termsTitle", "الشروط والأحكام")} subtitle={t("profile.termsSubtitle", "سياسات الاستخدام")} icon="document-text-outline" onPress={() => navigation.navigate("Terms")} />
+            <DashboardListItem title={t("profile.privacyTitle", "سياسة الخصوصية")} subtitle={t("profile.privacySubtitle", "حماية البيانات والخصوصية")} icon="shield-checkmark-outline" onPress={() => navigation.navigate("Privacy")} />
+            <DashboardListItem title={t("profile.contactTitle", "تواصل معنا")} subtitle={t("profile.contactSubtitle", "دعم وخدمة العملاء")} icon="call-outline" onPress={() => navigation.navigate("Contact")} />
           </View>
         </DashboardSection>
       ) : null}
 
       {isAuthenticated && !isEmployee ? (
         <>
-          <DashboardSection title="آخر الطلبات" subtitle={ordersLoading ? "جاري التحميل..." : orders.length ? "آخر 5 طلبات." : "لا توجد طلبات بعد."}>
+          <DashboardSection title={t("profile.recentOrdersTitle", "آخر الطلبات")} subtitle={ordersSubtitle}>
             {ordersLoading ? (
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>جاري التحميل...</Text>
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>{t("profile.ordersLoading", "جاري التحميل...")}</Text>
             ) : orders.length === 0 ? (
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>لا توجد طلبات.</Text>
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>{t("profile.noOrders", "لا توجد طلبات.")}</Text>
             ) : (
               <View style={{ gap: 10 }}>
                 {orders.slice(0, 5).map((o) => (
                   <DashboardListItem
                     key={o.id}
-                    title={`طلب #${o.id}`}
+                    title={`${t("profile.orderLabel", "طلب")} #${o.id}`}
                     subtitle={`${o.status} • ${(o as any).created_at ? new Date((o as any).created_at).toLocaleString() : ""}`}
                     icon="receipt-outline"
                     onPress={() => navigation.navigate("OrderTracking", { orderId: o.id })}
@@ -371,14 +458,14 @@ const ProfileScreen: React.FC = () => {
                 ))}
               </View>
             )}
-            <Button title="عرض كل الطلبات" variant="secondary" onPress={() => navigation.navigate("OrderTracking")} />
+            <Button title={t("profile.viewAllOrders", "عرض كل الطلبات")} variant="secondary" onPress={() => navigation.navigate("OrderTracking")} />
           </DashboardSection>
 
-          <DashboardSection title="العناوين" subtitle={addressesLoading ? "جاري التحميل..." : addresses.length ? "عناوينك المحفوظة." : "لا توجد عناوين بعد."}>
+          <DashboardSection title={t("profile.addressesTitle", "العناوين")} subtitle={addressesSubtitle}>
             {addressesLoading ? (
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>جاري التحميل...</Text>
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>{t("profile.addressesLoading", "جاري التحميل...")}</Text>
             ) : addresses.length === 0 ? (
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>لا توجد عناوين.</Text>
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>{t("profile.noAddresses", "لا توجد عناوين.")}</Text>
             ) : (
               <View style={{ gap: 10 }}>
                 {addresses.slice(0, 6).map((a) => (
@@ -387,38 +474,40 @@ const ProfileScreen: React.FC = () => {
                     title={a.label}
                     subtitle={a.details}
                     icon="location-outline"
-                    right={a.is_default ? <Text style={[styles.badge, { color: theme.palette.success }]}>افتراضي</Text> : null}
+                    right={a.is_default ? <Text style={[styles.badge, { color: theme.palette.success }]}>{t("profile.defaultBadge", "افتراضي")}</Text> : null}
                   />
                 ))}
               </View>
             )}
-            <Button title="إدارة العناوين" variant="secondary" onPress={() => navigation.navigate("Addresses")} />
+            <Button title={t("profile.manageAddresses", "إدارة العناوين")} variant="secondary" onPress={() => navigation.navigate("Addresses")} />
           </DashboardSection>
 
-          <DashboardSection title="برنامج الولاء" subtitle={loyaltyLoading ? "جاري التحميل..." : "نقاطك وعضويتك."}>
+          <DashboardSection title={t("profile.loyaltyTitle", "برنامج الولاء")} subtitle={loyaltySubtitle}>
             {loyaltyLoading ? (
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>جاري التحميل...</Text>
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>{t("profile.loyaltyLoading", "جاري التحميل...")}</Text>
             ) : loyalty ? (
               <View style={{ gap: 12 }}>
                 <View style={styles.kv}>
-                  <Text style={[styles.k, { color: theme.palette.muted }]}>النقاط</Text>
+                  <Text style={[styles.k, { color: theme.palette.muted }]}>{t("profile.loyaltyPointsLabel", "النقاط")}</Text>
                   <Text style={[styles.v, { color: theme.palette.text }]}>{loyalty.points_balance ?? 0}</Text>
                 </View>
                 {loyalty.qr_token ? (
                   <View style={styles.qrWrap}>
                     <QRCode value={loyalty.qr_token} size={140} />
-                    <Text style={[styles.muted, { color: theme.palette.muted }]}>اعرض هذا الرمز عند الكاشير لتسجيل النقاط.</Text>
+                    <Text style={[styles.muted, { color: theme.palette.muted }]}>
+                      {t("profile.loyaltyQrHint", "اعرض هذا الرمز عند الكاشير لتسجيل النقاط.")}
+                    </Text>
                   </View>
                 ) : null}
                 {loyalty.apple_wallet_pass_url ? (
-                  <Button title="إضافة إلى Apple Wallet" variant="secondary" onPress={() => Linking.openURL(loyalty.apple_wallet_pass_url!)} />
+                  <Button title={t("profile.loyaltyAppleWallet", "إضافة إلى Apple Wallet")} variant="secondary" onPress={() => Linking.openURL(loyalty.apple_wallet_pass_url!)} />
                 ) : null}
                 {loyalty.google_wallet_pass_url ? (
-                  <Button title="إضافة إلى Google Wallet" variant="secondary" onPress={() => Linking.openURL(loyalty.google_wallet_pass_url!)} />
+                  <Button title={t("profile.loyaltyGoogleWallet", "إضافة إلى Google Wallet")} variant="secondary" onPress={() => Linking.openURL(loyalty.google_wallet_pass_url!)} />
                 ) : null}
               </View>
             ) : (
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>لا تتوفر بيانات الولاء حالياً.</Text>
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>{t("profile.loyaltyEmpty", "لا تتوفر بيانات الولاء حالياً.")}</Text>
             )}
           </DashboardSection>
         </>
@@ -426,11 +515,11 @@ const ProfileScreen: React.FC = () => {
       
       {isAuthenticated ? (
         <DashboardSection
-          title={t("\\u062a\\u0633\\u062c\\u064a\\u0644 \\u0627\\u0644\\u062e\\u0631\\u0648\\u062c")}
-          subtitle={t("\\u0625\\u0646\\u0647\\u0627\\u0621 \\u0627\\u0644\\u062c\\u0644\\u0633\\u0629 \\u0627\\u0644\\u062d\\u0627\\u0644\\u064a\\u0629 \\u0628\\u0623\\u0645\\u0627\\u0646.")}
+          title={t("profile.logoutSectionTitle", "تسجيل الخروج")}
+          subtitle={t("profile.logoutSectionSubtitle", "إنهاء الجلسة الحالية بأمان.")}
         >
           <Button
-            title={t("\\u062a\\u0633\\u062c\\u064a\\u0644 \\u0627\\u0644\\u062e\\u0631\\u0648\\u062c")}
+            title={t("profile.logoutSectionTitle", "تسجيل الخروج")}
             icon="logout"
             variant="danger"
             onPress={handleLogout}

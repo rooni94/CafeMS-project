@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.store.email_utils import send_store_email
+from apps.accounts.push import notify_user
 from rest_framework.exceptions import PermissionDenied
 
 from .models import (
@@ -246,6 +247,19 @@ class LeaveRequestViewSet(viewsets.ModelViewSet):
                 "end_date": str(leave.end_date),
             },
         )
+        try:
+            notify_user(
+                user,
+                title="حالة طلب الإجازة",
+                body=msg,
+                data={
+                    "type": "leave_status",
+                    "leave_id": leave.id,
+                    "status": status_value,
+                },
+            )
+        except Exception as exc:
+            print("push notify leave status error:", exc)
 
 class ContractViewSet(viewsets.ModelViewSet):
     queryset = Contract.objects.select_related("employee", "employee__user").all()
@@ -1051,6 +1065,19 @@ class HRWorkReportReviewAPIView(APIView):
                 related_object="WorkReport",
                 related_id=wr.id,
             )
+            try:
+                notify_user(
+                    emp_user,
+                    title="تحديث على تقرير العمل",
+                    body=msg,
+                    data={
+                        "type": "work_report",
+                        "work_report_id": wr.id,
+                        "status": wr.status,
+                    },
+                )
+            except Exception as exc:
+                print("push notify work report error:", exc)
 
         return Response(WorkReportSerializer(wr).data)
 

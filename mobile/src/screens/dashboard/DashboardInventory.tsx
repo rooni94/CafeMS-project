@@ -11,6 +11,7 @@ import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
 import StatBadge from "./components/StatBadge";
 import { hasAny } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type InventorySummary = {
   total_items: number;
@@ -30,6 +31,7 @@ const DashboardInventory: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
+  const { t } = useI18n();
 
   const allowed = hasAny(user, permissions, ["can_manage_inventory", "can_view_dashboard"]);
 
@@ -67,7 +69,10 @@ const DashboardInventory: React.FC = () => {
 
   const adjustInventory = async () => {
     if (!productId.trim() || !qty.trim()) {
-      Alert.alert("بيانات ناقصة", "أدخل رقم المنتج والكمية (+/-).");
+      Alert.alert(
+        t("dashboard.inventoryMissingTitle", "بيانات ناقصة"),
+        t("dashboard.inventoryMissingBody", "أدخل رقم المنتج والكمية (+/-).")
+      );
       return;
     }
     try {
@@ -80,59 +85,72 @@ const DashboardInventory: React.FC = () => {
       qc.invalidateQueries({ queryKey: ["dashboard", "inventory-summary"] });
       qc.invalidateQueries({ queryKey: ["dashboard", "inventory-items"] });
     } catch {
-      Alert.alert("تعذر التعديل", "حدث خطأ أثناء تعديل المخزون.");
+      Alert.alert(
+        t("dashboard.inventoryAdjustErrorTitle", "تعذر التعديل"),
+        t("dashboard.inventoryAdjustErrorBody", "حدث خطأ أثناء تعديل المخزون.")
+      );
     }
   };
 
   if (!allowed) {
-    return <DashboardAccessDenied title="المخزون" subtitle="متابعة الكميات وتعديلها بسرعة." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.inventoryTitle", "المخزون")}
+        subtitle={t("dashboard.inventorySubtitle", "متابعة الكميات وتعديلها بسرعة.")}
+      />
+    );
   }
 
   return (
-    <DashboardShell title="المخزون" subtitle="متابعة الكميات وتعديلها بسرعة.">
-      <DashboardSection title="ملخص المخزون" subtitle="نظرة عامة على حالة الأصناف.">
+    <DashboardShell title={t("dashboard.inventoryTitle", "المخزون")} subtitle={t("dashboard.inventorySubtitle", "متابعة الكميات وتعديلها بسرعة.")}>
+      <DashboardSection title={t("dashboard.inventorySummaryTitle", "ملخص المخزون")} subtitle={t("dashboard.inventorySummarySubtitle", "نظرة عامة على حالة الأصناف.")}>
         <View style={styles.statsRow}>
-          <StatBadge label="كل الأصناف" value={summary?.total_items ?? "-"} color={theme.palette.accentSoft} />
-          <StatBadge label="منخفض" value={summary?.low_stock_items ?? "-"} color={theme.palette.accent} />
-          <StatBadge label="نفد" value={summary?.out_of_stock_items ?? "-"} color={theme.palette.danger} />
+          <StatBadge label={t("dashboard.inventoryStatsAll", "كل الأصناف")} value={summary?.total_items ?? "-"} color={theme.palette.accentSoft} />
+          <StatBadge label={t("dashboard.inventoryStatsLow", "منخفض")} value={summary?.low_stock_items ?? "-"} color={theme.palette.accent} />
+          <StatBadge label={t("dashboard.inventoryStatsOut", "نفد")} value={summary?.out_of_stock_items ?? "-"} color={theme.palette.danger} />
         </View>
       </DashboardSection>
 
-      <DashboardSection title="تعديل سريع" subtitle="استخدم (+) للإضافة و(-) للخصم.">
+      <DashboardSection title={t("dashboard.inventoryQuickAdjustTitle", "تعديل سريع")} subtitle={t("dashboard.inventoryQuickAdjustSubtitle", "استخدم (+) للإضافة و(-) للخصم.")}>
         <Input
-          label="رقم المنتج"
+          label={t("dashboard.inventoryProductIdLabel", "رقم المنتج")}
           value={productId}
           onChangeText={setProductId}
           keyboardType="number-pad"
-          placeholder="مثال: 15"
+          placeholder={t("dashboard.inventoryProductIdPlaceholder", "مثال: 15")}
         />
         <Input
-          label="تغيير الكمية"
+          label={t("dashboard.inventoryQtyLabel", "تغيير الكمية")}
           value={qty}
           onChangeText={setQty}
           keyboardType="numbers-and-punctuation"
-          placeholder="مثال: -2 أو 5"
-          hint="تأكد من إدخال قيمة رقمية."
+          placeholder={t("dashboard.inventoryQtyPlaceholder", "مثال: -2 أو 5")}
+          hint={t("dashboard.inventoryQtyHint", "تأكد من إدخال قيمة رقمية.")}
         />
-        <Button title="تطبيق التعديل" onPress={adjustInventory} />
+        <Button title={t("dashboard.inventoryApply", "تطبيق التعديل")} onPress={adjustInventory} />
       </DashboardSection>
 
-      <DashboardSection title="الأصناف" subtitle={isLoading ? "جاري التحميل..." : "يمكنك البحث أو تصفية النتائج."}>
-        <Input label="بحث" value={search} onChangeText={setSearch} placeholder="اكتب اسم المنتج..." />
+      <DashboardSection
+        title={t("dashboard.inventoryItemsTitle", "الأصناف")}
+        subtitle={isLoading ? t("common.loading", "جاري التحميل...") : t("dashboard.inventoryItemsSubtitle", "يمكنك البحث أو تصفية النتائج.")}
+      >
+        <Input label={t("common.search", "بحث")} value={search} onChangeText={setSearch} placeholder={t("dashboard.inventorySearchPlaceholder", "اكتب اسم المنتج...")} />
         <View style={styles.filtersRow}>
-          <Button title="منخفض" variant={showLow ? "primary" : "ghost"} onPress={() => setShowLow((v) => !v)} />
-          <Button title="نفد" variant={showOut ? "primary" : "ghost"} onPress={() => setShowOut((v) => !v)} />
+          <Button title={t("dashboard.inventoryStatsLow", "منخفض")} variant={showLow ? "primary" : "ghost"} onPress={() => setShowLow((v) => !v)} />
+          <Button title={t("dashboard.inventoryStatsOut", "نفد")} variant={showOut ? "primary" : "ghost"} onPress={() => setShowOut((v) => !v)} />
         </View>
 
         {filtered.length === 0 ? (
-          <Text style={[styles.emptyText, { color: theme.palette.muted }]}>لا توجد نتائج.</Text>
+          <Text style={[styles.emptyText, { color: theme.palette.muted }]}>{t("common.noResults", "لا توجد نتائج.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {filtered.slice(0, 40).map((item) => (
               <DashboardListItem
                 key={item.id}
                 title={item.name}
-                subtitle={`ID: ${item.id} • الكمية: ${item.stock ?? "-"} • ${item.available ? "متاح للبيع" : "غير متاح"}`}
+                subtitle={`ID: ${item.id} • ${t("dashboard.inventoryQtyLabelShort", "الكمية")}: ${item.stock ?? "-"} • ${
+                  item.available ? t("dashboard.inventoryAvailable", "متاح للبيع") : t("dashboard.inventoryUnavailable", "غير متاح")
+                }`}
                 icon="cube-outline"
               />
             ))}

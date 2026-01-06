@@ -11,12 +11,14 @@ import { api, parseApiError } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../theme";
 import { Address } from "../../types";
+import { useI18n } from "../../i18n";
 
 const AddressesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { user, accessToken } = useAuth();
+  const { t } = useI18n();
 
   const isAuthenticated = !!user && !!accessToken;
 
@@ -65,7 +67,10 @@ const AddressesScreen: React.FC = () => {
   const handleSave = async () => {
     if (!isAuthenticated) return;
     if (!label.trim() || !details.trim()) {
-      Alert.alert("بيانات ناقصة", "يرجى إدخال اسم العنوان والتفاصيل.");
+      Alert.alert(
+        t("addresses.missingTitle", "بيانات ناقصة"),
+        t("addresses.missingBody", "يرجى إدخال اسم العنوان والتفاصيل.")
+      );
       return;
     }
     setSaving(true);
@@ -82,9 +87,15 @@ const AddressesScreen: React.FC = () => {
       }
       await load();
       resetForm();
-      Alert.alert("تم", "تم حفظ العنوان بنجاح.");
+      Alert.alert(
+        t("addresses.saveSuccessTitle", "تم"),
+        t("addresses.saveSuccessBody", "تم حفظ العنوان بنجاح.")
+      );
     } catch (err) {
-      Alert.alert("تعذر الحفظ", parseApiError(err) || "تعذر حفظ العنوان، حاول مرة أخرى.");
+      Alert.alert(
+        t("addresses.saveErrorTitle", "تعذر الحفظ"),
+        parseApiError(err, t("addresses.saveErrorBody", "تعذر حفظ العنوان، حاول مرة أخرى."))
+      );
     } finally {
       setSaving(false);
     }
@@ -92,10 +103,10 @@ const AddressesScreen: React.FC = () => {
 
   const handleDelete = async () => {
     if (!isAuthenticated || !editingId) return;
-    Alert.alert("حذف العنوان", "هل أنت متأكد من حذف هذا العنوان؟", [
-      { text: "إلغاء", style: "cancel" },
+    Alert.alert(t("addresses.deleteTitle", "حذف العنوان"), t("addresses.deleteBody", "هل أنت متأكد من حذف هذا العنوان؟"), [
+      { text: t("common.cancel", "إلغاء"), style: "cancel" },
       {
-        text: "حذف",
+        text: t("common.delete", "حذف"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -103,7 +114,10 @@ const AddressesScreen: React.FC = () => {
             await load();
             resetForm();
           } catch (err) {
-            Alert.alert("تعذر الحذف", parseApiError(err) || "تعذر حذف العنوان.");
+            Alert.alert(
+              t("addresses.deleteErrorTitle", "تعذر الحذف"),
+              parseApiError(err, t("addresses.deleteErrorBody", "تعذر حذف العنوان."))
+            );
           }
         },
       },
@@ -112,22 +126,28 @@ const AddressesScreen: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <DashboardShell title="العناوين" subtitle="سجّل الدخول لإدارة عناوين التوصيل.">
-        <DashboardSection title="تنبيه" subtitle="هذه الصفحة متاحة للحسابات المسجلة فقط.">
-          <Button title="تسجيل الدخول" onPress={() => navigation.navigate("Login")} />
+      <DashboardShell title={t("addresses.title", "العناوين")} subtitle={t("addresses.guestSubtitle", "سجّل الدخول لإدارة عناوين التوصيل.")}>
+        <DashboardSection title={t("addresses.guestAlertTitle", "تنبيه")} subtitle={t("addresses.guestAlertBody", "هذه الصفحة متاحة للحسابات المسجلة فقط.")}>
+          <Button title={t("auth.loginTitle", "تسجيل الدخول")} onPress={() => navigation.navigate("Login")} />
         </DashboardSection>
       </DashboardShell>
     );
   }
 
   return (
-    <DashboardShell title="العناوين" subtitle="أضف وعدّل عناوينك لتسهيل طلبات التوصيل.">
+    <DashboardShell title={t("addresses.title", "العناوين")} subtitle={t("addresses.subtitle", "أضف وعدّل عناوينك لتسهيل طلبات التوصيل.")}>
       <DashboardSection
-        title="العناوين المحفوظة"
-        subtitle={loading ? "جاري التحميل..." : addresses.length ? "اختر عنواناً للتعديل أو أضف عنواناً جديداً." : "لا توجد عناوين بعد."}
+        title={t("addresses.savedTitle", "العناوين المحفوظة")}
+        subtitle={
+          loading
+            ? t("addresses.loading", "جاري التحميل...")
+            : addresses.length
+            ? t("addresses.savedSubtitle", "اختر عنواناً للتعديل أو أضف عنواناً جديداً.")
+            : t("addresses.emptySubtitle", "لا توجد عناوين بعد.")
+        }
       >
         {loading ? (
-          <Text style={[styles.muted, { color: theme.palette.muted }]}>جاري التحميل...</Text>
+          <Text style={[styles.muted, { color: theme.palette.muted }]}>{t("addresses.loading", "جاري التحميل...")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {addresses.map((addr) => (
@@ -137,29 +157,48 @@ const AddressesScreen: React.FC = () => {
                 subtitle={addr.details}
                 icon="location-outline"
                 onPress={() => selectForEdit(addr)}
-                right={addr.is_default ? <Text style={[styles.badge, { color: theme.palette.success }]}>افتراضي</Text> : null}
+                right={addr.is_default ? <Text style={[styles.badge, { color: theme.palette.success }]}>{t("addresses.defaultBadge", "افتراضي")}</Text> : null}
               />
             ))}
-            <Button title="إضافة عنوان جديد" variant="secondary" onPress={resetForm} />
+            <Button title={t("addresses.addNew", "إضافة عنوان جديد")} variant="secondary" onPress={resetForm} />
           </View>
         )}
       </DashboardSection>
 
-      <DashboardSection title={editingId ? "تعديل العنوان" : "عنوان جديد"} subtitle="اكتب تفاصيل عنوانك بدقة لتسهيل التوصيل.">
-        <Input label="اسم العنوان" value={label} onChangeText={setLabel} placeholder="مثل: المنزل، العمل" />
-        <Input label="تفاصيل العنوان" value={details} onChangeText={setDetails} multiline numberOfLines={4} style={styles.textarea} />
+      <DashboardSection
+        title={editingId ? t("addresses.editTitle", "تعديل العنوان") : t("addresses.newTitle", "عنوان جديد")}
+        subtitle={t("addresses.formSubtitle", "اكتب تفاصيل عنوانك بدقة لتسهيل التوصيل.")}
+      >
+        <Input
+          label={t("addresses.labelLabel", "اسم العنوان")}
+          value={label}
+          onChangeText={setLabel}
+          placeholder={t("addresses.labelPlaceholder", "مثل: المنزل، العمل")}
+        />
+        <Input
+          label={t("addresses.detailsLabel", "تفاصيل العنوان")}
+          value={details}
+          onChangeText={setDetails}
+          multiline
+          numberOfLines={4}
+          style={styles.textarea}
+        />
 
         <Pressable style={styles.checkboxRow} onPress={() => setIsDefault((v) => !v)}>
           <View style={[styles.checkbox, { borderColor: theme.palette.border, backgroundColor: theme.palette.surfaceAlt }]}>
             <Ionicons name={isDefault ? "checkmark" : "remove-outline"} size={18} color={isDefault ? theme.palette.success : theme.palette.muted} />
           </View>
-          <Text style={[styles.checkboxText, { color: theme.palette.text }]}>تعيين كعنوان افتراضي</Text>
+          <Text style={[styles.checkboxText, { color: theme.palette.text }]}>{t("addresses.defaultToggle", "تعيين كعنوان افتراضي")}</Text>
         </Pressable>
 
         <View style={{ gap: 10 }}>
-          <Button title={saving ? "جارٍ الحفظ..." : "حفظ"} onPress={handleSave} disabled={saving} />
+          <Button
+            title={saving ? t("common.saving", "جارٍ الحفظ...") : t("common.save", "حفظ")}
+            onPress={handleSave}
+            disabled={saving}
+          />
           {editingId ? (
-            <Button title="حذف" variant="ghost" color="transparent" textColor={theme.palette.danger} onPress={handleDelete} />
+            <Button title={t("common.delete", "حذف")} variant="ghost" color="transparent" textColor={theme.palette.danger} onPress={handleDelete} />
           ) : null}
         </View>
       </DashboardSection>
@@ -204,4 +243,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default AddressesScreen;
-

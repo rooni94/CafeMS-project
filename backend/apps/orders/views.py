@@ -24,6 +24,7 @@ from .serializers import (
     OrderActivityLogSerializer,
     TableSerializer,
 )
+from apps.accounts.push import notify_roles, notify_user
 from django.http import HttpRequest
 from apps.products.models import Product
 try:
@@ -168,6 +169,42 @@ def send_order_status_changed_email(order: Order, old_status: str, new_status: s
     )
     if not send_store_email(subject, message, [order.user.email], kind="default"):
         print("Email error (status change)")
+
+
+def notify_order_created(order: Order):
+    try:
+        title = f"طلب جديد #{order.id}"
+        body = f"تم إنشاء طلب جديد بقيمة {order.total}."
+        notify_roles(
+            ["manager", "supervisor", "staff"],
+            title=title,
+            body=body,
+            data={"type": "order_created", "order_id": order.id},
+        )
+    except Exception as exc:
+        print("push notify order created error:", exc)
+
+
+def notify_order_status_changed(order: Order, old_status: str, new_status: str):
+    if not order.user:
+        return
+    try:
+        title = f"تحديث حالة الطلب #{order.id}"
+        status_text = order.get_status_display() if hasattr(order, "get_status_display") else new_status
+        body = f"تم تحديث حالة طلبك إلى {status_text}."
+        notify_user(
+            order.user,
+            title=title,
+            body=body,
+            data={
+                "type": "order_status",
+                "order_id": order.id,
+                "status": new_status,
+                "old_status": old_status,
+            },
+        )
+    except Exception as exc:
+        print("push notify order status error:", exc)
 
 
 # ================== طلبات المستخدم الحالي ==================
@@ -406,6 +443,8 @@ class OrderViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print("Email error (order created):", e)
 
+        notify_order_created(order)
+
         return order
 
 
@@ -490,6 +529,8 @@ class OrderViewSet(viewsets.ModelViewSet):
             send_order_status_changed_email(instance, old_status, new_status)
         except Exception as e:
             print("Email error (status change):", e)
+
+        notify_order_status_changed(instance, old_status, new_status)
 
         if new_status == "completed" and award_points_for_order:
             try:
@@ -662,5 +703,6 @@ class POSCashierOrderView(APIView):
             f"تسجيل طلب كاشير #{order.id} ({order.order_type})",
             order,
         )
+        notify_order_created(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

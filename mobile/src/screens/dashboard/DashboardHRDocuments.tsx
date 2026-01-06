@@ -10,6 +10,7 @@ import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
 import { hasAny } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type HRDocument = {
   id: number;
@@ -26,6 +27,7 @@ const DashboardHRDocuments: React.FC = () => {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
+  const { t } = useI18n();
 
   const allowed = hasAny(user, permissions, ["can_view_hr_dashboard", "can_manage_hr_documents"]);
 
@@ -46,7 +48,10 @@ const DashboardHRDocuments: React.FC = () => {
 
   const createDoc = async () => {
     if (!name.trim()) {
-      Alert.alert("بيانات ناقصة", "أدخل اسم الوثيقة.");
+      Alert.alert(
+        t("dashboard.hrDocsMissingTitle", "بيانات ناقصة"),
+        t("dashboard.hrDocsMissingBody", "أدخل اسم الوثيقة.")
+      );
       return;
     }
     setSaving(true);
@@ -62,38 +67,49 @@ const DashboardHRDocuments: React.FC = () => {
       setDocType("");
       setIssueDate("");
       setExpiryDate("");
-      Alert.alert("تم الإرسال", "تم إرسال الوثيقة (قد تحتاج مراجعة).");
+      Alert.alert(
+        t("dashboard.hrDocsSentTitle", "تم الإرسال"),
+        t("dashboard.hrDocsSentBody", "تم إرسال الوثيقة (قد تحتاج مراجعة).")
+      );
     } catch {
-      Alert.alert("تعذر الإرسال", "حدث خطأ أثناء إرسال الوثيقة.");
+      Alert.alert(
+        t("dashboard.hrDocsSendErrorTitle", "تعذر الإرسال"),
+        t("dashboard.hrDocsSendErrorBody", "حدث خطأ أثناء إرسال الوثيقة.")
+      );
     } finally {
       setSaving(false);
     }
   };
 
   if (!allowed) {
-    return <DashboardAccessDenied title="وثائق الموارد البشرية" subtitle="رفع الوثائق ومتابعة حالتها." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.hrDocsTitle", "وثائق الموارد البشرية")}
+        subtitle={t("dashboard.hrDocsSubtitle", "رفع الوثائق ومتابعة حالتها.")}
+      />
+    );
   }
 
   return (
-    <DashboardShell title="وثائق الموارد البشرية" subtitle="رفع الوثائق ومتابعة حالتها.">
-      <DashboardSection title="رفع وثيقة" subtitle="أدخل البيانات ثم إرسال.">
-        <Input label="اسم الوثيقة" value={name} onChangeText={setName} />
-        <Input label="نوع الوثيقة (اختياري)" value={docType} onChangeText={setDocType} />
-        <Input label="تاريخ الإصدار (YYYY-MM-DD)" value={issueDate} onChangeText={setIssueDate} />
-        <Input label="تاريخ الانتهاء (YYYY-MM-DD)" value={expiryDate} onChangeText={setExpiryDate} />
-        <Button title={saving ? "جارٍ الإرسال..." : "إرسال"} onPress={createDoc} disabled={saving} />
+    <DashboardShell title={t("dashboard.hrDocsTitle", "وثائق الموارد البشرية")} subtitle={t("dashboard.hrDocsSubtitle", "رفع الوثائق ومتابعة حالتها.")}>
+      <DashboardSection title={t("dashboard.hrDocsUploadTitle", "رفع وثيقة")} subtitle={t("dashboard.hrDocsUploadSubtitle", "أدخل البيانات ثم إرسال.")}>
+        <Input label={t("dashboard.hrDocsNameLabel", "اسم الوثيقة")} value={name} onChangeText={setName} />
+        <Input label={t("dashboard.hrDocsTypeLabel", "نوع الوثيقة (اختياري)")} value={docType} onChangeText={setDocType} />
+        <Input label={t("dashboard.hrDocsIssueDateLabel", "تاريخ الإصدار (YYYY-MM-DD)")} value={issueDate} onChangeText={setIssueDate} />
+        <Input label={t("dashboard.hrDocsExpiryDateLabel", "تاريخ الانتهاء (YYYY-MM-DD)")} value={expiryDate} onChangeText={setExpiryDate} />
+        <Button title={saving ? t("common.sending", "جارٍ الإرسال...") : t("common.send", "إرسال")} onPress={createDoc} disabled={saving} />
       </DashboardSection>
 
-      <DashboardSection title="وثائقي" subtitle={isLoading ? "جاري التحميل..." : "آخر الوثائق."}>
+      <DashboardSection title={t("dashboard.hrDocsMineTitle", "وثائقي")} subtitle={isLoading ? t("common.loading", "جاري التحميل...") : t("dashboard.hrDocsMineSubtitle", "آخر الوثائق.")}>
         {docs.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد وثائق.</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>{t("dashboard.hrDocsEmpty", "لا توجد وثائق.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {docs.slice(0, 50).map((d) => (
               <DashboardListItem
                 key={d.id}
                 title={d.name}
-                subtitle={`النوع: ${d.doc_type || "-"} • الإصدار: ${d.issue_date || "-"} • الانتهاء: ${d.expiry_date || "-"} • الحالة: ${d.status || "-"}`}
+                subtitle={`${t("dashboard.hrDocsTypeLabelShort", "النوع")}: ${d.doc_type || "-"} • ${t("dashboard.hrDocsIssueLabelShort", "الإصدار")}: ${d.issue_date || "-"} • ${t("dashboard.hrDocsExpiryLabelShort", "الانتهاء")}: ${d.expiry_date || "-"} • ${t("dashboard.hrDocsStatusLabelShort", "الحالة")}: ${d.status || "-"}`}
                 icon="document-text-outline"
               />
             ))}

@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { accountingApi } from "../../services/accounting";
 import { Button } from "../../components/ui";
+import { useI18n } from "../../i18n";
 
 const FinancialOverviewScreen: React.FC = () => {
   const [kpis, setKpis] = useState<any>({});
+  const { t } = useI18n();
 
   const load = async () => {
     const res = await accountingApi.dashboard();
@@ -17,24 +19,24 @@ const FinancialOverviewScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>مؤشرات مالية</Text>
+      <Text style={styles.title}>{t("accounting.financialOverviewTitle", "مؤشرات مالية")}</Text>
       <View style={styles.grid}>
         <View style={styles.card}>
-          <Text style={styles.label}>إيرادات اليوم</Text>
+          <Text style={styles.label}>{t("accounting.revenueToday", "إيرادات اليوم")}</Text>
           <Text style={styles.value}>{(kpis.revenue_today ?? 0).toFixed?.(2)}</Text>
         </View>
         <View style={styles.card}>
-          <Text style={styles.label}>إيرادات الشهر</Text>
+          <Text style={styles.label}>{t("accounting.revenueMonth", "إيرادات الشهر")}</Text>
           <Text style={styles.value}>{(kpis.revenue_month ?? 0).toFixed?.(2)}</Text>
         </View>
         <View style={styles.card}>
-          <Text style={styles.label}>مصروفات الشهر</Text>
+          <Text style={styles.label}>{t("accounting.expensesMonth", "مصروفات الشهر")}</Text>
           <Text style={[styles.value, { color: "#b91c1c" }]}>
             {(kpis.expenses_month ?? 0).toFixed?.(2)}
           </Text>
         </View>
       </View>
-      <Button label="تحديث" onPress={load} />
+      <Button label={t("common.refresh", "تحديث")} onPress={load} />
     </View>
   );
 };
