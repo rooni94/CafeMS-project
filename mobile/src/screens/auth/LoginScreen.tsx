@@ -133,7 +133,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     brandRow: {
       width: "100%",
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
@@ -141,9 +141,8 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     brand: {
       fontSize: 18,
       fontWeight: "900",
-      textAlign: "right",
+      textAlign: "auto",
       flex: 1,
-      writingDirection: "rtl",
     },
     badge: {
       paddingHorizontal: 10,
@@ -152,13 +151,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "900",
       overflow: "hidden",
-      writingDirection: "rtl",
     },
     subtitle: {
       fontSize: 13,
       lineHeight: 18,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     card: {
       borderRadius: 22,
@@ -166,15 +163,14 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: theme.palette.surface,
     },
     linksRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
     },
     error: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       fontWeight: "800",
-      writingDirection: "rtl",
     },
   });
 

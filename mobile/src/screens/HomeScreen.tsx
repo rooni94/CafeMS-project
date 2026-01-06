@@ -449,16 +449,14 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 26,
     fontWeight: "900",
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
   },
   brandOrange: { color: "#f59e0b" },
   brandPurple: { color: "#6138A1" },
   brandTagline: {
     fontSize: 13,
     color: "#64748b",
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
   },
   cartBadge: {
     width: 52,
@@ -537,25 +535,22 @@ const styles = StyleSheet.create({
   heroTagText: {
     color: "#111827",
     fontSize: 12,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
   },
   heroTitle: {
     color: "#111827",
     fontSize: 24,
     fontWeight: "900",
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
   },
   heroDescription: {
     color: "#475569",
     fontSize: 13,
     lineHeight: 20,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
   },
   heroActions: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     gap: 10,
     marginTop: 6,
   },
@@ -572,7 +567,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(97, 56, 161, 0.12)",
   },
   pagination: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "center",
     paddingVertical: 0,
     marginTop: -8,
@@ -590,7 +585,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f59e0b",
   },
   tileGrid: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
@@ -599,7 +594,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   categoryGrid: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
@@ -652,7 +647,7 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   productGridRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 4,
   },
@@ -662,8 +657,7 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
     marginBottom: 6,
   },
 });

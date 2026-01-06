@@ -164,17 +164,17 @@ const DashboardInventory: React.FC = () => {
 const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     statsRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 10,
     },
     filtersRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
     },
     emptyText: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       lineHeight: 18,
     },

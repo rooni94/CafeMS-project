@@ -322,7 +322,7 @@ const CheckoutScreen: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     lineRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "flex-start",
       justifyContent: "space-between",
       gap: 10,
@@ -339,22 +339,22 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     itemName: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: "right",
+      textAlign: "auto",
     },
     itemAddons: {
       fontSize: 12,
       lineHeight: 16,
-      textAlign: "right",
+      textAlign: "auto",
     },
     itemMetaRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
     },
     itemMetaText: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: "right",
+      textAlign: "auto",
     },
     summary: {
       borderTopWidth: 1,
@@ -363,7 +363,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 8,
     },
     summaryRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       gap: 10,
@@ -371,15 +371,15 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     summaryLabel: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: "right",
+      textAlign: "auto",
     },
     summaryValue: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "right",
+      textAlign: "auto",
     },
     chipGroup: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
     },
@@ -399,7 +399,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "900",
       textAlign: "center",
-      writingDirection: "rtl",
     },
     addressCard: {
       borderWidth: 1,
@@ -410,18 +409,18 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     addressLabel: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "right",
+      textAlign: "auto",
     },
     addressDetails: {
       fontSize: 12,
       lineHeight: 18,
-      textAlign: "right",
+      textAlign: "auto",
     },
     errorText: {
       fontSize: 13,
       lineHeight: 18,
       fontWeight: "800",
-      textAlign: "right",
+      textAlign: "auto",
     },
   });
 

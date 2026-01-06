@@ -93,12 +93,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 15,
     color: "#111827",
-    textAlign: "right",
+    textAlign: "auto",
   },
   description: {
     fontSize: 12,
     color: "#6b7280",
-    textAlign: "right",
+    textAlign: "auto",
   },
   price: {
     fontWeight: "700",

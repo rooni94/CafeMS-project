@@ -185,7 +185,7 @@ const DashboardLoyalty: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     profileRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       justifyContent: "space-between",
       gap: 10,
     },
@@ -205,7 +205,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.palette.accent,
     },
     empty: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
     },
   });

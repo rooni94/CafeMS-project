@@ -254,12 +254,12 @@ const DashboardHome: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     statsRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 6,
     },
     tilesGrid: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
     },
@@ -269,7 +269,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     empty: {
       width: "100%",
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       lineHeight: 18,
     },

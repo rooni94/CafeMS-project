@@ -112,7 +112,7 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ status }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
   },
   step: {
@@ -137,10 +137,9 @@ const styles = StyleSheet.create({
   stepLabel: {
     fontSize: 11,
     textAlign: "center",
-    writingDirection: "rtl",
   },
   special: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     gap: 10,
     paddingVertical: 10,
@@ -158,8 +157,7 @@ const styles = StyleSheet.create({
   },
   specialText: {
     flex: 1,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
     fontSize: 13,
     fontWeight: "800",
   },

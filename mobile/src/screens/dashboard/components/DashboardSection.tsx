@@ -46,12 +46,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 16,
       fontWeight: "800",
       color: theme.palette.text,
-      textAlign: "right",
+      textAlign: "auto",
     },
     subtitle: {
       fontSize: 12,
       color: theme.palette.muted,
-      textAlign: "right",
+      textAlign: "auto",
       lineHeight: 18,
     },
   });

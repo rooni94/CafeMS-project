@@ -79,8 +79,7 @@ const styles = StyleSheet.create({
   paragraph: {
     fontSize: 13,
     lineHeight: 20,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
   },
   list: {
     gap: 8,
@@ -88,15 +87,13 @@ const styles = StyleSheet.create({
   listItem: {
     fontSize: 13,
     lineHeight: 20,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
   },
   note: {
     marginTop: 8,
     fontSize: 12,
     lineHeight: 18,
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
   },
 });
 

@@ -148,7 +148,7 @@ const DashboardMessages: React.FC = () => {
 const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     empty: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
     },
     badge: {
@@ -161,7 +161,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       fontWeight: "800",
     },
     detailRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       justifyContent: "space-between",
       gap: 10,
     },
@@ -178,7 +178,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     messageBody: {
       fontSize: 13,
       lineHeight: 20,
-      textAlign: "right",
+      textAlign: "auto",
     },
   });
 

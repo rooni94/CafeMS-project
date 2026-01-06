@@ -146,33 +146,31 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     body: {
       fontSize: 13,
       color: theme.palette.text,
-      textAlign: "right",
+      textAlign: "auto",
       lineHeight: 20,
-      writingDirection: "rtl",
     },
     list: {
       gap: 10,
       paddingTop: 4,
     },
     listRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 10,
     },
     listText: {
       flex: 1,
-      textAlign: "right",
+      textAlign: "auto",
       color: theme.palette.text,
       fontSize: 13,
       lineHeight: 18,
       fontWeight: "700",
-      writingDirection: "rtl",
     },
     contactList: {
       gap: 10,
     },
     contactRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 10,
     },
@@ -181,17 +179,16 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 13,
       lineHeight: 18,
       color: theme.palette.text,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     socialWrap: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
       paddingTop: 10,
     },
     socialPill: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
       paddingHorizontal: 12,
@@ -205,7 +202,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "800",
       color: theme.palette.text,
-      writingDirection: "rtl",
     },
   });
 

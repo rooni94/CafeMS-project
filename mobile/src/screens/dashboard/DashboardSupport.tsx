@@ -140,20 +140,18 @@ const DashboardSupport: React.FC = () => {
 const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     empty: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
-      writingDirection: "rtl",
     },
     loadingRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "flex-start",
       gap: 10,
     },
     loadingText: {
       fontSize: 13,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     dot: {
       width: 10,

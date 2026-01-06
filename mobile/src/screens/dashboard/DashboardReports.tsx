@@ -90,7 +90,7 @@ const DashboardReports: React.FC = () => {
 const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     row: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 10,
     },

@@ -210,7 +210,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       paddingVertical: 20,
     },
     groupTitle: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       fontWeight: "900",
     },

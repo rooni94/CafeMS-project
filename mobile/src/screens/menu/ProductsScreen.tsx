@@ -144,15 +144,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "800",
-    textAlign: "right",
+    textAlign: "auto",
   },
   body: {
     fontSize: 13,
     color: "#475569",
-    textAlign: "right",
+    textAlign: "auto",
   },
   grid: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     width: "100%",

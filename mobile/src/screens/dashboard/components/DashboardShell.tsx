@@ -48,7 +48,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: theme.palette.surface,
     },
     headerRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
@@ -66,12 +66,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 18,
       fontWeight: "900",
       color: theme.palette.text,
-      textAlign: "right",
+      textAlign: "auto",
     },
     subtitle: {
       fontSize: 13,
       color: theme.palette.muted,
-      textAlign: "right",
+      textAlign: "auto",
     },
   });
 

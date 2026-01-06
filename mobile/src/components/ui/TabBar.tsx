@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     minHeight: 46,
   },
   tabActive: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 3,
@@ -224,7 +224,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
     textAlign: "center",
-    writingDirection: "rtl",
     lineHeight: 14,
     flexShrink: 1,
   },

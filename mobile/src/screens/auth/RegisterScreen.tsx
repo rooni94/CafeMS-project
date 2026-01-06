@@ -383,7 +383,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     brandRow: {
       width: "100%",
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
@@ -391,9 +391,8 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     brand: {
       fontSize: 18,
       fontWeight: "900",
-      textAlign: "right",
+      textAlign: "auto",
       flex: 1,
-      writingDirection: "rtl",
     },
     badge: {
       paddingHorizontal: 10,
@@ -402,13 +401,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "900",
       overflow: "hidden",
-      writingDirection: "rtl",
     },
     subtitle: {
       fontSize: 13,
       lineHeight: 18,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     card: {
       borderRadius: 22,
@@ -416,7 +413,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: theme.palette.surface,
     },
     methodRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 10,
     },
     methodButton: {
@@ -430,7 +427,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     methodText: {
       fontSize: 13,
       fontWeight: "900",
-      writingDirection: "rtl",
     },
     checklist: {
       gap: 6,
@@ -438,19 +434,18 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       paddingBottom: 2,
     },
     checkRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
     },
     checkText: {
       fontSize: 13,
       fontWeight: "800",
-      textAlign: "right",
+      textAlign: "auto",
       flex: 1,
-      writingDirection: "rtl",
     },
     termsRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
@@ -466,26 +461,23 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     termsText: {
       flex: 1,
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       fontWeight: "900",
-      writingDirection: "rtl",
     },
     bottomRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
     },
     muted: {
       fontSize: 13,
       fontWeight: "800",
-      writingDirection: "rtl",
     },
     error: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       fontWeight: "800",
-      writingDirection: "rtl",
     },
   });
 

@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
   },
   contentBase: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 14,
@@ -116,7 +116,6 @@ const styles = StyleSheet.create({
   },
   labelBase: {
     textAlign: "center",
-    writingDirection: "rtl",
     letterSpacing: 0,
     includeFontPadding: false,
   },

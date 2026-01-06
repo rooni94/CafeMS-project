@@ -537,7 +537,7 @@ const ProfileScreen: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     tilesGrid: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
     },
@@ -546,12 +546,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       marginBottom: 6,
     },
     muted: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       lineHeight: 18,
     },
     kv: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,

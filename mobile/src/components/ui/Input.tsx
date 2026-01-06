@@ -39,23 +39,22 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   label: {
-    textAlign: "right",
+    textAlign: "auto",
     fontSize: 13,
     fontWeight: "800",
   },
   input: {
-    textAlign: "right",
+    textAlign: "auto",
   },
   content: {
-    textAlign: "right",
-    writingDirection: "rtl",
+    textAlign: "auto",
   },
   hint: {
-    textAlign: "right",
+    textAlign: "auto",
     fontSize: 11,
   },
   error: {
-    textAlign: "right",
+    textAlign: "auto",
     fontSize: 11,
   },
 });

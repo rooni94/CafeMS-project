@@ -265,7 +265,7 @@ const DashboardHRRequests: React.FC = () => {
 const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     empty: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
     },
   });

@@ -39,7 +39,7 @@ const CurrencyAmount: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
   },
   symbol: {

@@ -236,7 +236,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 6,
     },
     topBar: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       marginBottom: 2,
@@ -247,7 +247,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.palette.text,
       textAlign: "center",
       flex: 1,
-      writingDirection: "rtl",
     },
     iconBtn: {
       width: 40,
@@ -267,10 +266,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderWidth: 1,
       borderColor: theme.palette.border,
       color: theme.palette.text,
-      writingDirection: "rtl",
     },
     categoryRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 12,
       paddingHorizontal: 2,
     },
@@ -281,7 +279,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.palette.muted,
       fontWeight: "700",
       fontSize: 14,
-      writingDirection: "rtl",
     },
     categoryTextActive: {
       color: theme.palette.text,
@@ -291,7 +288,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       paddingBottom: 4,
     },
     gridRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       justifyContent: "space-between",
       marginBottom: 4,
     },

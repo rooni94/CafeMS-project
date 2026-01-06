@@ -157,7 +157,7 @@ const DashboardUsers: React.FC = () => {
                 icon="person-circle-outline"
                 onPress={() => startEdit(u)}
                 right={
-                  <View style={{ flexDirection: "row-reverse", gap: 8 }}>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
                     <Button title="تعديل" variant="secondary" onPress={() => startEdit(u)} />
                     <Button title="حذف" variant="ghost" onPress={() => deleteUser(u.id)} />
                   </View>
@@ -174,17 +174,17 @@ const DashboardUsers: React.FC = () => {
 const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     rolesRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
     },
     label: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: "right",
+      textAlign: "auto",
     },
     empty: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
     },
   });

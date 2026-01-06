@@ -31,13 +31,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    textAlign: "right",
+    textAlign: "auto",
     color: "#111827",
   },
   subtitle: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: "right",
+    textAlign: "auto",
     marginTop: 4,
   },
 });

@@ -309,16 +309,14 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 10,
     },
     error: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       fontWeight: "800",
-      writingDirection: "rtl",
     },
     muted: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       lineHeight: 18,
-      writingDirection: "rtl",
     },
     amount: {
       fontSize: 13,
@@ -332,7 +330,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 12,
     },
     summaryGrid: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
     },
@@ -343,7 +341,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderColor: theme.palette.border,
       backgroundColor: theme.palette.surface,
       padding: 10,
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 10,
     },
@@ -363,14 +361,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     infoLabel: {
       fontSize: 11,
       fontWeight: "800",
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     infoValue: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
       lineHeight: 18,
     },
     stageCard: {
@@ -380,7 +376,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 10,
     },
     stageHeader: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 10,
     },
@@ -395,13 +391,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     stageTitle: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     stageSub: {
       fontSize: 12,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
       lineHeight: 18,
     },
   });

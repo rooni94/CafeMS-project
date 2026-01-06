@@ -75,18 +75,16 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     sectionTitle: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: "right",
+      textAlign: "auto",
       marginTop: 6,
-      writingDirection: "rtl",
     },
     paragraph: {
       fontSize: 13,
       lineHeight: 20,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     bulletRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "flex-start",
       gap: 8,
     },
@@ -101,8 +99,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       flex: 1,
       fontSize: 13,
       lineHeight: 20,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
   });
 

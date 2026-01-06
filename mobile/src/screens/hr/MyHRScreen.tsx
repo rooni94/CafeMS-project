@@ -632,22 +632,20 @@ const MyHRScreen: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     actionsRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 10,
       alignItems: "center",
       justifyContent: "space-between",
     },
     notice: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       lineHeight: 18,
-      writingDirection: "rtl",
     },
     smallLabel: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 12,
       fontWeight: "800",
-      writingDirection: "rtl",
     },
     preview: {
       width: "100%",
@@ -667,7 +665,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 11,
       fontWeight: "800",
       textAlign: "center",
-      writingDirection: "rtl",
     },
     unreadRow: {
       borderColor: `${theme.palette.accent}33`,
@@ -682,7 +679,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "800",
       textAlign: "left",
-      writingDirection: "rtl",
     },
   });
 

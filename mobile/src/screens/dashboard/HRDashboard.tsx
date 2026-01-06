@@ -75,7 +75,7 @@ const HRDashboard: React.FC = () => {
 const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     statsRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 10,
     },
@@ -83,7 +83,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       gap: 10,
     },
     note: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 12,
       lineHeight: 18,
     },

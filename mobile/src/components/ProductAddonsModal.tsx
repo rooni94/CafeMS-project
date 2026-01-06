@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     borderColor: "#fde68a",
   },
   header: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: 12,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "800",
-    textAlign: "right",
+    textAlign: "auto",
   },
   closeBtn: {
     width: 28,
@@ -174,12 +174,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     padding: 10,
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
   addonInfo: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
@@ -200,18 +200,18 @@ const styles = StyleSheet.create({
   addonName: {
     fontSize: 13,
     fontWeight: "600",
-    textAlign: "right",
+    textAlign: "auto",
   },
   addonPrice: {
     fontWeight: "700",
     fontSize: 12,
   },
   addonPriceRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
   },
   empty: {
-    textAlign: "right",
+    textAlign: "auto",
     color: "#6b7280",
   },
   summary: {
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   summaryRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
   },
   summaryLabel: {

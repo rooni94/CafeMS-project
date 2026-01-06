@@ -47,7 +47,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderColor: theme.palette.border,
       backgroundColor: theme.palette.surface,
       padding: 8,
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
     },
@@ -73,12 +73,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       lineHeight: 18,
       fontWeight: "900",
       color: theme.palette.text,
-      textAlign: "right",
+      textAlign: "auto",
     },
     subtitle: {
       fontSize: 11,
       color: theme.palette.muted,
-      textAlign: "right",
+      textAlign: "auto",
       lineHeight: 16,
     },
   });

@@ -209,7 +209,7 @@ const AddressesScreen: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     muted: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       lineHeight: 18,
     },
@@ -221,7 +221,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       minHeight: 110,
     },
     checkboxRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 10,
       paddingVertical: 4,
@@ -236,7 +236,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     checkboxText: {
       flex: 1,
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       fontWeight: "800",
     },

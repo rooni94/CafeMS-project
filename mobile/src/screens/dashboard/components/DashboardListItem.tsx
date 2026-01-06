@@ -49,7 +49,7 @@ const DashboardListItem: React.FC<Props> = ({ title, subtitle, icon, onPress, ri
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     row: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
       paddingVertical: 9,
@@ -80,12 +80,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 14,
       fontWeight: "800",
       color: theme.palette.text,
-      textAlign: "right",
+      textAlign: "auto",
     },
     subtitle: {
       fontSize: 12,
       color: theme.palette.muted,
-      textAlign: "right",
+      textAlign: "auto",
       lineHeight: 18,
     },
     left: {

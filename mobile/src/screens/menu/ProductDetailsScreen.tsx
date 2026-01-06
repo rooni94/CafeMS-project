@@ -216,7 +216,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     imageFallbackText: {
       color: theme.palette.muted,
       fontSize: 12,
-      writingDirection: "rtl",
     },
     details: {
       padding: 14,
@@ -225,18 +224,16 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     title: {
       fontSize: 20,
       fontWeight: "800",
-      textAlign: "right",
+      textAlign: "auto",
       color: theme.palette.text,
-      writingDirection: "rtl",
     },
     description: {
       fontSize: 13,
       color: theme.palette.muted,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     metaRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
@@ -248,10 +245,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: theme.palette.surfaceAlt,
       color: theme.palette.text,
       fontSize: 11,
-      writingDirection: "rtl",
     },
     basePriceRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 6,
     },
@@ -259,7 +255,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "700",
       color: theme.palette.accent,
-      writingDirection: "rtl",
     },
     basePriceValue: {
       fontSize: 12,
@@ -277,9 +272,8 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     sectionTitle: {
       fontSize: 15,
       fontWeight: "800",
-      textAlign: "right",
+      textAlign: "auto",
       color: theme.palette.text,
-      writingDirection: "rtl",
     },
     addonList: {
       gap: 10,
@@ -289,13 +283,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderWidth: 1,
       borderColor: theme.palette.border,
       padding: 10,
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
     },
     addonLabel: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
       flex: 1,
@@ -313,9 +307,8 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     addonName: {
       fontSize: 13,
       color: theme.palette.text,
-      textAlign: "right",
+      textAlign: "auto",
       flex: 1,
-      writingDirection: "rtl",
     },
     addonPrice: {
       fontSize: 12,
@@ -323,7 +316,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.palette.accent,
     },
     addonPriceRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
     },
     quantityRow: {
@@ -361,7 +354,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 8,
     },
     summaryRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
@@ -369,7 +362,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     summaryLabel: {
       fontSize: 12,
       color: theme.palette.muted,
-      writingDirection: "rtl",
     },
     summaryValue: {
       fontSize: 12,

@@ -205,7 +205,7 @@ const DashboardCategories: React.FC = () => {
                 icon="albums-outline"
                 onPress={() => startEdit(cat, "category")}
                 right={
-                  <View style={{ flexDirection: "row-reverse", gap: 8, alignItems: "center" }}>
+                  <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                     {cat.image ? <Image source={{ uri: cat.image }} style={styles.thumb} /> : null}
                     <Button title="تعديل" variant="secondary" onPress={() => startEdit(cat, "category")} />
                     <Button title="حذف" variant="ghost" onPress={() => deleteItem(cat.id, "category")} />
@@ -230,7 +230,7 @@ const DashboardCategories: React.FC = () => {
                 icon="layers-outline"
                 onPress={() => startEdit(s, "subcategory")}
                 right={
-                  <View style={{ flexDirection: "row-reverse", gap: 8, alignItems: "center" }}>
+                  <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                     {s.image ? <Image source={{ uri: s.image }} style={styles.thumb} /> : null}
                     <Button title="تعديل" variant="secondary" onPress={() => startEdit(s, "subcategory")} />
                     <Button title="حذف" variant="ghost" onPress={() => deleteItem(s.id, "subcategory")} />
@@ -248,7 +248,7 @@ const DashboardCategories: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     modeRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
     },
@@ -269,7 +269,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: theme.palette.surfaceAlt,
     },
     empty: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
     },
   });

@@ -54,7 +54,7 @@ const Select = <T extends string>({ label, value, options, onChange, placeholder
                 setOpen(false);
               }}
               titleStyle={[styles.menuItem, { color: theme.palette.text }]}
-              style={{ flexDirection: "row-reverse" }}
+              style={{ flexDirection: "row" }}
               leadingIcon={() =>
                 opt.value === value ? <Ionicons name="checkmark" size={18} color={theme.palette.accent} /> : null
               }
@@ -73,7 +73,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 4,
     },
     label: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
       fontWeight: "800",
     },
@@ -82,17 +82,16 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderRadius: 16,
       paddingHorizontal: 12,
       paddingVertical: 12,
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
     },
     value: {
       flex: 1,
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 14,
       fontWeight: "700",
-      writingDirection: "rtl",
     },
     menu: {
       borderRadius: 16,
@@ -101,8 +100,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       overflow: "hidden",
     },
     menuItem: {
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
       fontWeight: "800",
       fontSize: 13,
     },

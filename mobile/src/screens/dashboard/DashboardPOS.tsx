@@ -488,7 +488,7 @@ const DashboardPOS: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     sectionsGrid: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
       gap: 12,
@@ -497,7 +497,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       width: "49%",
     },
     chipsRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
     },
@@ -505,7 +505,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 8,
     },
     statsRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
     },
@@ -514,7 +514,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderWidth: 1,
       borderRadius: 16,
       padding: 10,
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 10,
       alignItems: "center",
       justifyContent: "space-between",
@@ -524,7 +524,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderWidth: 1,
       borderRadius: 16,
       padding: 10,
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 10,
       alignItems: "center",
       justifyContent: "space-between",
@@ -538,28 +538,24 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "center",
     },
     label: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 12,
       fontWeight: "800",
-      writingDirection: "rtl",
     },
     itemTitle: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 14,
       fontWeight: "900",
-      writingDirection: "rtl",
     },
     itemSub: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 12,
       fontWeight: "700",
-      writingDirection: "rtl",
     },
     stockText: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 12,
       fontWeight: "800",
-      writingDirection: "rtl",
     },
     pill: {
       borderWidth: 1,
@@ -570,25 +566,23 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     pillText: {
       fontSize: 12,
       fontWeight: "900",
-      writingDirection: "rtl",
       textAlign: "center",
     },
     empty: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
-      writingDirection: "rtl",
     },
     cartRow: {
       borderWidth: 1,
       borderRadius: 16,
       padding: 10,
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 10,
       alignItems: "center",
       justifyContent: "space-between",
     },
     qtyRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 6,
     },
     qtyBtn: {
@@ -614,7 +608,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 6,
     },
     totalRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
@@ -622,8 +616,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     totalLabel: {
       fontSize: 13,
       fontWeight: "800",
-      writingDirection: "rtl",
-      textAlign: "right",
+      textAlign: "auto",
     },
     totalValue: {
       fontSize: 14,
@@ -631,7 +624,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.palette.text,
     },
     actionsRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 8,
       alignItems: "center",
       justifyContent: "space-between",
@@ -640,7 +633,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       borderWidth: 1,
       borderRadius: 16,
       padding: 10,
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 10,
       alignItems: "center",
       justifyContent: "space-between",

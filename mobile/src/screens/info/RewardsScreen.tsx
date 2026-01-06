@@ -227,17 +227,15 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     guestTitle: {
       fontSize: 16,
       fontWeight: "900",
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     guestCopy: {
       fontSize: 13,
       lineHeight: 20,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     guestActions: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       gap: 10,
       marginTop: 6,
     },
@@ -245,7 +243,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 8,
     },
     summaryRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
       gap: 10,
@@ -253,7 +251,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     summaryLabel: {
       fontSize: 12,
       fontWeight: "900",
-      textAlign: "right",
+      textAlign: "auto",
     },
     summaryValue: {
       fontSize: 13,
@@ -267,7 +265,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     empty: {
       fontSize: 13,
-      textAlign: "right",
+      textAlign: "auto",
     },
     qrWrap: {
       alignItems: "center",
@@ -278,7 +276,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     qrHint: {
       fontSize: 12,
       textAlign: "center",
-      writingDirection: "rtl",
     },
     tierCard: {
       borderRadius: 20,
@@ -288,7 +285,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 8,
     },
     tierHeader: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
@@ -296,17 +293,15 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     tierName: {
       fontSize: 15,
       fontWeight: "900",
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     tierPoints: {
       fontSize: 12,
       fontWeight: "900",
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     perkRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
     },
@@ -318,11 +313,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     perkText: {
       fontSize: 13,
       flex: 1,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     actionRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 12,
       paddingVertical: 8,
@@ -338,13 +332,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     actionTitle: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
     actionCopy: {
       fontSize: 13,
-      textAlign: "right",
-      writingDirection: "rtl",
+      textAlign: "auto",
     },
   });
 

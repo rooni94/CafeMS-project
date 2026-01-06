@@ -92,7 +92,7 @@ const CartScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   cartItem: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     gap: 10,
     padding: 12,
@@ -115,36 +115,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#111827",
-    textAlign: "right",
+    textAlign: "auto",
   },
   cartPrice: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: "right",
+    textAlign: "auto",
   },
   cartPriceRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
   cartPriceLabel: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: "right",
+    textAlign: "auto",
   },
   cartAddons: {
     fontSize: 12,
     color: "#6b7280",
-    textAlign: "right",
+    textAlign: "auto",
   },
   cartLineTotal: {
     fontSize: 14,
     color: "#F59E0B",
     fontWeight: "700",
-    textAlign: "right",
+    textAlign: "auto",
   },
   quantityControls: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     alignItems: "center",
     gap: 10,
     marginTop: 6,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   summaryRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   actionsRow: {
-    flexDirection: "row-reverse",
+    flexDirection: "row",
     gap: 10,
   },
 });

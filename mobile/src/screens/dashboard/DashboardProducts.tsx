@@ -312,7 +312,7 @@ const DashboardProducts: React.FC = () => {
                   icon="add-circle-outline"
                   onPress={() => editAddon(a)}
                   right={
-                    <View style={{ flexDirection: "row-reverse", gap: 8 }}>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
                       <Button title="تعديل" variant="secondary" onPress={() => editAddon(a)} />
                       <Button title="حذف" variant="ghost" onPress={() => deleteAddon(a.id)} />
                     </View>
@@ -338,7 +338,7 @@ const DashboardProducts: React.FC = () => {
                 icon="fast-food-outline"
                 onPress={() => editProduct(p)}
                 right={
-                  <View style={{ flexDirection: "row-reverse", alignItems: "center", gap: 10 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                     <CurrencyAmount value={p.price} color={theme.palette.text} symbolSize={12} textStyle={styles.priceText} />
                     <Button title="تعديل" variant="secondary" onPress={() => editProduct(p)} />
                     <Button title="حذف" variant="ghost" onPress={() => deleteProduct(p.id)} />
@@ -356,7 +356,7 @@ const DashboardProducts: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     switchRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       paddingHorizontal: 6,
@@ -364,7 +364,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     switchLabel: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "right",
+      textAlign: "auto",
     },
     preview: {
       width: "100%",
@@ -375,7 +375,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: theme.palette.surfaceAlt,
     },
     empty: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
     },
     priceText: {

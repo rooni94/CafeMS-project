@@ -208,7 +208,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 10,
     },
     contactRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 10,
     },
@@ -217,16 +217,16 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 13,
       lineHeight: 18,
       color: theme.palette.text,
-      textAlign: "right",
+      textAlign: "auto",
     },
     socialWrap: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
       paddingTop: 10,
     },
     socialPill: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
       paddingHorizontal: 10,
@@ -240,12 +240,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "800",
       color: theme.palette.text,
-      textAlign: "right",
+      textAlign: "auto",
     },
     status: {
       fontSize: 12,
       lineHeight: 18,
-      textAlign: "right",
+      textAlign: "auto",
     },
   });
 

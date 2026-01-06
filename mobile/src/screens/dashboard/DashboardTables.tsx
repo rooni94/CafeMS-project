@@ -163,7 +163,7 @@ const DashboardTables: React.FC = () => {
                 icon="grid-outline"
                 onPress={() => startEdit(t)}
                 right={
-                  <View style={{ flexDirection: "row-reverse", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                     {(["available", "occupied", "reserved", "maintenance"] as const).map((s) => (
                       <Button key={s} title={statusLabel(s)} variant={t.status === s ? "primary" : "secondary"} onPress={() => updateStatus(t.id, s)} />
                     ))}
@@ -182,17 +182,17 @@ const DashboardTables: React.FC = () => {
 const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     statusRow: {
-      flexDirection: "row-reverse",
+      flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
     },
     label: {
       fontSize: 12,
       fontWeight: "900",
-      textAlign: "right",
+      textAlign: "auto",
     },
     empty: {
-      textAlign: "right",
+      textAlign: "auto",
       fontSize: 13,
     },
   });
