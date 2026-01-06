@@ -1,7 +1,8 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View, StyleProp, ViewStyle, I18nManager } from "react-native";
+import { Pressable, StyleSheet, Text, View, StyleProp, ViewStyle } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "../../../theme";
+import { useI18n } from "../../../i18n";
 
 type Props = {
   title: string;
@@ -14,8 +15,10 @@ type Props = {
 
 const DashboardTile: React.FC<Props> = ({ title, subtitle, icon, onPress, color, style }) => {
   const theme = useTheme();
-  const styles = React.useMemo(() => createStyles(theme), [theme]);
+  const { isRTL } = useI18n();
+  const styles = React.useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const tint = color || theme.palette.accent;
+  const chevronName = isRTL ? "chevron-back" : "chevron-forward";
 
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.tile, pressed && styles.pressed, style]}>
@@ -32,12 +35,12 @@ const DashboardTile: React.FC<Props> = ({ title, subtitle, icon, onPress, color,
           </Text>
         ) : null}
       </View>
-      <Ionicons name="chevron-back" size={18} color={theme.palette.muted} />
+      <Ionicons name={chevronName} size={18} color={theme.palette.muted} />
     </Pressable>
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     tile: {
       width: "49.5%",
@@ -65,7 +68,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     textWrap: {
       flex: 1,
-      alignItems: "flex-end",
+      alignItems: isRTL ? "flex-end" : "flex-start",
       gap: 4,
     },
     title: {
@@ -73,12 +76,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       lineHeight: 18,
       fontWeight: "900",
       color: theme.palette.text,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     subtitle: {
       fontSize: 11,
       color: theme.palette.muted,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       lineHeight: 16,
     },
   });

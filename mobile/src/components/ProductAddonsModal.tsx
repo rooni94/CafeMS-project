@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Modal, View, Text, StyleSheet, Pressable, ScrollView, I18nManager } from "react-native";
+import React, {useEffect, useMemo, useState} from "react";
+import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
 import { Product, ProductAddon } from "../types";
 import { useTheme } from "../theme";
 import CurrencyAmount from "./CurrencyAmount";
@@ -20,7 +20,8 @@ const ProductAddonsModal: React.FC<ProductAddonsModalProps> = ({
   onConfirm,
 }) => {
   const theme = useTheme();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
   useEffect(() => {
@@ -123,7 +124,8 @@ const ProductAddonsModal: React.FC<ProductAddonsModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   backdrop: {
     position: "absolute",
     top: 0,
@@ -152,7 +154,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "800",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   closeBtn: {
     width: 28,
@@ -200,7 +202,7 @@ const styles = StyleSheet.create({
   addonName: {
     fontSize: 13,
     fontWeight: "600",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   addonPrice: {
     fontWeight: "700",
@@ -211,7 +213,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   empty: {
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
     color: "#6b7280",
   },
   summary: {

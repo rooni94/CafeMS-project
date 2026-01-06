@@ -6,7 +6,7 @@ import { useI18n } from "../../i18n";
 
 const FinancialOverviewScreen: React.FC = () => {
   const [kpis, setKpis] = useState<any>({});
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
 
   const load = async () => {
     const res = await accountingApi.dashboard();

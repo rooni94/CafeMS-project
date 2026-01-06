@@ -16,8 +16,8 @@ type Props = {
 
 const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, priceColor }) => {
   const theme = useTheme();
-  const { t } = useI18n();
-  const styles = React.useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = React.useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
 
   return (
     <Pressable
@@ -33,7 +33,7 @@ const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, pric
           <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
         ) : (
           <View style={styles.imageFallback}>
-            <Text style={styles.imageFallbackText}>{t("product.noImage", "لا توجد صورة")}</Text>
+            <Text style={styles.imageFallbackText}>{t("product.noImage", "\u0644\u0627 \u062a\u0648\u062c\u062f \u0635\u0648\u0631\u0629")}</Text>
           </View>
         )}
       </View>
@@ -55,7 +55,7 @@ const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, pric
             e.stopPropagation();
             onAdd();
           }}
-          accessibilityLabel={t("product.addToCart", "إضافة إلى السلة")}
+          accessibilityLabel={t("product.addToCart", "\u0625\u0636\u0627\u0641\u0629 \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629")}
         >
           <Ionicons name="add" size={18} color="#fff" />
         </Pressable>
@@ -64,7 +64,7 @@ const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, pric
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     card: {
       width: "100%",
@@ -121,8 +121,8 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     addBtn: {
       position: "absolute",
-      left: 8,
       bottom: 8,
+      ...(isRTL ? { right: 8 } : { left: 8 }),
       width: 28,
       height: 28,
       borderRadius: 14,

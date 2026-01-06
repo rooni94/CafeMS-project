@@ -1,6 +1,6 @@
 // mobile/src/screens/dashboard/DashboardSupport.tsx
 import React, { useMemo } from "react";
-import { ActivityIndicator, StyleSheet, Text, View, I18nManager } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 
@@ -31,9 +31,9 @@ type Conversation = {
 const DashboardSupport: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user, permissions } = useAuth();
-  const { t } = useI18n();
   const allowed = has(user, permissions, "can_manage_support");
 
   const { data: conversations = [], isLoading } = useQuery<Conversation[]>({
@@ -137,10 +137,10 @@ const DashboardSupport: React.FC = () => {
   );
 };
 
-const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+const createStyles = (_theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     empty: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
     },
     loadingRow: {
@@ -151,7 +151,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     },
     loadingText: {
       fontSize: 13,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     dot: {
       width: 10,

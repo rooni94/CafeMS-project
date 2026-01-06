@@ -10,7 +10,7 @@ const ExpenseCaptureScreen: React.FC = () => {
   const [amount, setAmount] = useState("");
   const [attachment, setAttachment] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
 
   const pickImage = async () => {
     const res = await ImagePicker.launchCameraAsync({ base64: false });

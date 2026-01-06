@@ -1,85 +1,91 @@
-﻿import React from "react";
-import { StyleSheet, Text, View, I18nManager } from "react-native";
+﻿import React, { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import { Button } from "../../components/ui";
 import { useTheme } from "../../theme";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
+import { useI18n } from "../../i18n";
 
 const StoryScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
 
   return (
-    <DashboardShell title="CafeMS Demo" subtitle="تعرف على قصتنا ورؤيتنا ومزايا الخدمة.">
-      <DashboardSection title="نبذة" subtitle="حكاية بدأت بفكرة بسيطة">
+    <DashboardShell title={t("story.title", "CafeMS Demo")} subtitle={t("story.subtitle", "تعرف على قصتنا ورؤيتنا ومزايا الخدمة.")}>
+      <DashboardSection title={t("story.aboutTitle", "نبذة")} subtitle={t("story.aboutSubtitle", "حكاية بدأت بفكرة بسيطة")}>
         <Text style={[styles.paragraph, { color: theme.palette.text }]}>
-          CafeMS Demo بدأت كفكرة بسيطة: مكان يجتمع فيه الأصدقاء للاستمتاع
-          بسندويتشات لذيذة ومشروبات طازجة وخدمة سريعة وودودة. مع الوقت تحولت هذه
-          الفكرة إلى علامة موثوقة في الحي، تقدم تجربة مختلفة عن الكافيهات
-          التقليدية.
+          {t(
+            "story.aboutBody",
+            "CafeMS Demo بدأت كفكرة بسيطة: مكان يجتمع فيه الأصدقاء للاستمتاع بسندويتشات لذيذة ومشروبات طازجة وخدمة سريعة وودودة. مع الوقت تحولت هذه الفكرة إلى علامة موثوقة في الحي، تقدم تجربة مختلفة عن الكافيهات التقليدية."
+          )}
         </Text>
       </DashboardSection>
 
-      <DashboardSection title="رؤيتنا" subtitle="الخيار الأول للوجبة السريعة">
+      <DashboardSection title={t("story.visionTitle", "رؤيتنا")} subtitle={t("story.visionSubtitle", "الخيار الأول للوجبة السريعة")}>
         <Text style={[styles.paragraph, { color: theme.palette.text }]}>
-          أن نكون الخيار الأول لكل شخص يبحث عن وجبة سريعة، طازجة، وبسعر مناسب،
-          سواءً للاستلام من الفرع أو التوصيل للمنزل أو مكان العمل.
+          {t(
+            "story.visionBody",
+            "أن نكون الخيار الأول لكل شخص يبحث عن وجبة سريعة، طازجة، وبسعر مناسب، سواءً للاستلام من الفرع أو التوصيل للمنزل أو مكان العمل."
+          )}
         </Text>
       </DashboardSection>
 
-      <DashboardSection title="ماذا يميزنا؟" subtitle="نقاط نعتز بها">
+      <DashboardSection title={t("story.highlightsTitle", "ماذا يميزنا؟")} subtitle={t("story.highlightsSubtitle", "نقاط نعتز بها")}>
         <View style={styles.list}>
           <Text style={[styles.listItem, { color: theme.palette.text }]}>
-            • تحضير الطلبات عند الطلب باستخدام مكونات مختارة بعناية.
+            {t("story.highlight1", "• تحضير الطلبات عند الطلب باستخدام مكونات مختارة بعناية.")}
           </Text>
           <Text style={[styles.listItem, { color: theme.palette.text }]}>
-            • قائمة متنوعة تناسب مختلف الأذواق.
+            {t("story.highlight2", "• قائمة متنوعة تناسب مختلف الأذواق.")}
           </Text>
           <Text style={[styles.listItem, { color: theme.palette.text }]}>
-            • إمكانية الطلب أونلاين وتتبع حالة الطلب لحظة بلحظة.
+            {t("story.highlight3", "• إمكانية الطلب أونلاين وتتبع حالة الطلب لحظة بلحظة.")}
           </Text>
           <Text style={[styles.listItem, { color: theme.palette.text }]}>
-            • فريق عمل ودود يحرص على رضا العميل في كل مرة.
+            {t("story.highlight4", "• فريق عمل ودود يحرص على رضا العميل في كل مرة.")}
           </Text>
         </View>
       </DashboardSection>
 
-      <DashboardSection title="خدمتنا الإلكترونية" subtitle="كل ما تحتاجه من داخل التطبيق">
+      <DashboardSection title={t("story.digitalTitle", "خدمتنا الإلكترونية")} subtitle={t("story.digitalSubtitle", "كل ما تحتاجه من داخل التطبيق")}>
         <Text style={[styles.paragraph, { color: theme.palette.text }]}>
-          من خلال هذا التطبيق يمكنك:
+          {t("story.digitalIntro", "من خلال هذا التطبيق يمكنك:")}
         </Text>
         <View style={styles.list}>
           <Text style={[styles.listItem, { color: theme.palette.text }]}>
-            • استعراض القائمة واختيار الأطباق المفضلة.
+            {t("story.digitalBullet1", "• استعراض القائمة واختيار الأطباق المفضلة.")}
           </Text>
           <Text style={[styles.listItem, { color: theme.palette.text }]}>
-            • إضافة الطلب إلى السلة وتحديد طريقة الاستلام والدفع.
+            {t("story.digitalBullet2", "• إضافة الطلب إلى السلة وتحديد طريقة الاستلام والدفع.")}
           </Text>
           <Text style={[styles.listItem, { color: theme.palette.text }]}>
-            • إنشاء حساب لمتابعة طلباتك السابقة والاحتفاظ بعناوينك.
+            {t("story.digitalBullet3", "• إنشاء حساب لمتابعة طلباتك السابقة والاحتفاظ بعناوينك.")}
           </Text>
           <Text style={[styles.listItem, { color: theme.palette.text }]}>
-            • تتبع طلبك ومعرفة حالته بدقة حتى لحظة الاستلام.
+            {t("story.digitalBullet4", "• تتبع طلبك ومعرفة حالته بدقة حتى لحظة الاستلام.")}
           </Text>
         </View>
 
         <Text style={[styles.note, { color: theme.palette.muted }]}>
-          نسعد بخدمتكم دائماً، ويسعدنا سماع اقتراحاتكم عبر صفحة "اتصل بنا".
+          {t("story.note", "نسعد بخدمتكم دائماً، ويسعدنا سماع اقتراحاتكم عبر صفحة \"اتصل بنا\".")}
         </Text>
 
-        <Button title="تواصل معنا" variant="secondary" onPress={() => navigation.navigate("Contact")} />
+        <Button title={t("story.contactButton", "تواصل معنا")} variant="secondary" onPress={() => navigation.navigate("Contact")} />
       </DashboardSection>
     </DashboardShell>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   paragraph: {
     fontSize: 13,
     lineHeight: 20,
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   list: {
     gap: 8,
@@ -87,16 +93,14 @@ const styles = StyleSheet.create({
   listItem: {
     fontSize: 13,
     lineHeight: 20,
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   note: {
     marginTop: 8,
     fontSize: 12,
     lineHeight: 18,
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
 });
 
 export default StoryScreen;
-
-

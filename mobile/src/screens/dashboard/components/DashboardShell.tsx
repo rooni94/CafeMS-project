@@ -1,8 +1,9 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, ViewStyle, StyleProp, I18nManager } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ViewStyle, StyleProp } from "react-native";
 import Screen from "../../../components/Screen";
 import { Card } from "../../../components/ui";
 import { useTheme } from "../../../theme";
+import { useI18n } from "../../../i18n";
 
 type Props = {
   title: string;
@@ -14,7 +15,8 @@ type Props = {
 
 const DashboardShell: React.FC<Props> = ({ title, subtitle, children, headerRight, contentContainerStyle }) => {
   const theme = useTheme();
-  const styles = React.useMemo(() => createStyles(theme), [theme]);
+  const { isRTL } = useI18n();
+  const styles = React.useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
 
   return (
     <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
@@ -34,7 +36,7 @@ const DashboardShell: React.FC<Props> = ({ title, subtitle, children, headerRigh
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       gap: 6,
@@ -55,7 +57,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     headerText: {
       flex: 1,
-      alignItems: "flex-end",
+      alignItems: isRTL ? "flex-end" : "flex-start",
       gap: 6,
     },
     headerRight: {
@@ -66,12 +68,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 18,
       fontWeight: "900",
       color: theme.palette.text,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     subtitle: {
       fontSize: 13,
       color: theme.palette.muted,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
   });
 

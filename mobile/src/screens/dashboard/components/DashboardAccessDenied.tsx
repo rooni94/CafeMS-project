@@ -1,5 +1,5 @@
-import React from "react";
-import { StyleSheet, Text, View, I18nManager } from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../../../theme";
 import DashboardShell from "./DashboardShell";
 import DashboardSection from "./DashboardSection";
@@ -13,7 +13,8 @@ type Props = {
 
 const DashboardAccessDenied: React.FC<Props> = ({ title, subtitle, message }) => {
   const theme = useTheme();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
 
   return (
     <DashboardShell title={title} subtitle={subtitle}>
@@ -35,16 +36,16 @@ const DashboardAccessDenied: React.FC<Props> = ({ title, subtitle, message }) =>
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   body: {
     paddingTop: 4,
   },
   text: {
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
     fontSize: 13,
     lineHeight: 18,
   },
 });
 
 export default DashboardAccessDenied;
-

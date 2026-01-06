@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View, I18nManager } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
@@ -21,9 +21,9 @@ type ActivityRow = {
 
 const DashboardActivity: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user, permissions } = useAuth();
-  const { t } = useI18n();
   const allowed = has(user, permissions, "can_view_activity_log");
 
   const { data: activities = [], isLoading } = useQuery<ActivityRow[]>({
@@ -69,10 +69,10 @@ const DashboardActivity: React.FC = () => {
   );
 };
 
-const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+const createStyles = (_theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     empty: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
     },
   });

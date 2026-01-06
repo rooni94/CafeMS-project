@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Input } from "../../components/ui";
 import CurrencyAmount from "../../components/CurrencyAmount";
@@ -11,6 +11,7 @@ import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
 import { has } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type LoyaltyProfile = {
   points?: number;
@@ -36,7 +37,8 @@ type LoyaltyTransaction = {
 
 const DashboardLoyalty: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
 
@@ -84,7 +86,12 @@ const DashboardLoyalty: React.FC = () => {
   }, [settings]);
 
   if (!allowed) {
-    return <DashboardAccessDenied title="برنامج الولاء" subtitle="إدارة إعدادات الولاء وحركة النقاط." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.loyaltyDeniedTitle", "برنامج الولاء")}
+        subtitle={t("dashboard.loyaltyDeniedSubtitle", "إدارة إعدادات الولاء وحركة النقاط.")}
+      />
+    );
   }
 
   const saveSettings = async () => {
@@ -97,9 +104,15 @@ const DashboardLoyalty: React.FC = () => {
         tier_two_max: tierTwoMax.trim() ? Number(tierTwoMax) : undefined,
       });
       qc.invalidateQueries({ queryKey: ["dashboard", "loyalty-settings"] });
-      Alert.alert("تم الحفظ", "تم تحديث إعدادات برنامج الولاء.");
+      Alert.alert(
+        t("dashboard.loyaltySaveSuccessTitle", "تم الحفظ"),
+        t("dashboard.loyaltySaveSuccessBody", "تم تحديث إعدادات برنامج الولاء.")
+      );
     } catch {
-      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء حفظ إعدادات الولاء.");
+      Alert.alert(
+        t("dashboard.loyaltySaveErrorTitle", "تعذر الحفظ"),
+        t("dashboard.loyaltySaveErrorBody", "حدث خطأ أثناء حفظ إعدادات الولاء.")
+      );
     } finally {
       setSaving(false);
     }
@@ -108,68 +121,100 @@ const DashboardLoyalty: React.FC = () => {
 // ... (الجزء العلوي من الملف بدون تغيير) ...
 
   return (
-    <DashboardShell title="برنامج الولاء" subtitle="إدارة إعدادات الولاء ومتابعة العمليات.">
-      <DashboardSection title="الملف" subtitle="معلومات العضوية الحالية.">
+    <DashboardShell
+      title={t("dashboard.loyaltyTitle", "برنامج الولاء")}
+      subtitle={t("dashboard.loyaltySubtitle", "إدارة إعدادات الولاء ومتابعة العمليات.")}
+    >
+      <DashboardSection
+        title={t("dashboard.loyaltyProfileTitle", "الملف")}
+        subtitle={t("dashboard.loyaltyProfileSubtitle", "معلومات العضوية الحالية.")}
+      >
         <View style={styles.profileRow}>
-          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>النقاط</Text>
+          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>
+            {t("dashboard.loyaltyPointsLabel", "النقاط")}
+          </Text>
           <Text style={[styles.profileValue, { color: theme.palette.text }]}>{profile?.points ?? "-"}</Text>
         </View>
         <View style={styles.profileRow}>
-          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>الرصيد</Text>
+          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>
+            {t("dashboard.loyaltyBalanceLabel", "الرصيد")}
+          </Text>
           <CurrencyAmount value={profile?.balance ?? "-"} color={theme.palette.accent} symbolSize={12} textStyle={styles.balanceText} />
         </View>
         <View style={styles.profileRow}>
-          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>المستوى</Text>
+          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>
+            {t("dashboard.loyaltyTierLabel", "المستوى")}
+          </Text>
           <Text style={[styles.profileValue, { color: theme.palette.text }]}>{profile?.tier ?? "-"}</Text>
         </View>
         <View style={styles.profileRow}>
-          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>كود العضوية</Text>
+          <Text style={[styles.profileLabel, { color: theme.palette.muted }]}>
+            {t("dashboard.loyaltyMemberCodeLabel", "كود العضوية")}
+          </Text>
           <Text style={[styles.profileValue, { color: theme.palette.text }]}>{profile?.member_code ?? "-"}</Text>
         </View>
       </DashboardSection>
 
-      <DashboardSection title="الإعدادات" subtitle="معدل الكسب ومعدل الاستبدال.">
+      <DashboardSection
+        title={t("dashboard.loyaltySettingsTitle", "الإعدادات")}
+        subtitle={t("dashboard.loyaltySettingsSubtitle", "معدل الكسب ومعدل الاستبدال.")}
+      >
         <Input
-          label="معدل كسب النقاط"
+          label={t("dashboard.loyaltyEarnRateLabel", "معدل كسب النقاط")}
           value={earnRate}
           onChangeText={setEarnRate}
           keyboardType="decimal-pad"
-          hint="مثال: 0.1 يعني نقطة لكل 10 ريالات."
+          hint={t("dashboard.loyaltyEarnRateHint", "مثال: 0.1 يعني نقطة لكل 10 ريالات.")}
         />
         <Input
-          label="معدل الاستبدال"
+          label={t("dashboard.loyaltyRedeemRateLabel", "معدل الاستبدال")}
           value={redeemRate}
           onChangeText={setRedeemRate}
           keyboardType="decimal-pad"
-          hint="مثال: 1 يعني ريال لكل نقطة (حسب إعدادك)."
+          hint={t("dashboard.loyaltyRedeemRateHint", "مثال: 1 يعني ريال لكل نقطة (حسب إعدادك).")}
         />
         <Input
-          label="الحد الأقصى للمستوى الأول (نقطة)"
+          label={t("dashboard.loyaltyTierOneMaxLabel", "الحد الأقصى للمستوى الأول (نقطة)")}
           value={tierOneMax}
           onChangeText={setTierOneMax}
           keyboardType="number-pad"
-          hint="مثال: 299"
+          hint={t("dashboard.loyaltyTierOneMaxHint", "مثال: 299")}
         />
         <Input
-          label="الحد الأقصى للمستوى الثاني (نقطة)"
+          label={t("dashboard.loyaltyTierTwoMaxLabel", "الحد الأقصى للمستوى الثاني (نقطة)")}
           value={tierTwoMax}
           onChangeText={setTierTwoMax}
           keyboardType="number-pad"
-          hint="مثال: 699"
+          hint={t("dashboard.loyaltyTierTwoMaxHint", "مثال: 699")}
         />
-        <Button title={saving ? "جارٍ الحفظ..." : "حفظ الإعدادات"} onPress={saveSettings} disabled={saving} />
+        <Button
+          title={saving ? t("common.saving", "جارٍ الحفظ...") : t("dashboard.loyaltySaveSettings", "حفظ الإعدادات")}
+          onPress={saveSettings}
+          disabled={saving}
+        />
       </DashboardSection>
 
-      <DashboardSection title="العمليات" subtitle="آخر عمليات النقاط.">
+      <DashboardSection
+        title={t("dashboard.loyaltyTransactionsTitle", "العمليات")}
+        subtitle={t("dashboard.loyaltyTransactionsSubtitle", "آخر عمليات النقاط.")}
+      >
         {transactions.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد عمليات.</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>
+            {t("dashboard.loyaltyTransactionsEmpty", "لا توجد عمليات.")}
+          </Text>
         ) : (
           <View style={{ gap: 10 }}>
-            {transactions.slice(0, 40).map((t) => (
+            {transactions.slice(0, 40).map((tx) => (
               <DashboardListItem
-                key={t.id}
-                title={t.description?.trim() ? t.description : "عملية"}
-                subtitle={`${t.points != null ? `${t.points} نقطة` : t.amount != null ? `${t.amount}` : "-"} • ${new Date(t.created_at).toLocaleString()}`}
+                key={tx.id}
+                title={tx.description?.trim() ? tx.description : t("dashboard.loyaltyTransactionFallback", "عملية")}
+                subtitle={`${
+                  tx.points != null
+                    ? `${tx.points} ${t("dashboard.loyaltyPointsUnit", "نقطة")}`
+                    : tx.amount != null
+                      ? `${tx.amount}`
+                      : "-"
+                } • ${new Date(tx.created_at).toLocaleString()}`}
                 icon="sparkles-outline"
               />
             ))}
@@ -182,7 +227,7 @@ const DashboardLoyalty: React.FC = () => {
 
 // ... (باقي الكود بدون تغيير) ...
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     profileRow: {
       flexDirection: "row",
@@ -197,7 +242,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       flex: 1,
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "left",
+      textAlign: isRTL ? "right" : "left",
     },
     balanceText: {
       fontSize: 13,
@@ -205,10 +250,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.palette.accent,
     },
     empty: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
     },
   });
 
 export default DashboardLoyalty;
-

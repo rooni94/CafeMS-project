@@ -1,22 +1,22 @@
-import React from "react";
-import { StyleSheet, Text, View, I18nManager } from "react-native";
+import React, { useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { OrderStatus } from "../types";
 import { useTheme } from "../theme";
-import { decodeUnicodeEscapes } from "../utils/text";
+import { useI18n } from "../i18n";
 
-const STEPS: Array<{
-  status: OrderStatus;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}> = [
-  { status: "pending", label: "\\u0642\\u064a\\u062f \\u0627\\u0644\\u0645\\u0631\\u0627\\u062c\\u0639\\u0629", icon: "time-outline" },
-  { status: "confirmed", label: "\\u062a\\u0645 \\u0627\\u0644\\u062a\\u0623\\u0643\\u064a\\u062f", icon: "checkmark-circle-outline" },
-  { status: "preparing", label: "\\u0642\\u064a\\u062f \\u0627\\u0644\\u062a\\u062d\\u0636\\u064a\\u0631", icon: "restaurant-outline" },
-  { status: "ready", label: "\\u062c\\u0627\\u0647\\u0632 \\u0644\\u0644\\u0627\\u0633\\u062a\\u0644\\u0627\\u0645", icon: "cube-outline" },
-  { status: "completed", label: "\\u0645\\u0643\\u062a\\u0645\\u0644", icon: "checkmark-done-outline" },
-];
+const TIMELINE_ICONS: Record<OrderStatus, keyof typeof Ionicons.glyphMap> = {
+  pending: "time-outline",
+  confirmed: "checkmark-circle-outline",
+  preparing: "restaurant-outline",
+  ready: "cube-outline",
+  completed: "checkmark-done-outline",
+  cancelled: "close-circle-outline",
+  failed: "alert-circle-outline",
+  refunded: "refresh-outline",
+  paid: "checkmark-done-outline",
+};
 
 type OrderTimelineProps = {
   status?: OrderStatus | null;
@@ -31,23 +31,30 @@ const normalizeStatus = (status?: OrderStatus | null): OrderStatus | null => {
 
 const OrderTimeline: React.FC<OrderTimelineProps> = ({ status }) => {
   const theme = useTheme();
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
+  const steps = useMemo(
+    () => [
+      { status: "pending" as const, label: t("orders.timeline.pending", "قيد المراجعة") },
+      { status: "confirmed" as const, label: t("orders.timeline.confirmed", "تم التأكيد") },
+      { status: "preparing" as const, label: t("orders.timeline.preparing", "قيد التحضير") },
+      { status: "ready" as const, label: t("orders.timeline.ready", "جاهز للاستلام") },
+      { status: "completed" as const, label: t("orders.timeline.completed", "مكتمل") },
+    ],
+    [t]
+  );
   const normalized = normalizeStatus(status);
-  const activeIndex = normalized ? STEPS.findIndex((s) => s.status === normalized) : -1;
+  const activeIndex = normalized ? steps.findIndex((s) => s.status === normalized) : -1;
 
   if (status === "cancelled" || status === "failed" || status === "refunded") {
     const label =
       status === "cancelled"
-        ? "\\u062a\\u0645 \\u0625\\u0644\\u063a\\u0627\\u0621 \\u0627\\u0644\\u0637\\u0644\\u0628"
+        ? t("orders.timeline.cancelled", "تم إلغاء الطلب")
         : status === "failed"
-        ? "\\u0641\\u0634\\u0644\\u062a \\u0627\\u0644\\u0639\\u0645\\u0644\\u064a\\u0629"
-        : "\\u062a\\u0645 \\u0627\\u0633\\u062a\\u0631\\u062c\\u0627\\u0639 \\u0627\\u0644\\u0645\\u0628\\u0644\\u063a";
+        ? t("orders.timeline.failed", "فشلت العملية")
+        : t("orders.timeline.refunded", "تم استرجاع المبلغ");
 
-    const icon: keyof typeof Ionicons.glyphMap =
-      status === "cancelled"
-        ? "close-circle-outline"
-        : status === "failed"
-        ? "alert-circle-outline"
-        : "refresh-outline";
+    const icon = TIMELINE_ICONS[status];
 
     const color =
       status === "failed"
@@ -61,14 +68,14 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ status }) => {
         <View style={[styles.specialIcon, { backgroundColor: `${color}14`, borderColor: `${color}33` }]}>
           <Ionicons name={icon} size={18} color={color} />
         </View>
-        <Text style={[styles.specialText, { color: theme.palette.text }]}>{decodeUnicodeEscapes(label)}</Text>
+        <Text style={[styles.specialText, { color: theme.palette.text }]}>{label}</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {STEPS.map((step, index) => {
+      {steps.map((step, index) => {
         const isActive = activeIndex >= index && activeIndex !== -1;
         const connectorActive = activeIndex > index && activeIndex !== -1;
 
@@ -84,7 +91,11 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ status }) => {
                   },
                 ]}
               >
-                <Ionicons name={step.icon} size={18} color={isActive ? "#fff" : theme.palette.accent} />
+                <Ionicons
+                  name={TIMELINE_ICONS[step.status]}
+                  size={18}
+                  color={isActive ? "#fff" : theme.palette.accent}
+                />
               </View>
               <Text
                 style={[
@@ -96,11 +107,11 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ status }) => {
                 ]}
                 numberOfLines={2}
               >
-                {decodeUnicodeEscapes(step.label)}
+                {step.label}
               </Text>
             </View>
 
-            {index < STEPS.length - 1 ? (
+            {index < steps.length - 1 ? (
               <View style={[styles.connector, { backgroundColor: connectorActive ? theme.palette.accent : theme.palette.border }]} />
             ) : null}
           </React.Fragment>
@@ -110,7 +121,8 @@ const OrderTimeline: React.FC<OrderTimelineProps> = ({ status }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
@@ -157,7 +169,7 @@ const styles = StyleSheet.create({
   },
   specialText: {
     flex: 1,
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
     fontSize: 13,
     fontWeight: "800",
   },

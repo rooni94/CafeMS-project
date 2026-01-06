@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { View, Text, StyleSheet, I18nManager } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../context/AuthContext";
@@ -33,9 +33,9 @@ type InventorySummary = {
 const DashboardHome: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user, permissions, accessToken, refreshPermissions } = useAuth();
-  const { t } = useI18n();
   const isEmployee = user?.role === "manager" || user?.role === "supervisor" || user?.role === "staff";
   const permissionsLoading = !!accessToken && isEmployee && !isManager(user) && !permissions;
 
@@ -251,7 +251,7 @@ const DashboardHome: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     statsRow: {
       flexDirection: "row",
@@ -269,7 +269,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     empty: {
       width: "100%",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       lineHeight: 18,
     },

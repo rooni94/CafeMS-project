@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Linking, Pressable, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Button, Input } from "../components/ui";
@@ -42,9 +42,9 @@ const socialIcon = (platform: string): keyof typeof Ionicons.glyphMap => {
 
 const ContactScreen: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { settings } = useStoreSettings();
-  const { t } = useI18n();
 
   const title = normalizeArabicText((settings as any)?.contact_title) || t("contact.title", "تواصل معنا");
   const subtitle =
@@ -202,7 +202,7 @@ const ContactScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     contactList: {
       gap: 10,
@@ -217,7 +217,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 13,
       lineHeight: 18,
       color: theme.palette.text,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     socialWrap: {
       flexDirection: "row",
@@ -240,12 +240,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "800",
       color: theme.palette.text,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     status: {
       fontSize: 12,
       lineHeight: 18,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
   });
 

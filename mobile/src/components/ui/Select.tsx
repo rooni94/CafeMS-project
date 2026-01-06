@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable, I18nManager } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { Menu, Divider } from "react-native-paper";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "../../theme";
+import { useI18n } from "../../i18n";
 
 export type SelectOption<T extends string> = { label: string; value: T };
 
@@ -17,7 +18,8 @@ type Props<T extends string> = {
 
 const Select = <T extends string>({ label, value, options, onChange, placeholder, disabled }: Props<T>) => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const [open, setOpen] = useState(false);
 
   const selectedLabel = options.find((o) => o.value === value)?.label || placeholder || "";
@@ -67,13 +69,13 @@ const Select = <T extends string>({ label, value, options, onChange, placeholder
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       gap: 4,
     },
     label: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "800",
     },
@@ -89,7 +91,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     value: {
       flex: 1,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 14,
       fontWeight: "700",
     },
@@ -100,11 +102,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       overflow: "hidden",
     },
     menuItem: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontWeight: "800",
       fontSize: 13,
     },
   });
 
 export default Select;
-

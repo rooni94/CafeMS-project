@@ -71,6 +71,7 @@ export const copyEn = {
       "CafeMS Demo — sandwiches, drinks, and desserts with high quality and fast service.",
     heroSecondaryCta: "Track order",
     heroExploreCta: "Go to the menu",
+    shortcutsTitle: "Shortcuts",
     quickIntro: "Get quick access to the most used sections and start your order fast.",
     infoTags: ["Fresh daily", "High quality", "Fast service"],
     quickActions: [

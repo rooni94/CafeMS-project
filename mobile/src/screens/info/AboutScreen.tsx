@@ -1,5 +1,5 @@
 ﻿import React, { useMemo } from "react";
-import { Image, Linking, Pressable, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 
@@ -10,13 +10,7 @@ import { normalizeArabicText } from "../../utils/text";
 import { goToTab } from "../../navigation/helpers";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
-
-const DEFAULT_HIGHLIGHTS = [
-  "خبز طازج وصلصات منزلية نحضّرها بشكل يومي لترافق كل لقمة.",
-  "محطة قهوة مختصة ومشروبات موسمية تكتمل بها استراحتك.",
-  "قائمة جانبية متوازنة بين الخفايف والسندوتشات السريعة.",
-  "طاقم بخبرة محلية يقدم الضيافة الخليجية بابتسامة دائمة.",
-];
+import { useI18n } from "../../i18n";
 
 const extractFirstUrlFromEmbed = (html?: string | null) => {
   if (!html) return null;
@@ -39,21 +33,33 @@ const socialIcon = (platform: string): keyof typeof Ionicons.glyphMap => {
 const AboutScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { settings } = useStoreSettings();
 
-  const aboutTitle = normalizeArabicText((settings as any)?.about_title) || "من نحن – CafeMS Demo";
+  const aboutTitle = normalizeArabicText((settings as any)?.about_title) || t("about.title", "من نحن – CafeMS Demo");
   const aboutSubtitle =
-    normalizeArabicText((settings as any)?.about_subtitle) || "نحن مساحة دافئة تحتضن شغف الطعام ونكهاته الأصيلة.";
+    normalizeArabicText((settings as any)?.about_subtitle) ||
+    t("about.subtitle", "نحن مساحة دافئة تحتضن شغف الطعام ونكهاته الأصيلة.");
   const aboutDescription =
     normalizeArabicText((settings as any)?.about_description) ||
-    "CafeMS Demo محطتكم اليومية للاستمتاع بسندوتشات طازجة، خفايف شهية، ومشروبات تعكس ذائقة الخليج. نؤمن بأن تجربة الطعام لا تكتمل دون خدمة مفعمة بالامتنان وسهولة في كل خطوة من الطلب حتى الاستلام.";
+    t(
+      "about.description",
+      "CafeMS Demo محطتكم اليومية للاستمتاع بسندويتشات طازجة، خفايف شهية، ومشروبات تعكس ذائقة الخليج. نؤمن بأن تجربة الطعام لا تكتمل دون خدمة مفعمة بالامتنان وسهولة في كل خطوة من الطلب حتى الاستلام."
+    );
+
+  const defaultHighlights = [
+    t("about.highlight1", "خبز طازج وصلصات منزلية نحضّرها بشكل يومي لترافق كل لقمة."),
+    t("about.highlight2", "محطة قهوة مختصة ومشروبات موسمية تكتمل بها استراحتك."),
+    t("about.highlight3", "قائمة جانبية متوازنة بين الخفايف والسندويتشات السريعة."),
+    t("about.highlight4", "طاقم بخبرة محلية يقدم الضيافة الخليجية بابتسامة دائمة."),
+  ];
 
   const aboutImageUrl = (settings as any)?.about_image_url || (settings as any)?.hero_image_url || null;
   const highlights: string[] =
     Array.isArray((settings as any)?.about_highlights) && (settings as any).about_highlights.length
       ? (settings as any).about_highlights.map((x: any) => normalizeArabicText(String(x)))
-      : DEFAULT_HIGHLIGHTS;
+      : defaultHighlights;
 
   const socialEntries: [string, string][] =
     (settings as any)?.social_links && typeof (settings as any).social_links === "object"
@@ -66,23 +72,26 @@ const AboutScreen: React.FC = () => {
   const mapUrl = extractFirstUrlFromEmbed((settings as any)?.contact_map_embed);
 
   return (
-    <DashboardShell title="من نحن" subtitle={aboutSubtitle} contentContainerStyle={styles.container}>
-      <DashboardSection title={aboutTitle} subtitle="نبذة سريعة عن المتجر">
+    <DashboardShell title={t("about.screenTitle", "من نحن")} subtitle={aboutSubtitle} contentContainerStyle={styles.container}>
+      <DashboardSection title={aboutTitle} subtitle={t("about.sectionSubtitle", "نبذة سريعة عن المتجر")}>
         {aboutImageUrl ? <Image source={{ uri: aboutImageUrl }} style={styles.heroImage} resizeMode="cover" /> : null}
         <Text style={styles.body}>{aboutDescription}</Text>
         <Text style={styles.body}>
-          تبدأ حكايتنا من المطبخ؛ حيث نستيقظ باكراً لتحميص الخبز، تقطيع الخضار، وتحضير خلطاتنا الخاصة قبل فتح الأبواب. كل طبق يمر عبر فريق
-          يضع معياراً للجودة ويهتم بإيصال الطعام سريعاً من دون التفريط بطعمه.
+          {t(
+            "about.storyParagraph1",
+            "تبدأ حكايتنا من المطبخ؛ حيث نستيقظ باكراً لتحميص الخبز، تقطيع الخضار، وتحضير خلطاتنا الخاصة قبل فتح الأبواب. كل طبق يمر عبر فريق يضع معياراً للجودة ويهتم بإيصال الطعام سريعاً من دون التفريط بطعمه."
+          )}
         </Text>
         <Text style={styles.body}>
-          رؤيتنا أن تكون CafeMS Demo محطةً يشعر فيها الضيف أنه يعرفنا منذ زمن: وصفات أصيلة بطابع عصري، سرعة في الخدمة، واهتمام بالتفاصيل
-          الصغيرة من اختيار التوابل وحتى نبرة الترحيب. نحدّث قائمتنا باستمرار ونراقب تعليقات عملائنا لنحافظ على هذا التوازن بين الأصالة
-          والتجربة الحديثة.
+          {t(
+            "about.storyParagraph2",
+            "رؤيتنا أن تكون CafeMS Demo محطةً يشعر فيها الضيف أنه يعرفنا منذ زمن: وصفات أصيلة بطابع عصري، سرعة في الخدمة، واهتمام بالتفاصيل الصغيرة من اختيار التوابل وحتى نبرة الترحيب. نحدّث قائمتنا باستمرار ونراقب تعليقات عملائنا لنحافظ على هذا التوازن بين الأصالة والتجربة الحديثة."
+          )}
         </Text>
-        <Button title="اذهب إلى القائمة" onPress={() => goToTab(navigation, "Menu")} />
+        <Button title={t("about.menuButton", "اذهب إلى القائمة")} onPress={() => goToTab(navigation, "Menu")} />
       </DashboardSection>
 
-      <DashboardSection title="لماذا نحن؟" subtitle="أبرز ما يميزنا">
+      <DashboardSection title={t("about.highlightsTitle", "لماذا نحن؟")} subtitle={t("about.highlightsSubtitle", "أبرز ما يميزنا")}>
         <View style={styles.list}>
           {highlights.map((item) => (
             <View key={item} style={styles.listRow}>
@@ -93,7 +102,7 @@ const AboutScreen: React.FC = () => {
         </View>
       </DashboardSection>
 
-      <DashboardSection title="تواصل معنا" subtitle="نسعد بخدمتك دائماً">
+      <DashboardSection title={t("about.contactTitle", "تواصل معنا")} subtitle={t("about.contactSubtitle", "نسعد بخدمتك دائماً")}>
         <View style={styles.contactList}>
           {contactPhone ? (
             <Pressable onPress={() => Linking.openURL(`tel:${contactPhone}`)} style={styles.contactRow}>
@@ -113,8 +122,14 @@ const AboutScreen: React.FC = () => {
               <Text style={styles.contactText}>{contactAddress}</Text>
             </View>
           ) : null}
-          {mapUrl ? <Button title="فتح الموقع على الخريطة" variant="secondary" onPress={() => Linking.openURL(mapUrl)} /> : null}
-          <Button title="راسلنا الآن" onPress={() => navigation.navigate("Contact")} />
+          {mapUrl ? (
+            <Button
+              title={t("about.mapButton", "فتح الموقع على الخريطة")}
+              variant="secondary"
+              onPress={() => Linking.openURL(mapUrl)}
+            />
+          ) : null}
+          <Button title={t("about.contactButton", "راسلنا الآن")} onPress={() => navigation.navigate("Contact")} />
         </View>
 
         {socialEntries.length ? (
@@ -132,7 +147,7 @@ const AboutScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       paddingBottom: 18,
@@ -146,7 +161,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     body: {
       fontSize: 13,
       color: theme.palette.text,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       lineHeight: 20,
     },
     list: {
@@ -160,7 +175,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     listText: {
       flex: 1,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       color: theme.palette.text,
       fontSize: 13,
       lineHeight: 18,
@@ -179,7 +194,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 13,
       lineHeight: 18,
       color: theme.palette.text,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     socialWrap: {
       flexDirection: "row",
@@ -206,5 +221,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default AboutScreen;
-
-

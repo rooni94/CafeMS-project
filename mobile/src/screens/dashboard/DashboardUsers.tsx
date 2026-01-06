@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Input } from "../../components/ui";
 import { api } from "../../services/api";
@@ -11,21 +11,23 @@ import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
 import { has } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 const roles: Array<"customer" | "staff" | "supervisor" | "manager"> = ["customer", "staff", "supervisor", "manager"];
 
-const roleLabel = (role: string) => {
-  if (role === "manager") return "مدير";
-  if (role === "supervisor") return "مشرف";
-  if (role === "staff") return "موظف";
-  return "عميل";
-};
-
 const DashboardUsers: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
+
+  const roleLabel = (role: string) => {
+    if (role === "manager") return t("dashboard.usersRoleManager", "مدير");
+    if (role === "supervisor") return t("dashboard.usersRoleSupervisor", "مشرف");
+    if (role === "staff") return t("dashboard.usersRoleStaff", "موظف");
+    return t("dashboard.usersRoleCustomer", "عميل");
+  };
 
   const allowed = has(user, permissions, "can_manage_users");
 
@@ -47,7 +49,12 @@ const DashboardUsers: React.FC = () => {
   });
 
   if (!allowed) {
-    return <DashboardAccessDenied title="المستخدمون" subtitle="إدارة المستخدمين" />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.usersDeniedTitle", "المستخدمون")}
+        subtitle={t("dashboard.usersDeniedSubtitle", "إدارة المستخدمين")}
+      />
+    );
   }
 
   const resetForm = () => {
@@ -61,7 +68,10 @@ const DashboardUsers: React.FC = () => {
 
   const saveUser = async () => {
     if (!username.trim() || (!editingId && !password.trim())) {
-      Alert.alert("بيانات ناقصة", "أدخل اسم المستخدم وكلمة المرور عند الإنشاء.");
+      Alert.alert(
+        t("dashboard.usersMissingTitle", "بيانات ناقصة"),
+        t("dashboard.usersMissingBody", "أدخل اسم المستخدم وكلمة المرور عند الإنشاء.")
+      );
       return;
     }
     setSaving(true);
@@ -80,10 +90,16 @@ const DashboardUsers: React.FC = () => {
         await api.post("auth/users/", payload);
       }
       qc.invalidateQueries({ queryKey: ["dashboard", "users"] });
-      Alert.alert("تم الحفظ", editingId ? "تم تحديث المستخدم." : "تم إنشاء المستخدم.");
+      Alert.alert(
+        t("dashboard.usersSaveTitle", "تم الحفظ"),
+        editingId ? t("dashboard.usersSaveBodyUpdate", "تم تحديث المستخدم.") : t("dashboard.usersSaveBodyCreate", "تم إنشاء المستخدم.")
+      );
       resetForm();
     } catch {
-      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء حفظ المستخدم.");
+      Alert.alert(
+        t("dashboard.usersSaveErrorTitle", "تعذر الحفظ"),
+        t("dashboard.usersSaveErrorBody", "حدث خطأ أثناء حفظ المستخدم.")
+      );
     } finally {
       setSaving(false);
     }
@@ -99,10 +115,10 @@ const DashboardUsers: React.FC = () => {
   };
 
   const deleteUser = async (id: number) => {
-    Alert.alert("حذف المستخدم", "هل أنت متأكد؟", [
-      { text: "إلغاء", style: "cancel" },
+    Alert.alert(t("dashboard.usersDeleteTitle", "حذف المستخدم"), t("dashboard.usersDeleteConfirm", "هل أنت متأكد؟"), [
+      { text: t("common.cancel", "إلغاء"), style: "cancel" },
       {
-        text: "حذف",
+        text: t("common.delete", "حذف"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -110,7 +126,10 @@ const DashboardUsers: React.FC = () => {
             qc.invalidateQueries({ queryKey: ["dashboard", "users"] });
             if (editingId === id) resetForm();
           } catch {
-            Alert.alert("تعذر الحذف", "حدث خطأ أثناء حذف المستخدم.");
+            Alert.alert(
+              t("dashboard.usersDeleteErrorTitle", "تعذر الحذف"),
+              t("dashboard.usersDeleteErrorBody", "حدث خطأ أثناء حذف المستخدم.")
+            );
           }
         },
       },
@@ -118,48 +137,85 @@ const DashboardUsers: React.FC = () => {
   };
 
   return (
-    <DashboardShell title="المستخدمون" subtitle="إدارة المستخدمين وبياناتهم وصلاحياتهم.">
-      <DashboardSection title={editingId ? "تعديل مستخدم" : "إضافة مستخدم"} subtitle="املأ الحقول ثم احفظ.">
-        <Input label="اسم المستخدم" value={username} onChangeText={setUsername} placeholder="مثال: admin" />
+    <DashboardShell
+      title={t("dashboard.usersTitle", "المستخدمون")}
+      subtitle={t("dashboard.usersSubtitle", "إدارة المستخدمين وبياناتهم وصلاحياتهم.")}
+    >
+      <DashboardSection
+        title={editingId ? t("dashboard.usersEditTitle", "تعديل مستخدم") : t("dashboard.usersAddTitle", "إضافة مستخدم")}
+        subtitle={t("dashboard.usersFormSubtitle", "املأ الحقول ثم احفظ.")}
+      >
         <Input
-          label={editingId ? "كلمة المرور (اختياري)" : "كلمة المرور"}
+          label={t("dashboard.usersUsernameLabel", "اسم المستخدم")}
+          value={username}
+          onChangeText={setUsername}
+          placeholder={t("dashboard.usersUsernamePlaceholder", "مثال: admin")}
+        />
+        <Input
+          label={
+            editingId
+              ? t("dashboard.usersPasswordLabelOptional", "كلمة المرور (اختياري)")
+              : t("dashboard.usersPasswordLabel", "كلمة المرور")
+          }
           value={password}
           onChangeText={setPassword}
           secureTextEntry
           placeholder="••••••••"
-          hint={editingId ? "اتركها فارغة إن لم ترغب بتغييرها." : undefined}
+          hint={editingId ? t("dashboard.usersPasswordHintOptional", "اتركها فارغة إن لم ترغب بتغييرها.") : undefined}
         />
 
-        <Text style={[styles.label, { color: theme.palette.muted }]}>الدور</Text>
+        <Text style={[styles.label, { color: theme.palette.muted }]}>{t("dashboard.usersRoleLabel", "الدور")}</Text>
         <View style={styles.rolesRow}>
           {roles.map((r) => (
             <Button key={r} title={roleLabel(r)} variant={role === r ? "primary" : "ghost"} onPress={() => setRole(r)} />
           ))}
         </View>
 
-        <Input label="رقم الجوال" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="05xxxxxxxx" />
-        <Input label="البريد الإلكتروني" value={email} onChangeText={setEmail} keyboardType="email-address" placeholder="name@example.com" />
+        <Input
+          label={t("dashboard.usersPhoneLabel", "رقم الجوال")}
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+          placeholder="05xxxxxxxx"
+        />
+        <Input
+          label={t("dashboard.usersEmailLabel", "البريد الإلكتروني")}
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          placeholder="name@example.com"
+        />
 
-        <Button title={saving ? "جارٍ الحفظ..." : "حفظ"} onPress={saveUser} disabled={saving} />
-        {editingId ? <Button title="إلغاء التعديل" variant="ghost" onPress={resetForm} /> : null}
+        <Button title={saving ? t("common.saving", "جارٍ الحفظ...") : t("common.save", "حفظ")} onPress={saveUser} disabled={saving} />
+        {editingId ? <Button title={t("dashboard.usersCancelEdit", "إلغاء التعديل")} variant="ghost" onPress={resetForm} /> : null}
       </DashboardSection>
 
-      <DashboardSection title="قائمة المستخدمين" subtitle={isLoading ? "جاري التحميل..." : "اضغط للتعديل أو استخدم حذف."}>
+      <DashboardSection
+        title={t("dashboard.usersListTitle", "قائمة المستخدمين")}
+        subtitle={
+          isLoading
+            ? t("dashboard.usersLoading", "جاري التحميل...")
+            : t("dashboard.usersListSubtitle", "اضغط للتعديل أو استخدم حذف.")
+        }
+      >
         {users.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا يوجد مستخدمون.</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>{t("dashboard.usersEmpty", "لا يوجد مستخدمون.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {users.slice(0, 50).map((u) => (
               <DashboardListItem
                 key={u.id}
                 title={u.username}
-                subtitle={`${roleLabel((u.role as any) || "")} • ${u.email || "بدون بريد"} • ${u.phone || "بدون رقم"}`}
+                subtitle={`${roleLabel((u.role as any) || "")} • ${u.email || t("dashboard.usersNoEmail", "بدون بريد")} • ${u.phone || t(
+                  "dashboard.usersNoPhone",
+                  "بدون رقم"
+                )}`}
                 icon="person-circle-outline"
                 onPress={() => startEdit(u)}
                 right={
                   <View style={{ flexDirection: "row", gap: 8 }}>
-                    <Button title="تعديل" variant="secondary" onPress={() => startEdit(u)} />
-                    <Button title="حذف" variant="ghost" onPress={() => deleteUser(u.id)} />
+                    <Button title={t("dashboard.usersEditButton", "تعديل")} variant="secondary" onPress={() => startEdit(u)} />
+                    <Button title={t("common.delete", "حذف")} variant="ghost" onPress={() => deleteUser(u.id)} />
                   </View>
                 }
               />
@@ -171,7 +227,7 @@ const DashboardUsers: React.FC = () => {
   );
 };
 
-const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+const createStyles = (_theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     rolesRow: {
       flexDirection: "row",
@@ -181,10 +237,10 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     label: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     empty: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
     },
   });

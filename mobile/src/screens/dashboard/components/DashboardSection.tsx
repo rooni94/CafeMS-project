@@ -1,7 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, StyleProp, ViewStyle, I18nManager } from "react-native";
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import { Card } from "../../../components/ui";
 import { useTheme } from "../../../theme";
+import { useI18n } from "../../../i18n";
 
 type Props = {
   title?: string;
@@ -12,7 +13,8 @@ type Props = {
 
 const DashboardSection: React.FC<Props> = ({ title, subtitle, children, style }) => {
   const theme = useTheme();
-  const styles = React.useMemo(() => createStyles(theme), [theme]);
+  const { isRTL } = useI18n();
+  const styles = React.useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
 
   return (
     <Card style={[styles.card, style]} contentStyle={styles.content}>
@@ -27,7 +29,7 @@ const DashboardSection: React.FC<Props> = ({ title, subtitle, children, style })
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     card: {
       borderRadius: 22,
@@ -40,18 +42,18 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     header: {
       gap: 4,
-      alignItems: "flex-end",
+      alignItems: isRTL ? "flex-end" : "flex-start",
     },
     title: {
       fontSize: 16,
       fontWeight: "800",
       color: theme.palette.text,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     subtitle: {
       fontSize: 12,
       color: theme.palette.muted,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       lineHeight: 18,
     },
   });

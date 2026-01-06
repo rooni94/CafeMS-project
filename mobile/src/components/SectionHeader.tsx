@@ -1,5 +1,6 @@
-import React from "react";
-import { View, Text, StyleSheet, I18nManager } from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { useI18n } from "../i18n";
 
 type SectionHeaderProps = {
   title: string;
@@ -7,21 +8,23 @@ type SectionHeaderProps = {
   action?: React.ReactNode;
 };
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({
-  title,
-  subtitle,
-  action,
-}) => (
-  <View style={styles.container}>
-    <View style={{ flex: 1 }}>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-    </View>
-    {action}
-  </View>
-);
+const SectionHeader: React.FC<SectionHeaderProps> = ({ title, subtitle, action }) => {
+  const { isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
 
-const styles = StyleSheet.create({
+  return (
+    <View style={styles.container}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      </View>
+      {action}
+    </View>
+  );
+};
+
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   container: {
     flexDirection: "row",
     alignItems: "center",
@@ -31,13 +34,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
     color: "#111827",
   },
   subtitle: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
     marginTop: 4,
   },
 });

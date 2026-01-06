@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, I18nManager } from "react-native";
+import React, {useMemo, useState} from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 
@@ -18,7 +18,8 @@ import { useI18n } from "../../i18n";
 const ProductsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { addItem, totalQuantity } = useCart();
-  const { copy, t } = useI18n();
+  const { copy, t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   const [search, setSearch] = useState("");
   const [addonProduct, setAddonProduct] = useState<Product | null>(null);
 
@@ -140,16 +141,17 @@ const ProductsScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "800",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   body: {
     fontSize: 13,
     color: "#475569",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   grid: {
     flexDirection: "row",

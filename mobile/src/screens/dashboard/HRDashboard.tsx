@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View, I18nManager } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../components/ui";
@@ -11,6 +11,7 @@ import DashboardShell from "./components/DashboardShell";
 import DashboardSection from "./components/DashboardSection";
 import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import { hasAny } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type HRStats = {
   employees?: number;
@@ -21,7 +22,8 @@ type HRStats = {
 const HRDashboard: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user, permissions } = useAuth();
 
   const allowed = hasAny(user, permissions, [
@@ -46,33 +48,48 @@ const HRDashboard: React.FC = () => {
   });
 
   if (!allowed) {
-    return <DashboardAccessDenied title="لوحة الموارد البشرية" subtitle="ملخص سريع وروابط سريعة للطلبات والوثائق." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.hrDashboardTitle", "لوحة الموارد البشرية")}
+        subtitle={t("dashboard.hrDashboardSubtitle", "ملخص سريع وروابط سريعة للطلبات والوثائق.")}
+      />
+    );
   }
 
   return (
-    <DashboardShell title="لوحة الموارد البشرية" subtitle="ملخص سريع وروابط سريعة للطلبات والوثائق.">
-      <DashboardSection title="ملخص" subtitle="قد تختلف البيانات حسب صلاحياتك.">
+    <DashboardShell
+      title={t("dashboard.hrDashboardTitle", "لوحة الموارد البشرية")}
+      subtitle={t("dashboard.hrDashboardSubtitle", "ملخص سريع وروابط سريعة للطلبات والوثائق.")}
+    >
+      <DashboardSection title={t("dashboard.hrDashboardSummaryTitle", "ملخص")} subtitle={t("dashboard.hrDashboardSummarySubtitle", "قد تختلف البيانات حسب صلاحياتك.")}>
         <View style={styles.statsRow}>
-          <HRStatBadge label="الموظفون" value={stats?.employees ?? "-"} color={theme.palette.accentSoft} />
-          <HRStatBadge label="إجازات نشطة" value={stats?.active_leaves ?? "-"} color={theme.palette.accent} />
-          <HRStatBadge label="تنبيهات" value={stats?.alerts ?? "-"} color={theme.palette.danger} />
+          <HRStatBadge label={t("dashboard.hrDashboardEmployees", "الموظفون")} value={stats?.employees ?? "-"} color={theme.palette.accentSoft} />
+          <HRStatBadge label={t("dashboard.hrDashboardActiveLeaves", "إجازات نشطة")} value={stats?.active_leaves ?? "-"} color={theme.palette.accent} />
+          <HRStatBadge label={t("dashboard.hrDashboardAlerts", "تنبيهات")} value={stats?.alerts ?? "-"} color={theme.palette.danger} />
         </View>
       </DashboardSection>
 
-      <DashboardSection title="روابط سريعة" subtitle="انتقل مباشرة إلى ما تحتاجه.">
+      <DashboardSection title={t("dashboard.hrDashboardLinksTitle", "روابط سريعة")} subtitle={t("dashboard.hrDashboardLinksSubtitle", "انتقل مباشرة إلى ما تحتاجه.")}>
         <View style={styles.actions}>
-          <Button title="وثائق الموارد البشرية" variant="secondary" onPress={() => navigation.navigate("DashboardHRDocuments")} />
-          <Button title="طلبات الموارد البشرية" onPress={() => navigation.navigate("DashboardHRRequests")} />
+          <Button
+            title={t("dashboard.hrDashboardDocsButton", "وثائق الموارد البشرية")}
+            variant="secondary"
+            onPress={() => navigation.navigate("DashboardHRDocuments")}
+          />
+          <Button title={t("dashboard.hrDashboardRequestsButton", "طلبات الموارد البشرية")} onPress={() => navigation.navigate("DashboardHRRequests")} />
         </View>
         <Text style={[styles.note, { color: theme.palette.muted }]}>
-          بعض ميزات الموارد البشرية قد تكون متاحة بشكل كامل على نسخة الويب فقط حسب إعدادات مشروعك.
+          {t(
+            "dashboard.hrDashboardNote",
+            "بعض ميزات الموارد البشرية قد تكون متاحة بشكل كامل على نسخة الويب فقط حسب إعدادات مشروعك."
+          )}
         </Text>
       </DashboardSection>
     </DashboardShell>
   );
 };
 
-const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+const createStyles = (_theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     statsRow: {
       flexDirection: "row",
@@ -83,7 +100,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       gap: 10,
     },
     note: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 12,
       lineHeight: 18,
     },

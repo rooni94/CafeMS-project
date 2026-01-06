@@ -1,5 +1,5 @@
-import React from "react";
-import { Pressable, View, Text, Image, StyleSheet, ViewStyle, I18nManager } from "react-native";
+import React, { useMemo } from "react";
+import { Pressable, View, Text, Image, StyleSheet, ViewStyle } from "react-native";
 import { Product } from "../types";
 import CurrencyAmount from "./CurrencyAmount";
 import { useI18n } from "../i18n";
@@ -17,7 +17,8 @@ const DishCard: React.FC<DishCardProps> = ({
   onAdd,
   style,
 }) => {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   return (
     <Pressable
       onPress={onPress}
@@ -57,7 +58,8 @@ const DishCard: React.FC<DishCardProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   card: {
     borderRadius: 20,
     backgroundColor: "#fff",
@@ -86,12 +88,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 15,
     color: "#111827",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   description: {
     fontSize: 12,
     color: "#6b7280",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   price: {
     fontWeight: "700",

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Image, Linking, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, Image, Linking, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 
@@ -82,16 +82,14 @@ type MyDocument = {
   days_to_expiry?: number | null;
 };
 
-const DOC_LABELS: Record<string, string> = {
-  passport: "جواز سفر",
-  residence: "إقامة",
-  contract: "عقد",
-  certificate: "شهادة",
-  insurance: "تأمين",
-  other: "أخرى",
+const DOC_LABELS: Record<string, { key: string; fallback: string }> = {
+  passport: { key: "myHr.docTypePassport", fallback: "جواز سفر" },
+  residence: { key: "myHr.docTypeResidence", fallback: "إقامة" },
+  contract: { key: "myHr.docTypeContract", fallback: "عقد" },
+  certificate: { key: "myHr.docTypeCertificate", fallback: "شهادة" },
+  insurance: { key: "myHr.docTypeInsurance", fallback: "تأمين" },
+  other: { key: "myHr.docTypeOther", fallback: "أخرى" },
 };
-
-const docTypeOptions = Object.entries(DOC_LABELS).map(([value, label]) => ({ value, label }));
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const lastDaysIso = (days: number) => {
@@ -100,12 +98,12 @@ const lastDaysIso = (days: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-const leaveTypeOptions = [
-  { value: "annual", label: "سنوية" },
-  { value: "sick", label: "مرضية" },
-  { value: "emergency", label: "طارئة" },
-  { value: "unpaid", label: "بدون راتب" },
-  { value: "other", label: "أخرى" },
+const LEAVE_TYPE_OPTIONS: Array<{ value: string; key: string; fallback: string }> = [
+  { value: "annual", key: "myHr.leaveTypeAnnual", fallback: "سنوية" },
+  { value: "sick", key: "myHr.leaveTypeSick", fallback: "مرضية" },
+  { value: "emergency", key: "myHr.leaveTypeEmergency", fallback: "طارئة" },
+  { value: "unpaid", key: "myHr.leaveTypeUnpaid", fallback: "بدون راتب" },
+  { value: "other", key: "myHr.leaveTypeOther", fallback: "أخرى" },
 ];
 
 const asList = <T,>(data: any): T[] => {
@@ -113,13 +111,13 @@ const asList = <T,>(data: any): T[] => {
   return (data?.results || []) as T[];
 };
 
-const statusLabel = (status?: string | null) => {
+const statusLabel = (status: string | null | undefined, t: (key: string, fallback?: string) => string) => {
   if (!status) return "—";
-  if (status === "pending") return "بانتظار المراجعة";
-  if (status === "approved") return "مقبولة";
-  if (status === "rejected") return "مرفوضة";
-  if (status === "paid") return "مدفوع";
-  if (status === "unpaid") return "غير مدفوع";
+  if (status === "pending") return t("myHr.statusPending", "بانتظار المراجعة");
+  if (status === "approved") return t("myHr.statusApproved", "مقبولة");
+  if (status === "rejected") return t("myHr.statusRejected", "مرفوضة");
+  if (status === "paid") return t("myHr.statusPaid", "مدفوع");
+  if (status === "unpaid") return t("myHr.statusUnpaid", "غير مدفوع");
   return status;
 };
 
@@ -137,9 +135,33 @@ const safeNumber = (value: string) => {
 
 const MyHRScreen: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-  const { copy } = useI18n();
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
+
+  const docTypeOptions = useMemo(
+    () =>
+      Object.entries(DOC_LABELS).map(([value, entry]) => ({
+        value,
+        label: t(entry.key, entry.fallback),
+      })),
+    [t],
+  );
+
+  const leaveTypeOptions = useMemo(
+    () => LEAVE_TYPE_OPTIONS.map((opt) => ({ value: opt.value, label: t(opt.key, opt.fallback) })),
+    [t],
+  );
+
+  const docTypeLabel = (type: string) => {
+    const entry = DOC_LABELS[type];
+    return entry ? t(entry.key, entry.fallback) : type;
+  };
+
+  const leaveTypeLabel = (value?: string | null) => {
+    const entry = LEAVE_TYPE_OPTIONS.find((opt) => opt.value === value);
+    return entry ? t(entry.key, entry.fallback) : value || "-";
+  };
 
   const [attendanceMsg, setAttendanceMsg] = useState<string | null>(null);
 
@@ -230,10 +252,10 @@ const MyHRScreen: React.FC = () => {
     setAttendanceMsg(null);
     try {
       await api.post("hr/my/attendance/check-in/");
-      setAttendanceMsg("تم تسجيل حضورك بنجاح.");
+      setAttendanceMsg(t("myHr.checkInSuccess", "تم تسجيل حضورك بنجاح."));
       qc.invalidateQueries({ queryKey: ["my-hr", "attendance"] });
     } catch (e: any) {
-      setAttendanceMsg(parseApiError(e) || "تعذر تسجيل الحضور. حاول مرة أخرى.");
+      setAttendanceMsg(parseApiError(e) || t("myHr.checkInError", "تعذر تسجيل الحضور. حاول مرة أخرى."));
     }
   };
 
@@ -241,16 +263,19 @@ const MyHRScreen: React.FC = () => {
     setAttendanceMsg(null);
     try {
       await api.post("hr/my/attendance/check-out/");
-      setAttendanceMsg("تم تسجيل الانصراف بنجاح.");
+      setAttendanceMsg(t("myHr.checkOutSuccess", "تم تسجيل الانصراف بنجاح."));
       qc.invalidateQueries({ queryKey: ["my-hr", "attendance"] });
     } catch (e: any) {
-      setAttendanceMsg(parseApiError(e) || "تعذر تسجيل الانصراف. حاول مرة أخرى.");
+      setAttendanceMsg(parseApiError(e) || t("myHr.checkOutError", "تعذر تسجيل الانصراف. حاول مرة أخرى."));
     }
   };
 
   const submitLeave = async () => {
     if (!leaveStart.trim() || !leaveEnd.trim()) {
-      Alert.alert("تنبيه", "الرجاء اختيار تاريخ البداية والنهاية.");
+      Alert.alert(
+        t("myHr.alertNoticeTitle", "تنبيه"),
+        t("myHr.leaveDatesMissing", "الرجاء اختيار تاريخ البداية والنهاية."),
+      );
       return;
     }
     setLeaveSaving(true);
@@ -266,9 +291,12 @@ const MyHRScreen: React.FC = () => {
       setLeaveEnd("");
       setLeaveReason("");
       qc.invalidateQueries({ queryKey: ["my-hr", "leaves"] });
-      Alert.alert("تم", "تم إرسال طلب الإجازة.");
+      Alert.alert(t("myHr.alertSuccessTitle", "تم"), t("myHr.leaveSubmitted", "تم إرسال طلب الإجازة."));
     } catch (e: any) {
-      Alert.alert("تعذر الإرسال", parseApiError(e) || "تعذر إرسال طلب الإجازة.");
+      Alert.alert(
+        t("myHr.alertSendErrorTitle", "تعذر الإرسال"),
+        parseApiError(e) || t("myHr.leaveSubmitError", "تعذر إرسال طلب الإجازة."),
+      );
     } finally {
       setLeaveSaving(false);
     }
@@ -276,7 +304,7 @@ const MyHRScreen: React.FC = () => {
 
   const submitWorkReport = async () => {
     if (!reportDate.trim()) {
-      Alert.alert("تنبيه", "الرجاء اختيار التاريخ.");
+      Alert.alert(t("myHr.alertNoticeTitle", "تنبيه"), t("myHr.workDateMissing", "الرجاء اختيار التاريخ."));
       return;
     }
     setReportSaving(true);
@@ -294,9 +322,12 @@ const MyHRScreen: React.FC = () => {
       setReportReason("");
       setReportNotes("");
       qc.invalidateQueries({ queryKey: ["my-hr", "work-reports"] });
-      Alert.alert("تم", "تم إرسال تقرير العمل.");
+      Alert.alert(t("myHr.alertSuccessTitle", "تم"), t("myHr.workSubmitted", "تم إرسال تقرير العمل."));
     } catch (e: any) {
-      Alert.alert("تعذر الإرسال", parseApiError(e) || "تعذر إرسال تقرير العمل.");
+      Alert.alert(
+        t("myHr.alertSendErrorTitle", "تعذر الإرسال"),
+        parseApiError(e) || t("myHr.workSubmitError", "تعذر إرسال تقرير العمل."),
+      );
     } finally {
       setReportSaving(false);
     }
@@ -304,7 +335,7 @@ const MyHRScreen: React.FC = () => {
 
   const submitRaise = async () => {
     if (!raiseAmount.trim()) {
-      Alert.alert("تنبيه", "الرجاء إدخال المبلغ المطلوب.");
+      Alert.alert(t("myHr.alertNoticeTitle", "تنبيه"), t("myHr.raiseAmountMissing", "الرجاء إدخال المبلغ المطلوب."));
       return;
     }
     setRaiseSaving(true);
@@ -316,9 +347,12 @@ const MyHRScreen: React.FC = () => {
       setRaiseAmount("");
       setRaiseReason("");
       qc.invalidateQueries({ queryKey: ["my-hr", "raises"] });
-      Alert.alert("تم", "تم إرسال طلب زيادة الراتب.");
+      Alert.alert(t("myHr.alertSuccessTitle", "تم"), t("myHr.raiseSubmitted", "تم إرسال طلب زيادة الراتب."));
     } catch (e: any) {
-      Alert.alert("تعذر الإرسال", parseApiError(e) || "تعذر إرسال طلب زيادة الراتب.");
+      Alert.alert(
+        t("myHr.alertSendErrorTitle", "تعذر الإرسال"),
+        parseApiError(e) || t("myHr.raiseSubmitError", "تعذر إرسال طلب زيادة الراتب."),
+      );
     } finally {
       setRaiseSaving(false);
     }
@@ -330,7 +364,10 @@ const MyHRScreen: React.FC = () => {
       await api.post("hr/my/notifications/mark-all-read/");
       qc.invalidateQueries({ queryKey: ["my-hr", "notifications"] });
     } catch (e: any) {
-      Alert.alert("تعذر التنفيذ", parseApiError(e) || "تعذر تعليم التنبيهات كمقروء.");
+      Alert.alert(
+        t("myHr.alertActionErrorTitle", "تعذر التنفيذ"),
+        parseApiError(e) || t("myHr.notificationsMarkError", "تعذر تعليم التنبيهات كمقروء."),
+      );
     } finally {
       setNotifSaving(false);
     }
@@ -349,11 +386,11 @@ const MyHRScreen: React.FC = () => {
 
   const submitDocument = async () => {
     if (!docName.trim()) {
-      Alert.alert("تنبيه", "يرجى إدخال اسم المستند.");
+      Alert.alert(t("myHr.alertNoticeTitle", "تنبيه"), t("myHr.documentNameMissing", "يرجى إدخال اسم المستند."));
       return;
     }
     if (!docFileUri) {
-      Alert.alert("تنبيه", "يرجى اختيار ملف أو صورة للمستند.");
+      Alert.alert(t("myHr.alertNoticeTitle", "تنبيه"), t("myHr.documentFileMissing", "يرجى اختيار ملف أو صورة للمستند."));
       return;
     }
 
@@ -379,22 +416,29 @@ const MyHRScreen: React.FC = () => {
       setDocExpiryDate("");
       setDocFileUri(null);
       qc.invalidateQueries({ queryKey: ["my-hr", "documents"] });
-      Alert.alert("تم الرفع", "تم رفع المستند بنجاح.");
+      Alert.alert(t("myHr.alertUploadSuccessTitle", "تم الرفع"), t("myHr.documentUploadSuccess", "تم رفع المستند بنجاح."));
     } catch (e: any) {
-      Alert.alert("تعذر الرفع", parseApiError(e) || "حدث خطأ أثناء رفع المستند.");
+      Alert.alert(
+        t("myHr.alertUploadErrorTitle", "تعذر الرفع"),
+        parseApiError(e) || t("myHr.documentUploadError", "حدث خطأ أثناء رفع المستند."),
+      );
     } finally {
       setDocSaving(false);
     }
   };
 
   const docStatusLabel = (d: MyDocument) => {
-    if (d.is_expired) return "منتهي";
+    if (d.is_expired) return t("myHr.documentStatusExpired", "منتهي");
     if (d.is_expiring_soon) {
-      return typeof d.days_to_expiry === "number"
-        ? `قارب على الانتهاء (${d.days_to_expiry} يوم)`
-        : "قارب على الانتهاء";
+      if (typeof d.days_to_expiry === "number") {
+        return t("myHr.documentStatusExpiringIn", "قارب على الانتهاء ({days} يوم)").replace(
+          "{days}",
+          String(d.days_to_expiry),
+        );
+      }
+      return t("myHr.documentStatusExpiringSoon", "قارب على الانتهاء");
     }
-    return "ساري";
+    return t("myHr.documentStatusActive", "ساري");
   };
 
   const StatusPill = ({ value }: { value?: string | null }) => {
@@ -402,65 +446,108 @@ const MyHRScreen: React.FC = () => {
     return (
       <View style={[styles.statusPill, { backgroundColor: `${tint}14`, borderColor: `${tint}33` }]}>
         <Text style={[styles.statusPillText, { color: tint }]} numberOfLines={1}>
-          {statusLabel(value || undefined)}
+          {statusLabel(value || undefined, t)}
         </Text>
       </View>
     );
   };
 
   return (
-    <DashboardShell title="طلباتي وحقوقي الوظيفية" subtitle="من هنا يمكنك إدارة الحضور، الإجازات، تقارير العمل، طلبات الزيادة، الرواتب والتنبيهات.">
-      <DashboardSection title="الحضور اليومي" subtitle="سجّل حضورك وانصرافك، وسيظهر مباشرة في الموارد البشرية.">
+    <DashboardShell
+      title={t("myHr.title", "طلباتي وحقوقي الوظيفية")}
+      subtitle={t(
+        "myHr.subtitle",
+        "من هنا يمكنك إدارة الحضور، الإجازات، تقارير العمل، طلبات الزيادة، الرواتب والتنبيهات.",
+      )}
+    >
+      <DashboardSection
+        title={t("myHr.attendanceTitle", "الحضور اليومي")}
+        subtitle={t("myHr.attendanceSubtitle", "سجّل حضورك وانصرافك، وسيظهر مباشرة في الموارد البشرية.")}
+      >
         <View style={styles.actionsRow}>
-          <Button title="تسجيل حضور الآن" color={theme.palette.success} onPress={handleCheckIn} />
-          <Button title="تسجيل انصراف الآن" color={theme.palette.danger} onPress={handleCheckOut} />
+          <Button title={t("myHr.checkInNow", "تسجيل حضور الآن")} color={theme.palette.success} onPress={handleCheckIn} />
+          <Button title={t("myHr.checkOutNow", "تسجيل انصراف الآن")} color={theme.palette.danger} onPress={handleCheckOut} />
         </View>
         {attendanceMsg ? <Text style={[styles.notice, { color: theme.palette.muted }]}>{attendanceMsg}</Text> : null}
 
-        <Text style={[styles.smallLabel, { color: theme.palette.muted }]}>آخر سجلات الحضور:</Text>
+        <Text style={[styles.smallLabel, { color: theme.palette.muted }]}>
+          {t("myHr.attendanceLatestLabel", "آخر سجلات الحضور:")}
+        </Text>
         {attendanceLoading ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>جارٍ تحميل الحضور...</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.attendanceLoading", "جارٍ تحميل الحضور...")}</Text>
         ) : attendance.length === 0 ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>لا توجد سجلات حضور لعرضها.</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>
+            {t("myHr.attendanceEmpty", "لا توجد سجلات حضور لعرضها.")}
+          </Text>
         ) : (
           <View style={{ gap: 10 }}>
             {attendance.slice(0, 10).map((a) => (
               <DashboardListItem
                 key={a.id}
                 title={a.date}
-                subtitle={`الحضور: ${a.check_in || "-"} • الانصراف: ${a.check_out || "-"} • ${a.status || ""}`}
+                subtitle={`${t("myHr.attendanceCheckInLabel", "الحضور")}: ${a.check_in || "-"} • ${t(
+                  "myHr.attendanceCheckOutLabel",
+                  "الانصراف",
+                )}: ${a.check_out || "-"} • ${a.status || ""}`}
                 icon="calendar-outline"
-                right={a.total_hours ? <Text style={[styles.mutedRight, { color: theme.palette.muted }]}>{`${a.total_hours} س`}</Text> : undefined}
+                right={
+                  a.total_hours ? (
+                    <Text style={[styles.mutedRight, { color: theme.palette.muted }]}>
+                      {`${a.total_hours} ${t("myHr.hoursShort", "س")}`}
+                    </Text>
+                  ) : undefined
+                }
               />
             ))}
           </View>
         )}
       </DashboardSection>
 
-      <DashboardSection title="طلبات الإجازة" subtitle="قدّم طلب إجازة مع التواريخ والسبب.">
-        <Select label="نوع الإجازة" value={leaveType} options={leaveTypeOptions} onChange={(v) => setLeaveType(String(v))} />
+      <DashboardSection
+        title={t("myHr.leaveTitle", "طلبات الإجازة")}
+        subtitle={t("myHr.leaveSubtitle", "قدّم طلب إجازة مع التواريخ والسبب.")}
+      >
+        <Select
+          label={t("myHr.leaveTypeLabel", "نوع الإجازة")}
+          value={leaveType}
+          options={leaveTypeOptions}
+          onChange={(v) => setLeaveType(String(v))}
+        />
         <View style={styles.actionsRow}>
           <View style={{ flex: 1 }}>
-            <Input label="من تاريخ" value={leaveStart} onChangeText={setLeaveStart} placeholder={todayIso()} />
+            <Input label={t("myHr.leaveStartLabel", "من تاريخ")} value={leaveStart} onChangeText={setLeaveStart} placeholder={todayIso()} />
           </View>
           <View style={{ flex: 1 }}>
-            <Input label="إلى تاريخ" value={leaveEnd} onChangeText={setLeaveEnd} placeholder={todayIso()} />
+            <Input label={t("myHr.leaveEndLabel", "إلى تاريخ")} value={leaveEnd} onChangeText={setLeaveEnd} placeholder={todayIso()} />
           </View>
         </View>
-        <Input label="السبب (اختياري)" value={leaveReason} onChangeText={setLeaveReason} multiline numberOfLines={3} />
-        <Button title={leaveSaving ? copy.messages.loading : "إرسال الطلب"} onPress={submitLeave} disabled={leaveSaving} loading={leaveSaving} />
+        <Input
+          label={t("myHr.leaveReasonLabel", "السبب (اختياري)")}
+          value={leaveReason}
+          onChangeText={setLeaveReason}
+          multiline
+          numberOfLines={3}
+        />
+        <Button
+          title={leaveSaving ? t("common.sending", "جارٍ الإرسال...") : t("myHr.leaveSubmit", "إرسال الطلب")}
+          onPress={submitLeave}
+          disabled={leaveSaving}
+          loading={leaveSaving}
+        />
 
         {leaveLoading ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>جارٍ تحميل الطلبات...</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.leaveLoading", "جارٍ تحميل الطلبات...")}</Text>
         ) : leaves.length === 0 ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>لا توجد طلبات حالياً.</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.leaveEmpty", "لا توجد طلبات حالياً.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {leaves.map((l) => (
               <DashboardListItem
                 key={l.id}
                 title={`${l.start_date} → ${l.end_date}`}
-                subtitle={`${l.leave_type}${l.days_requested != null ? ` • ${l.days_requested} يوم` : ""}${l.reason ? ` • ${l.reason}` : ""}`}
+                subtitle={`${leaveTypeLabel(l.leave_type)}${
+                  l.days_requested != null ? ` • ${l.days_requested} ${t("myHr.dayUnit", "يوم")}` : ""
+                }${l.reason ? ` • ${l.reason}` : ""}`}
                 icon="leaf-outline"
                 right={<StatusPill value={l.status} />}
               />
@@ -469,31 +556,67 @@ const MyHRScreen: React.FC = () => {
         )}
       </DashboardSection>
 
-      <DashboardSection title="تقرير عمل / سبب غياب" subtitle="أدخل ساعات عملك أو سبب الغياب ليظهر لمسؤول الموارد البشرية.">
-        <Input label="التاريخ" value={reportDate} onChangeText={setReportDate} placeholder={todayIso()} />
+      <DashboardSection
+        title={t("myHr.workReportTitle", "تقرير عمل / سبب غياب")}
+        subtitle={t("myHr.workReportSubtitle", "أدخل ساعات عملك أو سبب الغياب ليظهر لمسؤول الموارد البشرية.")}
+      >
+        <Input label={t("myHr.workReportDateLabel", "التاريخ")} value={reportDate} onChangeText={setReportDate} placeholder={todayIso()} />
         <View style={styles.actionsRow}>
           <View style={{ flex: 1 }}>
-            <Input label="ساعات العمل" value={reportHours} onChangeText={setReportHours} keyboardType="numeric" placeholder="0" />
+            <Input
+              label={t("myHr.workReportHoursLabel", "ساعات العمل")}
+              value={reportHours}
+              onChangeText={setReportHours}
+              keyboardType="numeric"
+              placeholder="0"
+            />
           </View>
           <View style={{ flex: 1 }}>
-            <Input label="ساعات إضافية" value={reportOvertime} onChangeText={setReportOvertime} keyboardType="numeric" placeholder="0" />
+            <Input
+              label={t("myHr.workReportOvertimeLabel", "ساعات إضافية")}
+              value={reportOvertime}
+              onChangeText={setReportOvertime}
+              keyboardType="numeric"
+              placeholder="0"
+            />
           </View>
         </View>
-        <Input label="سبب الغياب (إن وجد)" value={reportReason} onChangeText={setReportReason} multiline numberOfLines={2} />
-        <Input label="ملاحظات إضافية" value={reportNotes} onChangeText={setReportNotes} multiline numberOfLines={2} />
-        <Button title={reportSaving ? copy.messages.loading : "إرسال التقرير"} color={theme.status.info} onPress={submitWorkReport} disabled={reportSaving} loading={reportSaving} />
+        <Input
+          label={t("myHr.workReportReasonLabel", "سبب الغياب (إن وجد)")}
+          value={reportReason}
+          onChangeText={setReportReason}
+          multiline
+          numberOfLines={2}
+        />
+        <Input
+          label={t("myHr.workReportNotesLabel", "ملاحظات إضافية")}
+          value={reportNotes}
+          onChangeText={setReportNotes}
+          multiline
+          numberOfLines={2}
+        />
+        <Button
+          title={reportSaving ? t("common.sending", "جارٍ الإرسال...") : t("myHr.workReportSubmit", "إرسال التقرير")}
+          color={theme.status.info}
+          onPress={submitWorkReport}
+          disabled={reportSaving}
+          loading={reportSaving}
+        />
 
         {workLoading ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>جارٍ تحميل التقارير...</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.workReportLoading", "جارٍ تحميل التقارير...")}</Text>
         ) : workReports.length === 0 ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>لا توجد تقارير عمل حالياً.</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.workReportEmpty", "لا توجد تقارير عمل حالياً.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {workReports.map((w) => (
               <DashboardListItem
                 key={w.id}
                 title={w.date}
-                subtitle={`ساعات: ${w.hours_worked} • إضافي: ${w.overtime_hours} • ${w.absence_reason || w.notes || ""}`}
+                subtitle={`${t("myHr.workReportHoursShort", "ساعات")}: ${w.hours_worked} • ${t(
+                  "myHr.workReportOvertimeShort",
+                  "إضافي",
+                )}: ${w.overtime_hours} • ${w.absence_reason || w.notes || ""}`}
                 icon="document-text-outline"
                 right={<StatusPill value={w.status === "pending" ? "pending" : "approved"} />}
               />
@@ -502,22 +625,44 @@ const MyHRScreen: React.FC = () => {
         )}
       </DashboardSection>
 
-      <DashboardSection title="طلب زيادة راتب" subtitle="يمكنك إرسال طلب زيادة راتب مع توضيح السبب.">
-        <Input label="المبلغ المطلوب" value={raiseAmount} onChangeText={setRaiseAmount} keyboardType="numeric" placeholder="0" />
-        <Input label="السبب (اختياري)" value={raiseReason} onChangeText={setRaiseReason} multiline numberOfLines={2} />
-        <Button title={raiseSaving ? copy.messages.loading : "إرسال الطلب"} onPress={submitRaise} disabled={raiseSaving} loading={raiseSaving} />
+      <DashboardSection
+        title={t("myHr.raiseTitle", "طلب زيادة راتب")}
+        subtitle={t("myHr.raiseSubtitle", "يمكنك إرسال طلب زيادة راتب مع توضيح السبب.")}
+      >
+        <Input
+          label={t("myHr.raiseAmountLabel", "المبلغ المطلوب")}
+          value={raiseAmount}
+          onChangeText={setRaiseAmount}
+          keyboardType="numeric"
+          placeholder="0"
+        />
+        <Input
+          label={t("myHr.raiseReasonLabel", "السبب (اختياري)")}
+          value={raiseReason}
+          onChangeText={setRaiseReason}
+          multiline
+          numberOfLines={2}
+        />
+        <Button
+          title={raiseSaving ? t("common.sending", "جارٍ الإرسال...") : t("myHr.raiseSubmit", "إرسال الطلب")}
+          onPress={submitRaise}
+          disabled={raiseSaving}
+          loading={raiseSaving}
+        />
 
         {raisesLoading ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>جارٍ تحميل الطلبات...</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.raiseLoading", "جارٍ تحميل الطلبات...")}</Text>
         ) : raises.length === 0 ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>لا توجد طلبات زيادة راتب حالياً.</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>
+            {t("myHr.raiseEmpty", "لا توجد طلبات زيادة راتب حالياً.")}
+          </Text>
         ) : (
           <View style={{ gap: 10 }}>
             {raises.map((r) => (
               <DashboardListItem
                 key={r.id}
                 title={r.created_at?.slice(0, 10) || "—"}
-                subtitle={`المبلغ: ${r.requested_amount}${r.reason ? ` • ${r.reason}` : ""}`}
+                subtitle={`${t("myHr.raiseAmountShortLabel", "المبلغ")}: ${r.requested_amount}${r.reason ? ` • ${r.reason}` : ""}`}
                 icon="cash-outline"
                 right={<StatusPill value={r.status} />}
               />
@@ -526,11 +671,14 @@ const MyHRScreen: React.FC = () => {
         )}
       </DashboardSection>
 
-      <DashboardSection title="سجلات الرواتب الخاصة بي" subtitle="قائمة الرواتب المسجّلة لك في النظام حسب الشهور.">
+      <DashboardSection
+        title={t("myHr.payrollTitle", "سجلات الرواتب الخاصة بي")}
+        subtitle={t("myHr.payrollSubtitle", "قائمة الرواتب المسجّلة لك في النظام حسب الشهور.")}
+      >
         {payrollLoading ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>جارٍ تحميل بيانات الرواتب...</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.payrollLoading", "جارٍ تحميل بيانات الرواتب...")}</Text>
         ) : payrolls.length === 0 ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>لا توجد سجلات رواتب حتى الآن.</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.payrollEmpty", "لا توجد سجلات رواتب حتى الآن.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {payrolls.map((p) => {
@@ -539,7 +687,7 @@ const MyHRScreen: React.FC = () => {
                 <DashboardListItem
                   key={p.id}
                   title={p.month?.slice(0, 7) || "—"}
-                  subtitle={`أساسي: ${p.basic_salary} • صافي: ${p.net_salary}`}
+                  subtitle={`${t("myHr.payrollBasicLabel", "أساسي")}: ${p.basic_salary} • ${t("myHr.payrollNetLabel", "صافي")}: ${p.net_salary}`}
                   icon="wallet-outline"
                   right={
                     <View style={{ alignItems: "flex-start", gap: 6 }}>
@@ -554,9 +702,12 @@ const MyHRScreen: React.FC = () => {
         )}
       </DashboardSection>
 
-      <DashboardSection title="تنبيهاتي" subtitle="هنا تظهر آخر التنبيهات المتعلقة بطلباتك ورواتبك.">
+      <DashboardSection
+        title={t("myHr.notificationsTitle", "تنبيهاتي")}
+        subtitle={t("myHr.notificationsSubtitle", "هنا تظهر آخر التنبيهات المتعلقة بطلباتك ورواتبك.")}
+      >
         <Button
-          title={notifSaving ? "جارٍ التحديث..." : "تعليم الكل كمقروء"}
+          title={notifSaving ? t("myHr.notificationsUpdating", "جارٍ التحديث...") : t("myHr.notificationsMarkAll", "تعليم الكل كمقروء")}
           variant="secondary"
           size="sm"
           onPress={markAllNotificationsRead}
@@ -565,9 +716,11 @@ const MyHRScreen: React.FC = () => {
         />
 
         {notifLoading ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>جارٍ تحميل التنبيهات...</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.notificationsLoading", "جارٍ تحميل التنبيهات...")}</Text>
         ) : notifications.length === 0 ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>لا توجد تنبيهات حالياً.</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>
+            {t("myHr.notificationsEmpty", "لا توجد تنبيهات حالياً.")}
+          </Text>
         ) : (
           <View style={{ gap: 10 }}>
             {notifications.slice(0, 10).map((n) => (
@@ -584,38 +737,72 @@ const MyHRScreen: React.FC = () => {
         )}
       </DashboardSection>
 
-      <DashboardSection title="رفع مستند" subtitle="يمكنك رفع صورة للمستند وربطها ببياناته.">
-        <Select label="نوع المستند" value={docType} options={docTypeOptions} onChange={setDocType} />
-        <Input label="اسم المستند" value={docName} onChangeText={setDocName} />
+      <DashboardSection
+        title={t("myHr.documentsUploadTitle", "رفع مستند")}
+        subtitle={t("myHr.documentsUploadSubtitle", "يمكنك رفع صورة للمستند وربطها ببياناته.")}
+      >
+        <Select label={t("myHr.documentsTypeLabel", "نوع المستند")} value={docType} options={docTypeOptions} onChange={setDocType} />
+        <Input label={t("myHr.documentsNameLabel", "اسم المستند")} value={docName} onChangeText={setDocName} />
         <View style={styles.actionsRow}>
           <View style={{ flex: 1 }}>
-            <Input label="تاريخ الإصدار (اختياري)" value={docIssueDate} onChangeText={setDocIssueDate} placeholder={todayIso()} />
+            <Input
+              label={t("myHr.documentsIssueDateLabel", "تاريخ الإصدار (اختياري)")}
+              value={docIssueDate}
+              onChangeText={setDocIssueDate}
+              placeholder={todayIso()}
+            />
           </View>
           <View style={{ flex: 1 }}>
-            <Input label="تاريخ الانتهاء (اختياري)" value={docExpiryDate} onChangeText={setDocExpiryDate} placeholder={todayIso()} />
+            <Input
+              label={t("myHr.documentsExpiryDateLabel", "تاريخ الانتهاء (اختياري)")}
+              value={docExpiryDate}
+              onChangeText={setDocExpiryDate}
+              placeholder={todayIso()}
+            />
           </View>
         </View>
-        <Button title={docFileUri ? "تغيير الملف" : "اختيار ملف"} variant="secondary" onPress={pickDocumentImage} />
+        <Button
+          title={docFileUri ? t("myHr.documentsChangeFile", "تغيير الملف") : t("myHr.documentsPickFile", "اختيار ملف")}
+          variant="secondary"
+          onPress={pickDocumentImage}
+        />
         {docFileUri ? <Image source={{ uri: docFileUri }} style={styles.preview} /> : null}
-        <Button title={docSaving ? copy.messages.loading : "رفع المستند"} onPress={submitDocument} disabled={docSaving} loading={docSaving} />
+        <Button
+          title={docSaving ? t("common.sending", "جارٍ الإرسال...") : t("myHr.documentsUploadButton", "رفع المستند")}
+          onPress={submitDocument}
+          disabled={docSaving}
+          loading={docSaving}
+        />
       </DashboardSection>
 
-      <DashboardSection title="مستنداتي" subtitle={documents.length ? "آخر المستندات المرفوعة." : "لا توجد مستندات بعد."}>
+      <DashboardSection
+        title={t("myHr.documentsTitle", "مستنداتي")}
+        subtitle={
+          documents.length
+            ? t("myHr.documentsSubtitle", "آخر المستندات المرفوعة.")
+            : t("myHr.documentsEmptySubtitle", "لا توجد مستندات بعد.")
+        }
+      >
         {documents.length === 0 ? (
-          <Text style={[styles.notice, { color: theme.palette.muted }]}>لا توجد مستندات.</Text>
+          <Text style={[styles.notice, { color: theme.palette.muted }]}>{t("myHr.documentsEmpty", "لا توجد مستندات.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {documents.slice(0, 20).map((d) => (
               <DashboardListItem
                 key={d.id}
-                title={`${DOC_LABELS[d.document_type] || d.document_type} • ${d.document_name}`}
-                subtitle={`${docStatusLabel(d)}${d.expiry_date ? ` • الانتهاء: ${d.expiry_date}` : ""}`}
+                title={`${docTypeLabel(d.document_type)} • ${d.document_name}`}
+                subtitle={`${docStatusLabel(d)}${
+                  d.expiry_date ? ` • ${t("myHr.documentsExpiryShort", "الانتهاء")}: ${d.expiry_date}` : ""
+                }`}
                 icon="folder-open-outline"
                 onPress={
                   d.file
                     ? () => {
                         Linking.openURL(d.file as string).catch(() =>
-                          Alert.alert("تعذر الفتح", "تعذر فتح الملف على هذا الجهاز.")
+                          Alert.alert(
+                            t("myHr.alertOpenErrorTitle", "تعذر الفتح"),
+                            t("myHr.documentOpenError", "تعذر فتح الملف على هذا الجهاز."),
+                          )
                         );
                       }
                     : undefined
@@ -629,7 +816,7 @@ const MyHRScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     actionsRow: {
       flexDirection: "row",
@@ -638,12 +825,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "space-between",
     },
     notice: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       lineHeight: 18,
     },
     smallLabel: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 12,
       fontWeight: "800",
     },
@@ -678,7 +865,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     mutedRight: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: "left",
+      textAlign: isRTL ? "right" : "left",
     },
   });
 

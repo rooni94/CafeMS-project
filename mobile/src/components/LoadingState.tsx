@@ -7,7 +7,7 @@ type LoadingStateProps = {
 };
 
 const LoadingState: React.FC<LoadingStateProps> = ({ message }) => {
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   return (
     <View style={styles.container}>
       <ActivityIndicator color="#f59e0b" />

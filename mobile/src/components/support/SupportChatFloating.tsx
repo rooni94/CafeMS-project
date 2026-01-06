@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Pressable, Modal, TextInput, ScrollView, ActivityIndicator, Platform, Keyboard, I18nManager } from "react-native";
+import { View, Text, StyleSheet, Pressable, Modal, TextInput, ScrollView, ActivityIndicator, Platform, Keyboard } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
@@ -61,7 +61,7 @@ const b64ToUri = async (base64?: string | null, mime = "audio/mpeg") => {
 
 const SupportChatFloating: React.FC = () => {
   const { user, accessToken } = useAuth();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const isGuest = !user;
 
   const [open, setOpen] = useState(false);
@@ -102,7 +102,7 @@ const SupportChatFloating: React.FC = () => {
   const soundRef = useRef<Audio.Sound | null>(null);
 
   const wsBase = useMemo(() => getWsBaseUrl(), []);
-  const styles = useMemo(() => createStyles(), []);
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
 
   useEffect(() => {
     voiceOverlayRef.current = voiceOverlay;
@@ -794,7 +794,7 @@ const SupportChatFloating: React.FC = () => {
                     value={guestName}
                     onChangeText={setGuestName}
                     style={styles.input}
-                    textAlign="right"
+                    textAlign={isRTL ? "right" : "left"}
                     placeholder={t("supportChat.namePlaceholder", "الاسم")}
                   />
                   <Text style={styles.inputLabel}>{t("supportChat.emailLabel", "البريد الإلكتروني")}</Text>
@@ -802,7 +802,7 @@ const SupportChatFloating: React.FC = () => {
                     value={guestEmail}
                     onChangeText={setGuestEmail}
                     style={styles.input}
-                    textAlign="right"
+                    textAlign={isRTL ? "right" : "left"}
                     placeholder="example@mail.com"
                     keyboardType="email-address"
                   />
@@ -936,7 +936,7 @@ const SupportChatFloating: React.FC = () => {
   );
 };
 
-const createStyles = () =>
+const createStyles = (isRTL: boolean) =>
   StyleSheet.create({
     fab: {
       position: "absolute",
@@ -1013,18 +1013,18 @@ const createStyles = () =>
       fontSize: 15,
       fontWeight: "700",
       color: "#0f172a",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     bodyHint: {
       fontSize: 12,
       color: "#6b7280",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     inputLabel: {
       fontSize: 12,
       fontWeight: "700",
       color: "#374151",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     input: {
       borderWidth: 1,
@@ -1037,7 +1037,7 @@ const createStyles = () =>
     },
     error: {
       color: "#dc2626",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 12,
     },
     codeRow: {
@@ -1114,17 +1114,17 @@ const createStyles = () =>
       fontSize: 10,
       color: "#64748b",
       marginBottom: 2,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     messageText: {
       fontSize: 12,
       color: "#0f172a",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     messageTime: {
       fontSize: 9,
       color: "#94a3b8",
-      textAlign: "left",
+      textAlign: isRTL ? "right" : "left",
       marginTop: 4,
     },
     chatInputRow: {
@@ -1144,7 +1144,7 @@ const createStyles = () =>
       borderRadius: 999,
       paddingHorizontal: 10,
       paddingVertical: 6,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       backgroundColor: "#fff",
       color: "#0f172a",
     },

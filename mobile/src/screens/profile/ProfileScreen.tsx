@@ -1,5 +1,5 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Linking, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import QRCode from "react-native-qrcode-svg";
 
@@ -27,7 +27,7 @@ type LoyaltyProfile = {
 
 const PasswordChangeForm: React.FC = () => {
   const theme = useTheme();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const { accessToken } = useAuth();
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword1, setNewPassword1] = useState("");
@@ -116,8 +116,8 @@ const PasswordChangeForm: React.FC = () => {
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-  const { locale, setLocale, t } = useI18n();
+  const { locale, setLocale, t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user, accessToken, permissions, logout } = useAuth();
 
   const isAuthenticated = !!user && !!accessToken;
@@ -534,7 +534,7 @@ const ProfileScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     tilesGrid: {
       flexDirection: "row",
@@ -546,7 +546,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       marginBottom: 6,
     },
     muted: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       lineHeight: 18,
     },
@@ -579,4 +579,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default ProfileScreen;
-

@@ -8,7 +8,7 @@ const QuickInvoiceScreen: React.FC = () => {
   const [orderId, setOrderId] = useState("");
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
 
   const submit = async () => {
     setMessage(null);

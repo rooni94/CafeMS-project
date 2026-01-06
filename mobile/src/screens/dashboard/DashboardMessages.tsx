@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Input } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
@@ -24,10 +24,10 @@ type ContactMessage = {
 
 const DashboardMessages: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
-  const { t } = useI18n();
 
   const allowed = has(user, permissions, "can_manage_contact_messages");
 
@@ -145,10 +145,10 @@ const DashboardMessages: React.FC = () => {
   );
 };
 
-const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+const createStyles = (_theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     empty: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
     },
     badge: {
@@ -173,12 +173,12 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       flex: 1,
       fontSize: 13,
       fontWeight: "800",
-      textAlign: "left",
+      textAlign: isRTL ? "right" : "left",
     },
     messageBody: {
       fontSize: 13,
       lineHeight: 20,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
   });
 

@@ -9,6 +9,7 @@ import DashboardShell from "./components/DashboardShell";
 import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import { has } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type StoreSettings = {
   store_name?: string;
@@ -22,7 +23,8 @@ type StoreSettings = {
 
 const DashboardSettings: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
 
@@ -61,7 +63,12 @@ const DashboardSettings: React.FC = () => {
   }, [settings]);
 
   if (!allowed) {
-    return <DashboardAccessDenied title="إعدادات المتجر" subtitle="تحديث بيانات المتجر ومحتوى الواجهة." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.settingsTitle", "إعدادات المتجر")}
+        subtitle={t("dashboard.settingsSubtitle", "تحديث بيانات المتجر ومحتوى الواجهة.")}
+      />
+    );
   }
 
   const save = async () => {
@@ -76,60 +83,83 @@ const DashboardSettings: React.FC = () => {
         hero_subtitle: form.hero_subtitle,
       });
       qc.invalidateQueries({ queryKey: ["dashboard", "store-settings"] });
-      Alert.alert("تم الحفظ", "تم تحديث إعدادات المتجر بنجاح.");
+      Alert.alert(t("dashboard.settingsSaveTitle", "تم الحفظ"), t("dashboard.settingsSaveBody", "تم تحديث إعدادات المتجر بنجاح."));
     } catch {
-      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء حفظ الإعدادات.");
+      Alert.alert(t("dashboard.settingsSaveErrorTitle", "تعذر الحفظ"), t("dashboard.settingsSaveErrorBody", "حدث خطأ أثناء حفظ الإعدادات."));
     }
   };
 
   return (
-    <DashboardShell title="إعدادات المتجر" subtitle="تحديث بيانات المتجر ومحتوى الواجهة.">
-      <DashboardSection title="البيانات الأساسية" subtitle={isLoading ? "جاري التحميل..." : "قم بتحديث البيانات ثم احفظ."}>
-        <Input label="اسم المتجر" value={form.store_name || ""} onChangeText={(v) => setForm((p) => ({ ...p, store_name: v }))} />
-        <Input label="العنوان" value={form.contact_address || ""} onChangeText={(v) => setForm((p) => ({ ...p, contact_address: v }))} />
+    <DashboardShell title={t("dashboard.settingsTitle", "إعدادات المتجر")} subtitle={t("dashboard.settingsSubtitle", "تحديث بيانات المتجر ومحتوى الواجهة.")}>
+      <DashboardSection
+        title={t("dashboard.settingsBasicsTitle", "البيانات الأساسية")}
+        subtitle={
+          isLoading
+            ? t("dashboard.settingsLoading", "جاري التحميل...")
+            : t("dashboard.settingsBasicsSubtitle", "قم بتحديث البيانات ثم احفظ.")
+        }
+      >
         <Input
-          label="رقم التواصل"
+          label={t("dashboard.settingsStoreNameLabel", "اسم المتجر")}
+          value={form.store_name || ""}
+          onChangeText={(v) => setForm((p) => ({ ...p, store_name: v }))}
+        />
+        <Input
+          label={t("dashboard.settingsAddressLabel", "العنوان")}
+          value={form.contact_address || ""}
+          onChangeText={(v) => setForm((p) => ({ ...p, contact_address: v }))}
+        />
+        <Input
+          label={t("dashboard.settingsPhoneLabel", "رقم التواصل")}
           value={form.contact_phone || ""}
           keyboardType="phone-pad"
           onChangeText={(v) => setForm((p) => ({ ...p, contact_phone: v }))}
         />
         <Input
-          label="البريد الإلكتروني"
+          label={t("dashboard.settingsEmailLabel", "البريد الإلكتروني")}
           value={form.contact_email || ""}
           keyboardType="email-address"
           onChangeText={(v) => setForm((p) => ({ ...p, contact_email: v }))}
         />
-        <Input label="ساعات العمل" value={form.contact_hours || ""} onChangeText={(v) => setForm((p) => ({ ...p, contact_hours: v }))} />
+        <Input
+          label={t("dashboard.settingsHoursLabel", "ساعات العمل")}
+          value={form.contact_hours || ""}
+          onChangeText={(v) => setForm((p) => ({ ...p, contact_hours: v }))}
+        />
       </DashboardSection>
 
-      <DashboardSection title="الواجهة الرئيسية" subtitle="نص العنوان والوصف في واجهة المستخدم.">
-        <Input label="عنوان البطل" value={form.hero_title || ""} onChangeText={(v) => setForm((p) => ({ ...p, hero_title: v }))} />
+      <DashboardSection title={t("dashboard.settingsHeroTitle", "الواجهة الرئيسية")} subtitle={t("dashboard.settingsHeroSubtitle", "نص العنوان والوصف في واجهة المستخدم.")}>
         <Input
-          label="وصف البطل"
+          label={t("dashboard.settingsHeroHeadlineLabel", "عنوان البطل")}
+          value={form.hero_title || ""}
+          onChangeText={(v) => setForm((p) => ({ ...p, hero_title: v }))}
+        />
+        <Input
+          label={t("dashboard.settingsHeroDescriptionLabel", "وصف البطل")}
           value={form.hero_subtitle || ""}
           onChangeText={(v) => setForm((p) => ({ ...p, hero_subtitle: v }))}
           multiline
           numberOfLines={3}
         />
-        <Button title="حفظ الإعدادات" onPress={save} />
+        <Button title={t("dashboard.settingsSaveButton", "حفظ الإعدادات")} onPress={save} />
       </DashboardSection>
 
       {settings ? (
-        <DashboardSection title="القيم الحالية" subtitle="للتأكد من البيانات الموجودة حالياً.">
+        <DashboardSection title={t("dashboard.settingsCurrentTitle", "القيم الحالية")} subtitle={t("dashboard.settingsCurrentSubtitle", "للتأكد من البيانات الموجودة حالياً.")}>
           <View style={styles.kv}>
-            <Text style={[styles.k, { color: theme.palette.muted }]}>اسم المتجر</Text>
+            <Text style={[styles.k, { color: theme.palette.muted }]}>{t("dashboard.settingsStoreNameLabel", "اسم المتجر")}</Text>
             <Text style={[styles.v, { color: theme.palette.text }]}>{settings.store_name || "-"}</Text>
           </View>
           <View style={styles.kv}>
-            <Text style={[styles.k, { color: theme.palette.muted }]}>العنوان</Text>
+            <Text style={[styles.k, { color: theme.palette.muted }]}>{t("dashboard.settingsAddressLabel", "العنوان")}</Text>
             <Text style={[styles.v, { color: theme.palette.text }]}>{settings.contact_address || "-"}</Text>
           </View>
           <View style={styles.kv}>
-            <Text style={[styles.k, { color: theme.palette.muted }]}>رقم التواصل</Text>
+            <Text style={[styles.k, { color: theme.palette.muted }]}>{t("dashboard.settingsPhoneLabel", "رقم التواصل")}</Text>
             <Text style={[styles.v, { color: theme.palette.text }]}>{settings.contact_phone || "-"}</Text>
           </View>
           <View style={styles.kv}>
-            <Text style={[styles.k, { color: theme.palette.muted }]}>البريد الإلكتروني</Text>
+            <Text style={[styles.k, { color: theme.palette.muted }]}>{t("dashboard.settingsEmailLabel", "البريد الإلكتروني")}</Text>
             <Text style={[styles.v, { color: theme.palette.text }]}>{settings.contact_email || "-"}</Text>
           </View>
         </DashboardSection>
@@ -138,7 +168,7 @@ const DashboardSettings: React.FC = () => {
   );
 };
 
-const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+const createStyles = (_theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     kv: {
       flexDirection: "row",
@@ -153,7 +183,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       flex: 1,
       fontSize: 13,
       fontWeight: "800",
-      textAlign: "left",
+      textAlign: isRTL ? "right" : "left",
     },
   });
 

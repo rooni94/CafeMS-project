@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Image, ImageBackground, Dimensions, Pressable, FlatList, ScrollView, I18nManager } from "react-native";
+import React, {useEffect, useMemo, useRef, useState} from "react";
+import { View, Text, StyleSheet, Image, ImageBackground, Dimensions, Pressable, FlatList, ScrollView } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Carousel from "react-native-reanimated-carousel";
 import { useNavigation } from "@react-navigation/native";
@@ -16,7 +16,7 @@ import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../theme";
 import { resolveMediaUrl } from "../utils/media";
-import { decodeUnicodeEscapes, normalizeArabicText, normalizeBrandName } from "../utils/text";
+import { normalizeArabicText, normalizeBrandName } from "../utils/text";
 import { goToStack, goToTab } from "../navigation/helpers";
 import ProductAddonsModal from "../components/ProductAddonsModal";
 import DashboardSection from "./dashboard/components/DashboardSection";
@@ -69,7 +69,8 @@ const parseCategoryIdFromLink = (link?: string | null) => {
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const { copy } = useI18n();
+  const { copy, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   const { settings } = useStoreSettings();
   const { addItem, totalQuantity } = useCart();
   const { user } = useAuth();
@@ -177,7 +178,7 @@ const HomeScreen: React.FC = () => {
     );
 
     return actions;
-  }, [user]);
+  }, [copy, user]);
 
   const categoryCards: CategoryCard[] = useMemo(() => {
     if (!safeCategories.length) {
@@ -192,7 +193,7 @@ const HomeScreen: React.FC = () => {
       name: category.name,
       image: resolveMediaUrl(category.image) || copy.categoryFallbacks[index % copy.categoryFallbacks.length].image,
     }));
-  }, [safeCategories]);
+  }, [copy, safeCategories]);
 
   const categoryNameById = useMemo(() => {
     const map = new Map<number, string>();
@@ -340,10 +341,7 @@ const HomeScreen: React.FC = () => {
           </View>
         </Card>
 
-        <DashboardSection
-          title={decodeUnicodeEscapes("\\u0627\\u0644\\u0627\\u062e\\u062a\\u0635\\u0627\\u0631\\u0627\\u062a")}
-          subtitle={copy.home.quickIntro}
-        >
+        <DashboardSection title={copy.home.shortcutsTitle} subtitle={copy.home.quickIntro}>
           <View style={styles.tileGrid}>
             {quickActions.map((item) => (
               <View key={`${item.route}-${item.label}`} style={styles.tileItem}>
@@ -425,7 +423,8 @@ const HomeScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   container: {
     paddingHorizontal: 4,
     paddingTop: 6,
@@ -443,20 +442,20 @@ const styles = StyleSheet.create({
   },
   brandBlock: {
     flex: 1,
-    alignItems: "flex-end",
+    alignItems: isRTL ? "flex-end" : "flex-start",
     gap: 4,
   },
   brandTitle: {
     fontSize: 26,
     fontWeight: "900",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   brandOrange: { color: "#f59e0b" },
   brandPurple: { color: "#6138A1" },
   brandTagline: {
     fontSize: 13,
     color: "#64748b",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   cartBadge: {
     width: 52,
@@ -512,10 +511,10 @@ const styles = StyleSheet.create({
   heroOverlay: {
     padding: 14,
     gap: 10,
-    alignItems: "flex-end",
+    alignItems: isRTL ? "flex-end" : "flex-start",
   },
   heroGlass: {
-    alignSelf: "flex-end",
+    alignSelf: isRTL ? "flex-end" : "flex-start",
     maxWidth: "78%",
     backgroundColor: "rgba(255, 255, 255, 0.72)",
     borderRadius: 18,
@@ -530,24 +529,24 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#f59e0b",
-    alignSelf: "flex-end",
+    alignSelf: isRTL ? "flex-end" : "flex-start",
   },
   heroTagText: {
     color: "#111827",
     fontSize: 12,
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   heroTitle: {
     color: "#111827",
     fontSize: 24,
     fontWeight: "900",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   heroDescription: {
     color: "#475569",
     fontSize: 13,
     lineHeight: 20,
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   heroActions: {
     flexDirection: "row",
@@ -657,7 +656,7 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
     marginBottom: 6,
   },
 });

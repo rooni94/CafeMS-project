@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 
@@ -16,9 +16,9 @@ import { useI18n } from "../../i18n";
 const AddressesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user, accessToken } = useAuth();
-  const { t } = useI18n();
 
   const isAuthenticated = !!user && !!accessToken;
 
@@ -206,10 +206,10 @@ const AddressesScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     muted: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       lineHeight: 18,
     },
@@ -236,7 +236,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     checkboxText: {
       flex: 1,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "800",
     },

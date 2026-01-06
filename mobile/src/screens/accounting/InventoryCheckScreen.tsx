@@ -8,7 +8,7 @@ import { useI18n } from "../../i18n";
 const InventoryCheckScreen: React.FC = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [query, setQuery] = useState("");
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
 
   useEffect(() => {
     accountingApi.listInventory().then(setItems).catch(() => {});

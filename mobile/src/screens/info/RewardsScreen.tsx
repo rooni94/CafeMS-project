@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Linking, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Linking, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -35,38 +35,67 @@ type LoyaltyTransaction = {
   description?: string;
 };
 
-const tiers = [
-  {
-    name: "المستوى 1",
-    points: "0 - 299 نقطة",
-    perks: ["خصم 10% على الطلبات", "استبدال سريع عند الكاشير"],
-  },
-  {
-    name: "المستوى 2",
-    points: "300 - 699 نقطة",
-    perks: ["خصم 15% على الطلبات", "ترقية أسرع", "مزايا موسمية"],
-  },
-  {
-    name: "المستوى 3",
-    points: "700+ نقطة",
-    perks: ["خصومات أكبر", "عروض حصرية", "أولوية في الخدمة"],
-  },
-];
-
-const actions = [
-  { icon: "cart-outline", title: "اطلب من التطبيق", copy: "كل طلب يزيد رصيدك من النقاط." },
-  { icon: "gift-outline", title: "استبدل مكافآتك", copy: "حوّل نقاطك لخصومات أو هدايا." },
-  { icon: "people-outline", title: "شارك أصدقاءك", copy: "قدّم دعوتك واحصل على نقاط إضافية." },
-];
-
 const RewardsScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-  const { copy } = useI18n();
+  const { copy, t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user, accessToken } = useAuth();
   const isAuthenticated = !!user && !!accessToken;
   const isGuest = !isAuthenticated;
+
+  const tiers = useMemo(
+    () => [
+      {
+        name: t("rewards.tier1Name", "المستوى 1"),
+        points: t("rewards.tier1Points", "0 - 299 نقطة"),
+        perks: [
+          t("rewards.tier1Perk1", "خصم 10% على الطلبات"),
+          t("rewards.tier1Perk2", "استبدال سريع عند الكاشير"),
+        ],
+      },
+      {
+        name: t("rewards.tier2Name", "المستوى 2"),
+        points: t("rewards.tier2Points", "300 - 699 نقطة"),
+        perks: [
+          t("rewards.tier2Perk1", "خصم 15% على الطلبات"),
+          t("rewards.tier2Perk2", "ترقية أسرع"),
+          t("rewards.tier2Perk3", "مزايا موسمية"),
+        ],
+      },
+      {
+        name: t("rewards.tier3Name", "المستوى 3"),
+        points: t("rewards.tier3Points", "700+ نقطة"),
+        perks: [
+          t("rewards.tier3Perk1", "خصومات أكبر"),
+          t("rewards.tier3Perk2", "عروض حصرية"),
+          t("rewards.tier3Perk3", "أولوية في الخدمة"),
+        ],
+      },
+    ],
+    [t],
+  );
+
+  const actions = useMemo(
+    () => [
+      {
+        icon: "cart-outline",
+        title: t("rewards.actionOrderTitle", "اطلب من التطبيق"),
+        copy: t("rewards.actionOrderCopy", "كل طلب يزيد رصيدك من النقاط."),
+      },
+      {
+        icon: "gift-outline",
+        title: t("rewards.actionRedeemTitle", "استبدل مكافآتك"),
+        copy: t("rewards.actionRedeemCopy", "حوّل نقاطك لخصومات أو هدايا."),
+      },
+      {
+        icon: "people-outline",
+        title: t("rewards.actionShareTitle", "شارك أصدقاءك"),
+        copy: t("rewards.actionShareCopy", "قدّم دعوتك واحصل على نقاط إضافية."),
+      },
+    ],
+    [t],
+  );
 
   const { data: profile, isLoading: profileLoading } = useQuery<LoyaltyProfile>({
     queryKey: ["loyalty", "profile"],
@@ -87,13 +116,21 @@ const RewardsScreen: React.FC = () => {
   });
 
   return (
-    <DashboardShell title="المكافآت" subtitle="تابع نقاطك واستبدلها بالمزايا المتاحة.">
-      <DashboardSection title="ملخص النقاط" subtitle="تابع رصيدك والمستوى الحالي.">
+    <DashboardShell
+      title={t("rewards.title", "المكافآت")}
+      subtitle={t("rewards.subtitle", "تابع نقاطك واستبدلها بالمزايا المتاحة.")}
+    >
+      <DashboardSection
+        title={t("rewards.summaryTitle", "ملخص النقاط")}
+        subtitle={t("rewards.summarySubtitle", "تابع رصيدك والمستوى الحالي.")}
+      >
         {isGuest ? (
           <View style={styles.guestBox}>
-            <Text style={[styles.guestTitle, { color: theme.palette.text }]}>ابدأ رحلتك مع المكافآت</Text>
+            <Text style={[styles.guestTitle, { color: theme.palette.text }]}>
+              {t("rewards.guestTitle", "ابدأ رحلتك مع المكافآت")}
+            </Text>
             <Text style={[styles.guestCopy, { color: theme.palette.muted }]}>
-              بعد تسجيل الدخول ستحصل على نقاط مع كل طلب يمكنك استخدامها لاحقاً.
+              {t("rewards.guestCopy", "بعد تسجيل الدخول ستحصل على نقاط مع كل طلب يمكنك استخدامها لاحقاً.")}
             </Text>
             <View style={styles.guestActions}>
               <DashboardTile
@@ -117,26 +154,36 @@ const RewardsScreen: React.FC = () => {
         ) : (
           <View style={styles.summaryGrid}>
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>النقاط</Text>
+              <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>
+                {t("rewards.pointsLabel", "النقاط")}
+              </Text>
               <Text style={[styles.summaryValue, { color: theme.palette.text }]}>
-                {profileLoading ? "جارٍ تحميل بيانات الولاء..." : profile?.points ?? 0}
+                {profileLoading ? t("rewards.pointsLoading", "جارٍ تحميل بيانات الولاء...") : profile?.points ?? 0}
               </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>الرصيد</Text>
+              <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>
+                {t("rewards.balanceLabel", "الرصيد")}
+              </Text>
               <CurrencyAmount value={profile?.balance ?? 0} color={theme.palette.accent} symbolSize={12} textStyle={styles.balanceText} />
             </View>
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>المستوى</Text>
+              <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>
+                {t("rewards.tierLabel", "المستوى")}
+              </Text>
               <Text style={[styles.summaryValue, { color: theme.palette.text }]}>{profile?.tier ?? "-"}</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>رقم العضوية</Text>
+              <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>
+                {t("rewards.memberCodeLabel", "رقم العضوية")}
+              </Text>
               <Text style={[styles.summaryValue, { color: theme.palette.text }]}>{profile?.member_code ?? "-"}</Text>
             </View>
             {profile?.membership_id ? (
               <View style={styles.summaryRow}>
-                <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>معرّف العضوية</Text>
+                <Text style={[styles.summaryLabel, { color: theme.palette.muted }]}>
+                  {t("rewards.membershipIdLabel", "معرّف العضوية")}
+                </Text>
                 <Text style={[styles.summaryValue, { color: theme.palette.text }]}>{profile.membership_id}</Text>
               </View>
             ) : null}
@@ -144,20 +191,20 @@ const RewardsScreen: React.FC = () => {
               <View style={styles.qrWrap}>
                 <QRCode value={profile.qr_token} size={140} />
                 <Text style={[styles.qrHint, { color: theme.palette.muted }]}>
-                  اعرض الكود عند الدفع لاحتساب نقاطك.
+                  {t("rewards.qrHint", "اعرض الكود عند الدفع لاحتساب نقاطك.")}
                 </Text>
               </View>
             ) : null}
             {profile?.apple_wallet_pass_url ? (
               <Button
-                title="إضافة إلى Apple Wallet"
+                title={t("rewards.appleWallet", "إضافة إلى Apple Wallet")}
                 variant="secondary"
                 onPress={() => Linking.openURL(profile.apple_wallet_pass_url!)}
               />
             ) : null}
             {profile?.google_wallet_pass_url ? (
               <Button
-                title="إضافة إلى Google Wallet"
+                title={t("rewards.googleWallet", "إضافة إلى Google Wallet")}
                 variant="secondary"
                 onPress={() => Linking.openURL(profile.google_wallet_pass_url!)}
               />
@@ -167,16 +214,21 @@ const RewardsScreen: React.FC = () => {
       </DashboardSection>
 
       {!isGuest ? (
-        <DashboardSection title="آخر الحركات" subtitle="أحدث العمليات في برنامج الولاء.">
+        <DashboardSection
+          title={t("rewards.transactionsTitle", "آخر الحركات")}
+          subtitle={t("rewards.transactionsSubtitle", "أحدث العمليات في برنامج الولاء.")}
+        >
           {transactions.length === 0 ? (
-            <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد حركات بعد.</Text>
+            <Text style={[styles.empty, { color: theme.palette.muted }]}>
+              {t("rewards.transactionsEmpty", "لا توجد حركات بعد.")}
+            </Text>
           ) : (
             <View style={{ gap: 10 }}>
               {transactions.slice(0, 20).map((item) => (
                 <DashboardListItem
                   key={item.id}
-                  title={item.description?.trim() ? item.description : "حركة نقاط"}
-                  subtitle={`${item.points ?? 0} نقطة • ${new Date(item.created_at).toLocaleString()}`}
+                  title={item.description?.trim() ? item.description : t("rewards.transactionFallback", "حركة نقاط")}
+                  subtitle={`${item.points ?? 0} ${t("rewards.pointsUnit", "نقطة")} • ${new Date(item.created_at).toLocaleString()}`}
                   icon="sparkles-outline"
                 />
               ))}
@@ -185,7 +237,10 @@ const RewardsScreen: React.FC = () => {
         </DashboardSection>
       ) : null}
 
-      <DashboardSection title="مستويات البرنامج" subtitle="كل مستوى يمنحك مزايا إضافية.">
+      <DashboardSection
+        title={t("rewards.programLevelsTitle", "مستويات البرنامج")}
+        subtitle={t("rewards.programLevelsSubtitle", "كل مستوى يمنحك مزايا إضافية.")}
+      >
         {tiers.map((tier) => (
           <View key={tier.name} style={[styles.tierCard, { borderColor: theme.palette.border, backgroundColor: theme.palette.surfaceAlt }]}>
             <View style={styles.tierHeader}>
@@ -202,7 +257,10 @@ const RewardsScreen: React.FC = () => {
         ))}
       </DashboardSection>
 
-      <DashboardSection title="كيف تكسب نقاطك؟" subtitle="خطوات بسيطة لزيادة نقاطك.">
+      <DashboardSection
+        title={t("rewards.earnPointsTitle", "كيف تكسب نقاطك؟")}
+        subtitle={t("rewards.earnPointsSubtitle", "خطوات بسيطة لزيادة نقاطك.")}
+      >
         {actions.map((action) => (
           <View key={action.title} style={styles.actionRow}>
             <View style={[styles.badge, { backgroundColor: theme.palette.surfaceAlt, borderColor: theme.palette.border }]}>
@@ -219,7 +277,7 @@ const RewardsScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     guestBox: {
       gap: 10,
@@ -227,12 +285,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     guestTitle: {
       fontSize: 16,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     guestCopy: {
       fontSize: 13,
       lineHeight: 20,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     guestActions: {
       flexDirection: "row",
@@ -251,12 +309,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     summaryLabel: {
       fontSize: 12,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     summaryValue: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "left",
+      textAlign: isRTL ? "right" : "left",
       flex: 1,
     },
     balanceText: {
@@ -265,7 +323,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     empty: {
       fontSize: 13,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     qrWrap: {
       alignItems: "center",
@@ -293,12 +351,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     tierName: {
       fontSize: 15,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     tierPoints: {
       fontSize: 12,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     perkRow: {
       flexDirection: "row",
@@ -313,7 +371,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     perkText: {
       fontSize: 13,
       flex: 1,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     actionRow: {
       flexDirection: "row",
@@ -332,11 +390,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     actionTitle: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     actionCopy: {
       fontSize: 13,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
   });
 

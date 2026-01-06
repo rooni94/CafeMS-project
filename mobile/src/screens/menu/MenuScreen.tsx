@@ -31,7 +31,7 @@ const MenuScreen: React.FC = () => {
   const route = useRoute<any>();
   const { addItem } = useCart();
   const theme = useTheme();
-  const { copy, t } = useI18n();
+  const { copy, t, isRTL } = useI18n();
   const initialCategory: number | null = route.params?.categoryId ?? null;
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -106,7 +106,7 @@ const MenuScreen: React.FC = () => {
 
   const toastAdded = () => {
     if (Platform.OS === "android") {
-      ToastAndroid.show(t("menu.addedToCart", "تمت إضافة المنتج إلى السلة"), ToastAndroid.SHORT);
+      ToastAndroid.show(t("menu.addedToCart", "\u062a\u0645\u062a \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629"), ToastAndroid.SHORT);
     }
   };
 
@@ -157,7 +157,7 @@ const MenuScreen: React.FC = () => {
           </Pressable>
           <Text style={styles.title}>{activeCategoryName}</Text>
           <Pressable onPress={() => safeGoBack(navigation, { tab: "Home" })} style={styles.iconBtn}>
-            <Ionicons name="chevron-forward" size={20} color={theme.palette.text} />
+            <Ionicons name={isRTL ? "chevron-forward" : "chevron-back"} size={20} color={theme.palette.text} />
           </Pressable>
         </View>
 
@@ -168,7 +168,7 @@ const MenuScreen: React.FC = () => {
               value={search}
               onChangeText={setSearch}
               style={styles.searchInput}
-              textAlign="right"
+              textAlign={isRTL ? "right" : "left"}
             />
           </View>
         )}
@@ -236,7 +236,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 6,
     },
     topBar: {
-      flexDirection: "row",
+      flexDirection: "row-reverse",
       alignItems: "center",
       justifyContent: "space-between",
       marginBottom: 2,

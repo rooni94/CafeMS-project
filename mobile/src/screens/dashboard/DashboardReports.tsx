@@ -9,6 +9,7 @@ import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import StatBadge from "./components/StatBadge";
 import { has, hasAny } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type OrderStats = {
   total_orders?: number;
@@ -25,6 +26,7 @@ type HRStats = {
 
 const DashboardReports: React.FC = () => {
   const theme = useTheme();
+  const { t } = useI18n();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { user, permissions } = useAuth();
 
@@ -60,27 +62,41 @@ const DashboardReports: React.FC = () => {
   });
 
   if (!allowed) {
-    return <DashboardAccessDenied title="التقارير" subtitle="ملخصات سريعة للطلبات والموارد البشرية." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.reportsTitle", "التقارير")}
+        subtitle={t("dashboard.reportsSubtitle", "ملخصات سريعة للطلبات والموارد البشرية.")}
+      />
+    );
   }
 
   return (
-    <DashboardShell title="التقارير" subtitle="ملخصات سريعة للطلبات والموارد البشرية.">
-      <DashboardSection title="الطلبات" subtitle="مؤشرات عامة عن الطلبات والإيراد.">
+    <DashboardShell
+      title={t("dashboard.reportsTitle", "التقارير")}
+      subtitle={t("dashboard.reportsSubtitle", "ملخصات سريعة للطلبات والموارد البشرية.")}
+    >
+      <DashboardSection
+        title={t("dashboard.reportsOrdersTitle", "الطلبات")}
+        subtitle={t("dashboard.reportsOrdersSubtitle", "مؤشرات عامة عن الطلبات والإيراد.")}
+      >
         <View style={styles.row}>
-          <StatBadge label="كل الطلبات" value={orderStats?.total_orders ?? "-"} color={theme.palette.accentSoft} />
-          <StatBadge label="مكتمل" value={orderStats?.completed_orders ?? "-"} color={theme.palette.success} />
-          <StatBadge label="قيد الانتظار" value={orderStats?.pending_orders ?? "-"} color={theme.palette.accent} />
+          <StatBadge label={t("dashboard.reportsOrdersAll", "كل الطلبات")} value={orderStats?.total_orders ?? "-"} color={theme.palette.accentSoft} />
+          <StatBadge label={t("dashboard.reportsOrdersCompleted", "مكتمل")} value={orderStats?.completed_orders ?? "-"} color={theme.palette.success} />
+          <StatBadge label={t("dashboard.reportsOrdersPending", "قيد الانتظار")} value={orderStats?.pending_orders ?? "-"} color={theme.palette.accent} />
         </View>
         <View style={styles.row}>
-          <StatBadge label="الإيراد" value={orderStats?.revenue ?? "-"} color="#0ea5e9" />
+          <StatBadge label={t("dashboard.reportsOrdersRevenue", "الإيراد")} value={orderStats?.revenue ?? "-"} color="#0ea5e9" />
         </View>
       </DashboardSection>
 
-      <DashboardSection title="الموارد البشرية" subtitle="ملخص HR (إن كان مفعّلًا لديك).">
+      <DashboardSection
+        title={t("dashboard.reportsHRTitle", "الموارد البشرية")}
+        subtitle={t("dashboard.reportsHRSubtitle", "ملخص HR (إن كان مفعّلًا لديك).")}
+      >
         <View style={styles.row}>
-          <StatBadge label="الموظفون" value={hrStats?.employees ?? "-"} color={theme.palette.accentSoft} />
-          <StatBadge label="إجازات نشطة" value={hrStats?.active_leaves ?? "-"} color={theme.palette.accent} />
-          <StatBadge label="تنبيهات" value={hrStats?.alerts ?? "-"} color={theme.palette.danger} />
+          <StatBadge label={t("dashboard.reportsHREmployees", "الموظفون")} value={hrStats?.employees ?? "-"} color={theme.palette.accentSoft} />
+          <StatBadge label={t("dashboard.reportsHRActiveLeaves", "إجازات نشطة")} value={hrStats?.active_leaves ?? "-"} color={theme.palette.accent} />
+          <StatBadge label={t("dashboard.reportsHRAlerts", "تنبيهات")} value={hrStats?.alerts ?? "-"} color={theme.palette.danger} />
         </View>
       </DashboardSection>
     </DashboardShell>

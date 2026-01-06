@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Image, StyleSheet, Switch, Text, View, I18nManager } from "react-native";
+import { Alert, Image, StyleSheet, Switch, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { Button, Input } from "../../components/ui";
@@ -12,6 +12,7 @@ import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
 import CurrencyAmount from "../../components/CurrencyAmount";
 import { has } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type ProductRow = {
   id: number;
@@ -34,7 +35,8 @@ type ProductAddonRow = {
 
 const DashboardProducts: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
 
@@ -353,7 +355,7 @@ const DashboardProducts: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     switchRow: {
       flexDirection: "row",
@@ -364,7 +366,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     switchLabel: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     preview: {
       width: "100%",
@@ -375,7 +377,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       backgroundColor: theme.palette.surfaceAlt,
     },
     empty: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
     },
     priceText: {

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Input } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
@@ -10,6 +10,7 @@ import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
 import { has } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type TableRow = {
   id: number;
@@ -20,18 +21,19 @@ type TableRow = {
   notes?: string;
 };
 
-const statusLabel = (s: TableRow["status"]) => {
-  if (s === "available") return "متاح";
-  if (s === "occupied") return "مشغول";
-  if (s === "reserved") return "محجوز";
-  return "صيانة";
-};
-
 const DashboardTables: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
+
+  const statusLabel = (s: TableRow["status"]) => {
+    if (s === "available") return t("dashboard.tablesStatusAvailable", "متاح");
+    if (s === "occupied") return t("dashboard.tablesStatusOccupied", "مشغول");
+    if (s === "reserved") return t("dashboard.tablesStatusReserved", "محجوز");
+    return t("dashboard.tablesStatusMaintenance", "صيانة");
+  };
 
   const allowed = has(user, permissions, "can_manage_tables");
 
@@ -53,7 +55,12 @@ const DashboardTables: React.FC = () => {
   });
 
   if (!allowed) {
-    return <DashboardAccessDenied title="الطاولات" subtitle="إدارة الطاولات وحالاتها." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.tablesDeniedTitle", "الطاولات")}
+        subtitle={t("dashboard.tablesDeniedSubtitle", "إدارة الطاولات وحالاتها.")}
+      />
+    );
   }
 
   const resetForm = () => {
@@ -67,7 +74,7 @@ const DashboardTables: React.FC = () => {
 
   const saveTable = async () => {
     if (!label.trim()) {
-      Alert.alert("بيانات ناقصة", "أدخل اسم/وصف الطاولة.");
+      Alert.alert(t("dashboard.tablesMissingTitle", "بيانات ناقصة"), t("dashboard.tablesMissingBody", "أدخل اسم/وصف الطاولة."));
       return;
     }
     setSaving(true);
@@ -88,7 +95,7 @@ const DashboardTables: React.FC = () => {
       qc.invalidateQueries({ queryKey: ["dashboard", "tables"] });
       resetForm();
     } catch {
-      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء حفظ الطاولة.");
+      Alert.alert(t("dashboard.tablesSaveErrorTitle", "تعذر الحفظ"), t("dashboard.tablesSaveErrorBody", "حدث خطأ أثناء حفظ الطاولة."));
     } finally {
       setSaving(false);
     }
@@ -99,7 +106,7 @@ const DashboardTables: React.FC = () => {
       await api.patch(`orders/pos/tables/${tableId}/`, { status: value });
       qc.invalidateQueries({ queryKey: ["dashboard", "tables"] });
     } catch {
-      Alert.alert("تعذر التحديث", "حدث خطأ أثناء تحديث الحالة.");
+      Alert.alert(t("dashboard.tablesUpdateErrorTitle", "تعذر التحديث"), t("dashboard.tablesUpdateErrorBody", "حدث خطأ أثناء تحديث الحالة."));
     }
   };
 
@@ -113,10 +120,10 @@ const DashboardTables: React.FC = () => {
   };
 
   const deleteTable = async (id: number) => {
-    Alert.alert("حذف الطاولة", "هل أنت متأكد؟", [
-      { text: "إلغاء", style: "cancel" },
+    Alert.alert(t("dashboard.tablesDeleteTitle", "حذف الطاولة"), t("dashboard.tablesDeleteConfirm", "هل أنت متأكد؟"), [
+      { text: t("common.cancel", "إلغاء"), style: "cancel" },
       {
-        text: "حذف",
+        text: t("common.delete", "حذف"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -124,7 +131,7 @@ const DashboardTables: React.FC = () => {
             qc.invalidateQueries({ queryKey: ["dashboard", "tables"] });
             if (editingId === id) resetForm();
           } catch {
-            Alert.alert("تعذر الحذف", "حدث خطأ أثناء حذف الطاولة.");
+            Alert.alert(t("dashboard.tablesDeleteErrorTitle", "تعذر الحذف"), t("dashboard.tablesDeleteErrorBody", "حدث خطأ أثناء حذف الطاولة."));
           }
         },
       },
@@ -132,34 +139,56 @@ const DashboardTables: React.FC = () => {
   };
 
   return (
-    <DashboardShell title="الطاولات" subtitle="إدارة طاولات الصالة وحالاتها.">
-      <DashboardSection title={editingId ? "تعديل طاولة" : "إضافة طاولة"} subtitle="املأ البيانات ثم احفظ.">
-        <Input label="اسم/وصف الطاولة" value={label} onChangeText={setLabel} placeholder="مثال: طاولة نافذة" />
-        <Input label="رقم الطاولة (اختياري)" value={number} onChangeText={setNumber} keyboardType="number-pad" />
-        <Input label="السعة" value={capacity} onChangeText={setCapacity} keyboardType="number-pad" />
+    <DashboardShell title={t("dashboard.tablesTitle", "الطاولات")} subtitle={t("dashboard.tablesSubtitle", "إدارة طاولات الصالة وحالاتها.")}>
+      <DashboardSection
+        title={editingId ? t("dashboard.tablesEditTitle", "تعديل طاولة") : t("dashboard.tablesAddTitle", "إضافة طاولة")}
+        subtitle={t("dashboard.tablesFormSubtitle", "املأ البيانات ثم احفظ.")}
+      >
+        <Input
+          label={t("dashboard.tablesLabelLabel", "اسم/وصف الطاولة")}
+          value={label}
+          onChangeText={setLabel}
+          placeholder={t("dashboard.tablesLabelPlaceholder", "مثال: طاولة نافذة")}
+        />
+        <Input
+          label={t("dashboard.tablesNumberLabel", "رقم الطاولة (اختياري)")}
+          value={number}
+          onChangeText={setNumber}
+          keyboardType="number-pad"
+        />
+        <Input label={t("dashboard.tablesCapacityLabel", "السعة")} value={capacity} onChangeText={setCapacity} keyboardType="number-pad" />
 
-        <Text style={[styles.label, { color: theme.palette.muted }]}>الحالة</Text>
+        <Text style={[styles.label, { color: theme.palette.muted }]}>{t("dashboard.tablesStatusLabel", "الحالة")}</Text>
         <View style={styles.statusRow}>
           {(["available", "occupied", "reserved", "maintenance"] as const).map((s) => (
             <Button key={s} title={statusLabel(s)} variant={status === s ? "primary" : "ghost"} onPress={() => setStatus(s)} />
           ))}
         </View>
 
-        <Input label="ملاحظات (اختياري)" value={notes} onChangeText={setNotes} multiline numberOfLines={3} />
-        <Button title={saving ? "جارٍ الحفظ..." : "حفظ"} onPress={saveTable} disabled={saving} />
-        {editingId ? <Button title="إلغاء التعديل" variant="ghost" onPress={resetForm} /> : null}
+        <Input label={t("dashboard.tablesNotesLabel", "ملاحظات (اختياري)")} value={notes} onChangeText={setNotes} multiline numberOfLines={3} />
+        <Button title={saving ? t("common.saving", "جارٍ الحفظ...") : t("common.save", "حفظ")} onPress={saveTable} disabled={saving} />
+        {editingId ? <Button title={t("dashboard.tablesCancelEdit", "إلغاء التعديل")} variant="ghost" onPress={resetForm} /> : null}
       </DashboardSection>
 
-      <DashboardSection title="قائمة الطاولات" subtitle={isLoading ? "جاري التحميل..." : "اضغط للتعديل، أو غيّر الحالة بسرعة."}>
+      <DashboardSection
+        title={t("dashboard.tablesListTitle", "قائمة الطاولات")}
+        subtitle={
+          isLoading
+            ? t("dashboard.tablesLoading", "جاري التحميل...")
+            : t("dashboard.tablesListSubtitle", "اضغط للتعديل، أو غيّر الحالة بسرعة.")
+        }
+      >
         {tables.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد طاولات.</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>{t("dashboard.tablesEmpty", "لا توجد طاولات.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
             {tables.slice(0, 50).map((t) => (
               <DashboardListItem
                 key={t.id}
                 title={t.label}
-                subtitle={`#${t.id} • رقم: ${t.number ?? "-"} • سعة: ${t.capacity ?? "-"} • الحالة: ${statusLabel(t.status)}`}
+                subtitle={`#${t.id} • ${t("dashboard.tablesNumberShort", "رقم")}: ${t.number ?? "-"} • ${t("dashboard.tablesCapacityShort", "سعة")}: ${
+                  t.capacity ?? "-"
+                } • ${t("dashboard.tablesStatusShort", "الحالة")}: ${statusLabel(t.status)}`}
                 icon="grid-outline"
                 onPress={() => startEdit(t)}
                 right={
@@ -167,7 +196,7 @@ const DashboardTables: React.FC = () => {
                     {(["available", "occupied", "reserved", "maintenance"] as const).map((s) => (
                       <Button key={s} title={statusLabel(s)} variant={t.status === s ? "primary" : "secondary"} onPress={() => updateStatus(t.id, s)} />
                     ))}
-                    <Button title="حذف" variant="ghost" onPress={() => deleteTable(t.id)} />
+                    <Button title={t("common.delete", "حذف")} variant="ghost" onPress={() => deleteTable(t.id)} />
                   </View>
                 }
               />
@@ -179,7 +208,7 @@ const DashboardTables: React.FC = () => {
   );
 };
 
-const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+const createStyles = (_theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     statusRow: {
       flexDirection: "row",
@@ -189,10 +218,10 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     label: {
       fontSize: 12,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     empty: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
     },
   });

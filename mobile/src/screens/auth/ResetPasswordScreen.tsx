@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import Screen from "../../components/Screen";
@@ -11,8 +11,8 @@ import { useI18n } from "../../i18n";
 const ResetPasswordScreen: React.FC = () => {
   const theme = useTheme();
   const navigation = useNavigation<any>();
-  const styles = useMemo(() => createStyles(theme), [theme]);
-  const { copy, t } = useI18n();
+  const { copy, t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -79,7 +79,7 @@ const ResetPasswordScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     header: {
       alignItems: "flex-end",
@@ -91,15 +91,15 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 22,
       fontWeight: "900",
       color: theme.palette.text,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     subtitle: {
       fontSize: 14,
       color: theme.palette.muted,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     status: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       marginBottom: 6,
       fontSize: 13,
       fontWeight: "700",

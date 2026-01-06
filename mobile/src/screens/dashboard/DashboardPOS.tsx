@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, I18nManager } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -13,6 +13,7 @@ import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import StatBadge from "./components/StatBadge";
 import { has } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type ProductRow = {
   id: number;
@@ -71,15 +72,34 @@ const nextTableStatus = (s: TableRow["status"]): TableRow["status"] => {
   return "available";
 };
 
-const statusMeta = (t: ReturnType<typeof useTheme>, s: TableRow["status"]) => {
-  const label = s === "available" ? "متاحة" : s === "occupied" ? "مشغولة" : s === "reserved" ? "محجوزة" : "صيانة";
-  const color = s === "available" ? "#10b981" : s === "occupied" ? "#f97316" : s === "reserved" ? "#3b82f6" : t.palette.muted;
+const statusMeta = (
+  theme: ReturnType<typeof useTheme>,
+  status: TableRow["status"],
+  t: (key: string, fallback?: string) => string,
+) => {
+  const label =
+    status === "available"
+      ? t("dashboard.posTableStatusAvailable", "متاحة")
+      : status === "occupied"
+        ? t("dashboard.posTableStatusOccupied", "مشغولة")
+        : status === "reserved"
+          ? t("dashboard.posTableStatusReserved", "محجوزة")
+          : t("dashboard.posTableStatusMaintenance", "صيانة");
+  const color =
+    status === "available"
+      ? "#10b981"
+      : status === "occupied"
+        ? "#f97316"
+        : status === "reserved"
+          ? "#3b82f6"
+          : theme.palette.muted;
   return { label, color };
 };
 
 const DashboardPOS: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
 
@@ -191,7 +211,7 @@ const DashboardPOS: React.FC = () => {
     mutationFn: async () => {
       if (cart.length === 0) return;
       if (orderType === "dine_in" && !selectedTable) {
-        throw new Error("حدد طاولة قبل التأكيد.");
+        throw new Error(t("dashboard.posTableRequired", "حدد طاولة قبل التأكيد."));
       }
       await api.post("orders/pos/cashier/orders/", {
         items: cart.map((it) => ({ product_id: it.product_id, quantity: it.quantity })),
@@ -216,9 +236,10 @@ const DashboardPOS: React.FC = () => {
       if (orderType === "dine_in") setSelectedTable(null);
       qc.invalidateQueries({ queryKey: ["dashboard", "pos", "tables"] });
       qc.invalidateQueries({ queryKey: ["dashboard", "pos", "inventory-summary"] });
-      Alert.alert("تم", "تم إنشاء الطلب بنجاح.");
+      Alert.alert(t("dashboard.posSuccessTitle", "تم"), t("dashboard.posOrderCreatedBody", "تم إنشاء الطلب بنجاح."));
     },
-    onError: (err) => Alert.alert("خطأ", parseApiError(err) || "تعذر إنشاء الطلب."),
+    onError: (err) =>
+      Alert.alert(t("common.errorTitle", "خطأ"), parseApiError(err) || t("dashboard.posOrderCreateError", "تعذر إنشاء الطلب.")),
   });
 
   const updateTableStatus = useMutation({
@@ -226,7 +247,8 @@ const DashboardPOS: React.FC = () => {
       await api.patch(`orders/pos/tables/${tableId}/`, { status });
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard", "pos", "tables"] }),
-    onError: (err) => Alert.alert("خطأ", parseApiError(err) || "تعذر تحديث الحالة."),
+    onError: (err) =>
+      Alert.alert(t("common.errorTitle", "خطأ"), parseApiError(err) || t("dashboard.posUpdateStatusError", "تعذر تحديث الحالة.")),
   });
 
   const adjustLoyalty = useMutation({
@@ -234,45 +256,79 @@ const DashboardPOS: React.FC = () => {
       const mid = membershipId.trim();
       const delta = parseInt(pointsDelta, 10);
       if (!mid || !Number.isFinite(delta) || delta === 0) {
-        throw new Error("أدخل رقم العضوية وقيمة نقاط صحيحة.");
+        throw new Error(t("dashboard.posLoyaltyInvalid", "أدخل رقم العضوية وقيمة نقاط صحيحة."));
       }
       await api.post("loyalty/scan/", { membership_id: mid, points_delta: delta });
     },
     onSuccess: () => {
       setMembershipId("");
-      Alert.alert("تم", "تم تحديث نقاط الولاء.");
+      Alert.alert(t("dashboard.posSuccessTitle", "تم"), t("dashboard.posLoyaltyUpdatedBody", "تم تحديث نقاط الولاء."));
     },
-    onError: (err) => Alert.alert("خطأ", parseApiError(err) || "تعذر تحديث نقاط الولاء."),
+    onError: (err) =>
+      Alert.alert(
+        t("common.errorTitle", "خطأ"),
+        parseApiError(err) || t("dashboard.posLoyaltyUpdateError", "تعذر تحديث نقاط الولاء."),
+      ),
   });
 
   if (!allowed) {
-    return <DashboardAccessDenied title="الكاشير (POS)" subtitle="لا تمتلك صلاحية الوصول للكاشير." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.posTitle", "الكاشير (POS)")}
+        subtitle={t("dashboard.posDeniedSubtitle", "لا تمتلك صلاحية الوصول للكاشير.")}
+      />
+    );
   }
 
 // ... (الجزء العلوي من الملف بدون تغيير) ...
 
   return (
-    <DashboardShell title="الكاشير (POS)" subtitle="إنشاء طلبات مباشرة من الكاشير.">
+    <DashboardShell
+      title={t("dashboard.posTitle", "الكاشير (POS)")}
+      subtitle={t("dashboard.posSubtitle", "إنشاء طلبات مباشرة من الكاشير.")}
+    >
       <View style={styles.sectionsGrid}>
-        <DashboardSection title="إعدادات الطلب" subtitle="حدد نوع الطلب والطاولة إن لزم."> {/* أزلت style={styles.half} */}
+        <DashboardSection
+          title={t("dashboard.posOrderSettingsTitle", "إعدادات الطلب")}
+          subtitle={t("dashboard.posOrderSettingsSubtitle", "حدد نوع الطلب والطاولة إن لزم.")}
+        >
           <View style={styles.chipsRow}>
-            <Button title="في الصالة" size="sm" variant={orderType === "dine_in" ? "primary" : "ghost"} onPress={() => setOrderType("dine_in")} />
-            <Button title="سفري" size="sm" variant={orderType === "takeaway" ? "primary" : "ghost"} onPress={() => setOrderType("takeaway")} />
-            <Button title="توصيل" size="sm" variant={orderType === "delivery" ? "primary" : "ghost"} onPress={() => setOrderType("delivery")} />
+            <Button
+              title={t("dashboard.posOrderTypeDineIn", "في الصالة")}
+              size="sm"
+              variant={orderType === "dine_in" ? "primary" : "ghost"}
+              onPress={() => setOrderType("dine_in")}
+            />
+            <Button
+              title={t("dashboard.posOrderTypeTakeaway", "سفري")}
+              size="sm"
+              variant={orderType === "takeaway" ? "primary" : "ghost"}
+              onPress={() => setOrderType("takeaway")}
+            />
+            <Button
+              title={t("dashboard.posOrderTypeDelivery", "توصيل")}
+              size="sm"
+              variant={orderType === "delivery" ? "primary" : "ghost"}
+              onPress={() => setOrderType("delivery")}
+            />
           </View>
 
           {orderType === "dine_in" ? (
             <View style={{ gap: 8 }}>
-              <Text style={[styles.label, { color: theme.palette.muted }]}>اختر طاولة</Text>
+              <Text style={[styles.label, { color: theme.palette.muted }]}>
+                {t("dashboard.posSelectTableLabel", "اختر طاولة")}
+              </Text>
               {tablesLoading ? (
                 <ActivityIndicator />
               ) : tables.length === 0 ? (
-                <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد طاولات.</Text>
+                <Text style={[styles.empty, { color: theme.palette.muted }]}>
+                  {t("dashboard.posTablesEmpty", "لا توجد طاولات.")}
+                </Text>
               ) : (
                 <View style={styles.list}>
                   {tables.slice(0, 16).map((tbl) => {
                     const active = selectedTable === tbl.id;
-                    const meta = statusMeta(theme, tbl.status);
+                    const meta = statusMeta(theme, tbl.status, t);
                     return (
                       <Pressable
                         key={tbl.id}
@@ -294,7 +350,7 @@ const DashboardPOS: React.FC = () => {
                             {tbl.label}
                           </Text>
                           <Text style={[styles.itemSub, { color: theme.palette.muted }]} numberOfLines={1}>
-                            {`#${tbl.number ?? tbl.id} · السعة: ${tbl.capacity ?? "-"}`}
+                            {`#${tbl.number ?? tbl.id} · ${t("dashboard.posTableCapacityLabel", "السعة")}: ${tbl.capacity ?? "-"}`}
                           </Text>
                         </View>
                         <View style={[styles.pill, { borderColor: `${meta.color}55`, backgroundColor: `${meta.color}14` }]}>
@@ -309,16 +365,28 @@ const DashboardPOS: React.FC = () => {
           ) : null}
         </DashboardSection>
 
-        <DashboardSection title="المنتجات" subtitle="اختر من القائمة لإضافته للسلة."> {/* أزلت style={styles.half} */}
+        <DashboardSection
+          title={t("dashboard.posProductsTitle", "المنتجات")}
+          subtitle={t("dashboard.posProductsSubtitle", "اختر من القائمة لإضافته للسلة.")}
+        >
           <View style={styles.statsRow}>
-            <StatBadge label="النتائج" value={filteredProducts.length} color={theme.palette.success} />
-            <StatBadge label="المعروض" value={Math.min(visibleProducts, filteredProducts.length)} color={theme.status.info} />
+            <StatBadge label={t("dashboard.posResultsLabel", "النتائج")} value={filteredProducts.length} color={theme.palette.success} />
+            <StatBadge
+              label={t("dashboard.posDisplayedLabel", "المعروض")}
+              value={Math.min(visibleProducts, filteredProducts.length)}
+              color={theme.status.info}
+            />
           </View>
 
-          <Input value={search} onChangeText={setSearch} placeholder="بحث باسم المنتج..." />
+          <Input value={search} onChangeText={setSearch} placeholder={t("dashboard.posSearchPlaceholder", "بحث باسم المنتج...")} />
 
           <View style={styles.chipsRow}>
-            <Button title="الكل" size="sm" variant={categoryId === "all" ? "primary" : "ghost"} onPress={() => setCategoryId("all")} />
+            <Button
+              title={t("dashboard.posCategoryAll", "الكل")}
+              size="sm"
+              variant={categoryId === "all" ? "primary" : "ghost"}
+              onPress={() => setCategoryId("all")}
+            />
             {categories.slice(0, 8).map((c) => (
               <Button key={c.id} title={c.name} size="sm" variant={categoryId === c.id ? "primary" : "ghost"} onPress={() => setCategoryId(c.id)} />
             ))}
@@ -327,7 +395,9 @@ const DashboardPOS: React.FC = () => {
           {productsLoading ? (
             <ActivityIndicator />
           ) : filteredProducts.length === 0 ? (
-            <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد نتائج.</Text>
+            <Text style={[styles.empty, { color: theme.palette.muted }]}>
+              {t("dashboard.posNoResults", "لا توجد نتائج.")}
+            </Text>
           ) : (
             <>
               <View style={styles.list}>
@@ -347,7 +417,7 @@ const DashboardPOS: React.FC = () => {
                         <CurrencyAmount value={parseNumber(p.price)} color={theme.palette.text} symbolSize={12} textStyle={styles.priceText} />
                         {hasStock == null ? null : (
                           <Text style={[styles.stockText, { color: hasStock ? theme.palette.muted : theme.palette.danger }]} numberOfLines={1}>
-                            {`المخزون: ${stockNumber}`}
+                            {`${t("dashboard.posStockLabel", "المخزون")}: ${stockNumber}`}
                           </Text>
                         )}
                       </View>
@@ -359,15 +429,20 @@ const DashboardPOS: React.FC = () => {
                 })}
               </View>
               {filteredProducts.length > visibleProducts ? (
-                <Button title="عرض المزيد" variant="secondary" onPress={() => setVisibleProducts((v) => v + 60)} />
+                <Button title={t("dashboard.posLoadMore", "عرض المزيد")} variant="secondary" onPress={() => setVisibleProducts((v) => v + 60)} />
               ) : null}
             </>
           )}
         </DashboardSection>
 
-        <DashboardSection title="السلة" subtitle="راجع المحتوى وعدّل الكميات."> {/* أزلت style={styles.half} */}
+        <DashboardSection
+          title={t("dashboard.posCartTitle", "السلة")}
+          subtitle={t("dashboard.posCartSubtitle", "راجع المحتوى وعدّل الكميات.")}
+        >
           {cart.length === 0 ? (
-            <Text style={[styles.empty, { color: theme.palette.muted }]}>السلة فارغة.</Text>
+            <Text style={[styles.empty, { color: theme.palette.muted }]}>
+              {t("dashboard.posCartEmpty", "السلة فارغة.")}
+            </Text>
           ) : (
             <View style={styles.list}>
               {cart.map((it) => (
@@ -376,7 +451,9 @@ const DashboardPOS: React.FC = () => {
                     <Text style={[styles.itemTitle, { color: theme.palette.text }]} numberOfLines={1}>
                       {it.name}
                     </Text>
-                    <Text style={[styles.itemSub, { color: theme.palette.muted }]}>{`الكمية: ${it.quantity}`}</Text>
+                    <Text style={[styles.itemSub, { color: theme.palette.muted }]}>
+                      {`${t("dashboard.posQuantityLabel", "الكمية")}: ${it.quantity}`}
+                    </Text>
                   </View>
 
                   <View style={{ alignItems: "center", gap: 6 }}>
@@ -396,22 +473,40 @@ const DashboardPOS: React.FC = () => {
           )}
         </DashboardSection>
 
-        <DashboardSection title="الدفع" subtitle="حدد الخصم وطريقة الدفع ثم أكد الطلب."> {/* أزلت style={styles.half} */}
+        <DashboardSection
+          title={t("dashboard.posPaymentTitle", "الدفع")}
+          subtitle={t("dashboard.posPaymentSubtitle", "حدد الخصم وطريقة الدفع ثم أكد الطلب.")}
+        >
           <View style={styles.statsRow}>
-            <StatBadge label="في السلة" value={cartCount} color={theme.status.info} />
-            <StatBadge label="الإجمالي" value={total.toFixed(2)} color={theme.palette.accent} />
-            <StatBadge label="تنبيهات" value={inventory?.total_low_stock ?? inventory?.low_stock?.length ?? 0} color={theme.palette.danger} />
+            <StatBadge label={t("dashboard.posCartCountLabel", "في السلة")} value={cartCount} color={theme.status.info} />
+            <StatBadge label={t("dashboard.posGrandTotalLabel", "الإجمالي")} value={total.toFixed(2)} color={theme.palette.accent} />
+            <StatBadge label={t("dashboard.posAlertsLabel", "تنبيهات")} value={inventory?.total_low_stock ?? inventory?.low_stock?.length ?? 0} color={theme.palette.danger} />
           </View>
 
           <View style={styles.chipsRow}>
-            <Button title="لا خصم" size="sm" variant={discountType === "none" ? "primary" : "ghost"} onPress={() => setDiscountType("none")} />
-            <Button title="قيمة" size="sm" variant={discountType === "amount" ? "primary" : "ghost"} onPress={() => setDiscountType("amount")} />
-            <Button title="نسبة" size="sm" variant={discountType === "percent" ? "primary" : "ghost"} onPress={() => setDiscountType("percent")} />
+            <Button
+              title={t("dashboard.posDiscountNone", "لا خصم")}
+              size="sm"
+              variant={discountType === "none" ? "primary" : "ghost"}
+              onPress={() => setDiscountType("none")}
+            />
+            <Button
+              title={t("dashboard.posDiscountAmount", "قيمة")}
+              size="sm"
+              variant={discountType === "amount" ? "primary" : "ghost"}
+              onPress={() => setDiscountType("amount")}
+            />
+            <Button
+              title={t("dashboard.posDiscountPercent", "نسبة")}
+              size="sm"
+              variant={discountType === "percent" ? "primary" : "ghost"}
+              onPress={() => setDiscountType("percent")}
+            />
           </View>
 
           {discountType === "none" ? null : (
             <Input
-              label="قيمة الخصم"
+              label={t("dashboard.posDiscountValueLabel", "قيمة الخصم")}
               value={discountValue}
               onChangeText={setDiscountValue}
               keyboardType="decimal-pad"
@@ -420,40 +515,65 @@ const DashboardPOS: React.FC = () => {
           )}
 
           <Select
-            label="طريقة الدفع"
+            label={t("dashboard.posPaymentMethodLabel", "طريقة الدفع")}
             value={paymentMethod}
             onChange={setpaymentMethod}
             options={[
-              { value: "cash", label: "نقدًا" },
-              { value: "card_pos", label: "بطاقة / POS" },
-              { value: "online", label: "أونلاين" },
+              { value: "cash", label: t("dashboard.posPaymentCash", "نقدًا") },
+              { value: "card_pos", label: t("dashboard.posPaymentCard", "بطاقة / POS") },
+              { value: "online", label: t("dashboard.posPaymentOnline", "أونلاين") },
             ]}
           />
 
-          <Input label="ملاحظة (اختياري)" value={note} onChangeText={setNote} multiline numberOfLines={2} />
+          <Input
+            label={t("dashboard.posNoteLabel", "ملاحظة (اختياري)")}
+            value={note}
+            onChangeText={setNote}
+            multiline
+            numberOfLines={2}
+          />
 
           <View style={styles.totals}>
             <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { color: theme.palette.muted }]}>المجموع</Text>
+              <Text style={[styles.totalLabel, { color: theme.palette.muted }]}>
+                {t("dashboard.posSubtotalLabel", "المجموع")}
+              </Text>
               <CurrencyAmount value={subtotal} color={theme.palette.text} symbolSize={12} textStyle={styles.totalValue} />
             </View>
             <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { color: theme.palette.muted }]}>الخصم</Text>
+              <Text style={[styles.totalLabel, { color: theme.palette.muted }]}>
+                {t("dashboard.posDiscountTotalLabel", "الخصم")}
+              </Text>
               <CurrencyAmount value={discountAmount} color={theme.palette.text} symbolSize={12} textStyle={styles.totalValue} />
             </View>
             <View style={styles.totalRow}>
-              <Text style={[styles.totalLabel, { color: theme.palette.text }]}>الإجمالي</Text>
+              <Text style={[styles.totalLabel, { color: theme.palette.text }]}>
+                {t("dashboard.posGrandTotalLabel", "الإجمالي")}
+              </Text>
               <CurrencyAmount value={total} color={theme.palette.text} symbolSize={14} textStyle={[styles.totalValue, { fontSize: 16 }]} />
             </View>
           </View>
 
           <View style={styles.actionsRow}>
-            <Button title="تفريغ السلة" variant="secondary" onPress={() => setCart([])} disabled={cart.length === 0} />
-            <Button title="تأكيد الطلب" onPress={() => createOrder.mutate()} loading={createOrder.isPending} disabled={createOrder.isPending || cart.length === 0} />
+            <Button
+              title={t("dashboard.posClearCart", "تفريغ السلة")}
+              variant="secondary"
+              onPress={() => setCart([])}
+              disabled={cart.length === 0}
+            />
+            <Button
+              title={t("dashboard.posConfirmOrder", "تأكيد الطلب")}
+              onPress={() => createOrder.mutate()}
+              loading={createOrder.isPending}
+              disabled={createOrder.isPending || cart.length === 0}
+            />
           </View>
         </DashboardSection>
 
-        <DashboardSection title="تنبيهات المخزون" subtitle="عناصر قليلة الكمية."> {/* أزلت style={styles.half} */}
+        <DashboardSection
+          title={t("dashboard.posInventoryAlertsTitle", "تنبيهات المخزون")}
+          subtitle={t("dashboard.posInventoryAlertsSubtitle", "عناصر قليلة الكمية.")}
+        >
           {inventory?.low_stock?.length ? (
             <View style={styles.list}>
               {inventory.low_stock.slice(0, 10).map((it) => (
@@ -462,22 +582,48 @@ const DashboardPOS: React.FC = () => {
                     <Text style={[styles.itemTitle, { color: theme.palette.text }]} numberOfLines={1}>
                       {it.name}
                     </Text>
-                    <Text style={[styles.itemSub, { color: theme.palette.muted }]}>{`المخزون: ${it.stock} · الحد: ${it.minimum_stock}`}</Text>
+                    <Text style={[styles.itemSub, { color: theme.palette.muted }]}>
+                      {`${t("dashboard.posStockLabel", "المخزون")}: ${it.stock} · ${t("dashboard.posInventoryMinimumLabel", "الحد")}: ${
+                        it.minimum_stock
+                      }`}
+                    </Text>
                   </View>
                   <View style={[styles.pill, { borderColor: `${theme.palette.danger}55`, backgroundColor: `${theme.palette.danger}14` }]}>
-                    <Text style={[styles.pillText, { color: theme.palette.danger }]}>منخفض</Text>
+                    <Text style={[styles.pillText, { color: theme.palette.danger }]}>
+                      {t("dashboard.posLowStockLabel", "منخفض")}
+                    </Text>
                   </View>
                 </View>
               ))}
             </View>
           ) : (
-            <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد تنبيهات.</Text>
+            <Text style={[styles.empty, { color: theme.palette.muted }]}>
+              {t("dashboard.posNoAlerts", "لا توجد تنبيهات.")}
+            </Text>
           )}
         </DashboardSection>
-        <DashboardSection title="نقاط الولاء" subtitle="تعديل نقاط العميل برقم العضوية."> {/* أزلت style={styles.half} */}
-          <Input label="رقم العضوية" value={membershipId} onChangeText={setMembershipId} placeholder="123456" />
-          <Input label="تغيير النقاط" value={pointsDelta} onChangeText={setPointsDelta} keyboardType="number-pad" placeholder="10" />
-          <Button title="تحديث نقاط الولاء" onPress={() => adjustLoyalty.mutate()} loading={adjustLoyalty.isPending} />
+        <DashboardSection
+          title={t("dashboard.posLoyaltyTitle", "نقاط الولاء")}
+          subtitle={t("dashboard.posLoyaltySubtitle", "تعديل نقاط العميل برقم العضوية.")}
+        >
+          <Input
+            label={t("dashboard.posMembershipIdLabel", "رقم العضوية")}
+            value={membershipId}
+            onChangeText={setMembershipId}
+            placeholder="123456"
+          />
+          <Input
+            label={t("dashboard.posPointsChangeLabel", "تغيير النقاط")}
+            value={pointsDelta}
+            onChangeText={setPointsDelta}
+            keyboardType="number-pad"
+            placeholder="10"
+          />
+          <Button
+            title={t("dashboard.posUpdateLoyaltyButton", "تحديث نقاط الولاء")}
+            onPress={() => adjustLoyalty.mutate()}
+            loading={adjustLoyalty.isPending}
+          />
         </DashboardSection>
       </View>
     </DashboardShell>
@@ -485,7 +631,7 @@ const DashboardPOS: React.FC = () => {
 };
 
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     sectionsGrid: {
       flexDirection: "row",
@@ -538,22 +684,22 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "center",
     },
     label: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 12,
       fontWeight: "800",
     },
     itemTitle: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 14,
       fontWeight: "900",
     },
     itemSub: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 12,
       fontWeight: "700",
     },
     stockText: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 12,
       fontWeight: "800",
     },
@@ -569,7 +715,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       textAlign: "center",
     },
     empty: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
     },
     cartRow: {
@@ -616,7 +762,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     totalLabel: {
       fontSize: 13,
       fontWeight: "800",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     totalValue: {
       fontSize: 14,
@@ -641,4 +787,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
   });
 
 export default DashboardPOS;
-

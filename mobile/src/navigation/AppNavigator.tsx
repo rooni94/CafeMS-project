@@ -126,7 +126,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const TabsNavigator = () => {
   const { totalQuantity } = useCart();
   const { user, permissions } = useAuth();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
 
   const isEmployee = user?.role === "manager" || user?.role === "supervisor" || user?.role === "staff";
   const canViewDashboard = isEmployee;
@@ -167,7 +167,7 @@ const TabsNavigator = () => {
 
 const AppNavigator = () => {
   const theme = useTheme();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
   const navTheme = useMemo(
     () => ({
       ...DefaultTheme,

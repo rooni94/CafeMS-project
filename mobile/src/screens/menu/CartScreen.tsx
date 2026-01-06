@@ -1,5 +1,5 @@
-﻿import React from "react";
-import { View, Text, StyleSheet, Image, Pressable, FlatList, I18nManager } from "react-native";
+﻿import React, { useMemo } from "react";
+import { View, Text, StyleSheet, Image, Pressable, FlatList } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Screen from "../../components/Screen";
 import EmptyState from "../../components/EmptyState";
@@ -14,7 +14,8 @@ const CartScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { items, totalPrice, updateQuantity, removeItem, clearCart } = useCart();
   const theme = useTheme();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
 
   if (items.length === 0) {
     return (
@@ -90,7 +91,8 @@ const CartScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   cartItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -115,12 +117,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#111827",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   cartPrice: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   cartPriceRow: {
     flexDirection: "row",
@@ -130,18 +132,18 @@ const styles = StyleSheet.create({
   cartPriceLabel: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   cartAddons: {
     fontSize: 12,
     color: "#6b7280",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   cartLineTotal: {
     fontSize: 14,
     color: "#F59E0B",
     fontWeight: "700",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   quantityControls: {
     flexDirection: "row",

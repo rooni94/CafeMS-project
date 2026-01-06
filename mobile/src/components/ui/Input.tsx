@@ -1,7 +1,8 @@
-import React, { ComponentProps } from "react";
-import { View, Text, StyleSheet, I18nManager } from "react-native";
+import React, {ComponentProps, useMemo} from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { TextInput as PaperTextInput } from "react-native-paper";
 import { useTheme } from "../../theme";
+import { useI18n } from "../../i18n";
 
 type InputProps = Omit<ComponentProps<typeof PaperTextInput>, "mode" | "label"> & {
   label?: string;
@@ -10,6 +11,8 @@ type InputProps = Omit<ComponentProps<typeof PaperTextInput>, "mode" | "label"> 
 
 const Input: React.FC<InputProps> = ({ label, error, hint, style, contentStyle, ...rest }) => {
   const theme = useTheme();
+  const { isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   return (
     <View style={styles.container}>
       {label ? <Text style={[styles.label, { color: theme.palette.text }]}>{label}</Text> : null}
@@ -34,27 +37,28 @@ const Input: React.FC<InputProps> = ({ label, error, hint, style, contentStyle, 
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   container: {
     gap: 4,
   },
   label: {
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
     fontSize: 13,
     fontWeight: "800",
   },
   input: {
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   content: {
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   hint: {
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
     fontSize: 11,
   },
   error: {
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
     fontSize: 11,
   },
 });

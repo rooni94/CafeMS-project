@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import Screen from "../../components/Screen";
@@ -14,9 +14,9 @@ import { useI18n } from "../../i18n";
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { copy, t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { settings } = useStoreSettings();
-  const { copy, t } = useI18n();
   const { login, loading } = useAuth();
   const brandName = normalizeBrandName(settings?.store_name, copy.brandFallback);
 
@@ -68,6 +68,9 @@ const LoginScreen: React.FC = () => {
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
+              autoComplete="username"
+              textContentType="username"
+              importantForAutofill="yes"
             />
             <Input
               label={t("auth.passwordLabel", "كلمة المرور")}
@@ -75,6 +78,9 @@ const LoginScreen: React.FC = () => {
               secureTextEntry
               value={password}
               onChangeText={setPassword}
+              autoComplete="password"
+              textContentType="password"
+              importantForAutofill="yes"
             />
 
             <Button
@@ -106,7 +112,7 @@ const LoginScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       paddingHorizontal: 12,
@@ -133,7 +139,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     brand: {
       fontSize: 18,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       flex: 1,
     },
     badge: {
@@ -147,7 +153,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     subtitle: {
       fontSize: 13,
       lineHeight: 18,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     card: {
       borderRadius: 22,
@@ -160,7 +166,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       alignItems: "center",
     },
     error: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "800",
     },

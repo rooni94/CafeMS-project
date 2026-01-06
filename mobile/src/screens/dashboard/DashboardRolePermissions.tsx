@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View, I18nManager } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from "react-native";
 import { Button } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
@@ -9,6 +9,7 @@ import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
 import { isManager } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 type Role = "customer" | "staff" | "supervisor" | "manager";
 
@@ -43,46 +44,47 @@ type RolePermissionRow = {
   role: Role;
 } & Record<PermissionKey, boolean>;
 
-const roleLabel = (role: Role) => {
-  if (role === "manager") return "مدير";
-  if (role === "supervisor") return "مشرف";
-  if (role === "staff") return "موظف";
-  return "عميل";
+const roleLabel = (role: Role, t: (key: string, fallback?: string) => string) => {
+  if (role === "manager") return t("dashboard.rolesRoleManager", "مدير");
+  if (role === "supervisor") return t("dashboard.rolesRoleSupervisor", "مشرف");
+  if (role === "staff") return t("dashboard.rolesRoleStaff", "موظف");
+  return t("dashboard.rolesRoleCustomer", "عميل");
 };
 
-const generalPermissions: Array<{ key: PermissionKey; label: string; icon: any }> = [
-  { key: "can_view_dashboard", label: "عرض لوحة التحكم", icon: "speedometer-outline" },
-  { key: "can_manage_orders", label: "إدارة الطلبات", icon: "receipt-outline" },
-  { key: "can_access_cashier", label: "الوصول للكاشير POS", icon: "cash-outline" },
-  { key: "can_manage_tables", label: "إدارة الطاولات", icon: "grid-outline" },
-  { key: "can_manage_inventory", label: "إدارة المخزون", icon: "cube-outline" },
-  { key: "can_manage_products", label: "إدارة المنتجات", icon: "fast-food-outline" },
-  { key: "can_manage_categories", label: "إدارة الفئات", icon: "albums-outline" },
-  { key: "can_manage_subcategories", label: "إدارة التصنيفات الفرعية", icon: "layers-outline" },
-  { key: "can_view_activity_log", label: "عرض سجل النشاط", icon: "time-outline" },
-  { key: "can_manage_support", label: "إدارة تذاكر الدعم", icon: "chatbubbles-outline" },
-  { key: "can_manage_contact_messages", label: "إدارة رسائل التواصل", icon: "mail-outline" },
-  { key: "can_manage_users", label: "إدارة المستخدمين", icon: "people-outline" },
-  { key: "can_view_user_activity", label: "عرض سجل المستخدمين", icon: "person-outline" },
-  { key: "can_manage_store_settings", label: "إعدادات المتجر", icon: "settings-outline" },
-  { key: "can_manage_loyalty", label: "برنامج الولاء", icon: "sparkles-outline" },
+const generalPermissions: Array<{ key: PermissionKey; labelKey: string; labelFallback: string; icon: any }> = [
+  { key: "can_view_dashboard", labelKey: "dashboard.rolesPermViewDashboard", labelFallback: "عرض لوحة التحكم", icon: "speedometer-outline" },
+  { key: "can_manage_orders", labelKey: "dashboard.rolesPermManageOrders", labelFallback: "إدارة الطلبات", icon: "receipt-outline" },
+  { key: "can_access_cashier", labelKey: "dashboard.rolesPermAccessCashier", labelFallback: "الوصول للكاشير POS", icon: "cash-outline" },
+  { key: "can_manage_tables", labelKey: "dashboard.rolesPermManageTables", labelFallback: "إدارة الطاولات", icon: "grid-outline" },
+  { key: "can_manage_inventory", labelKey: "dashboard.rolesPermManageInventory", labelFallback: "إدارة المخزون", icon: "cube-outline" },
+  { key: "can_manage_products", labelKey: "dashboard.rolesPermManageProducts", labelFallback: "إدارة المنتجات", icon: "fast-food-outline" },
+  { key: "can_manage_categories", labelKey: "dashboard.rolesPermManageCategories", labelFallback: "إدارة الفئات", icon: "albums-outline" },
+  { key: "can_manage_subcategories", labelKey: "dashboard.rolesPermManageSubcategories", labelFallback: "إدارة التصنيفات الفرعية", icon: "layers-outline" },
+  { key: "can_view_activity_log", labelKey: "dashboard.rolesPermViewActivityLog", labelFallback: "عرض سجل النشاط", icon: "time-outline" },
+  { key: "can_manage_support", labelKey: "dashboard.rolesPermManageSupport", labelFallback: "إدارة تذاكر الدعم", icon: "chatbubbles-outline" },
+  { key: "can_manage_contact_messages", labelKey: "dashboard.rolesPermManageContactMessages", labelFallback: "إدارة رسائل التواصل", icon: "mail-outline" },
+  { key: "can_manage_users", labelKey: "dashboard.rolesPermManageUsers", labelFallback: "إدارة المستخدمين", icon: "people-outline" },
+  { key: "can_view_user_activity", labelKey: "dashboard.rolesPermViewUserActivity", labelFallback: "عرض سجل المستخدمين", icon: "person-outline" },
+  { key: "can_manage_store_settings", labelKey: "dashboard.rolesPermManageStoreSettings", labelFallback: "إعدادات المتجر", icon: "settings-outline" },
+  { key: "can_manage_loyalty", labelKey: "dashboard.rolesPermManageLoyalty", labelFallback: "برنامج الولاء", icon: "sparkles-outline" },
 ];
 
-const hrPermissions: Array<{ key: PermissionKey; label: string; icon: any }> = [
-  { key: "can_view_hr_dashboard", label: "عرض لوحة HR", icon: "briefcase-outline" },
-  { key: "can_manage_employees", label: "إدارة الموظفين", icon: "people-circle-outline" },
-  { key: "can_manage_attendance", label: "إدارة الحضور", icon: "calendar-outline" },
-  { key: "can_manage_hr_leaves", label: "إدارة الإجازات", icon: "leaf-outline" },
-  { key: "can_manage_hr_payroll", label: "إدارة الرواتب", icon: "card-outline" },
-  { key: "can_manage_hr_documents", label: "وثائق الموارد البشرية", icon: "document-text-outline" },
-  { key: "can_manage_hr_work_reports", label: "تقارير العمل", icon: "analytics-outline" },
-  { key: "can_manage_hr_reports", label: "تقارير HR", icon: "bar-chart-outline" },
-  { key: "can_view_hr_performance", label: "الأداء", icon: "trending-up-outline" },
+const hrPermissions: Array<{ key: PermissionKey; labelKey: string; labelFallback: string; icon: any }> = [
+  { key: "can_view_hr_dashboard", labelKey: "dashboard.rolesPermViewHrDashboard", labelFallback: "عرض لوحة HR", icon: "briefcase-outline" },
+  { key: "can_manage_employees", labelKey: "dashboard.rolesPermManageEmployees", labelFallback: "إدارة الموظفين", icon: "people-circle-outline" },
+  { key: "can_manage_attendance", labelKey: "dashboard.rolesPermManageAttendance", labelFallback: "إدارة الحضور", icon: "calendar-outline" },
+  { key: "can_manage_hr_leaves", labelKey: "dashboard.rolesPermManageHrLeaves", labelFallback: "إدارة الإجازات", icon: "leaf-outline" },
+  { key: "can_manage_hr_payroll", labelKey: "dashboard.rolesPermManageHrPayroll", labelFallback: "إدارة الرواتب", icon: "card-outline" },
+  { key: "can_manage_hr_documents", labelKey: "dashboard.rolesPermManageHrDocuments", labelFallback: "وثائق الموارد البشرية", icon: "document-text-outline" },
+  { key: "can_manage_hr_work_reports", labelKey: "dashboard.rolesPermManageHrWorkReports", labelFallback: "تقارير العمل", icon: "analytics-outline" },
+  { key: "can_manage_hr_reports", labelKey: "dashboard.rolesPermManageHrReports", labelFallback: "تقارير HR", icon: "bar-chart-outline" },
+  { key: "can_view_hr_performance", labelKey: "dashboard.rolesPermViewHrPerformance", labelFallback: "الأداء", icon: "trending-up-outline" },
 ];
 
 const DashboardRolePermissions: React.FC = () => {
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user } = useAuth();
   const allowed = isManager(user);
 
@@ -101,7 +103,10 @@ const DashboardRolePermissions: React.FC = () => {
         const res = await api.get("auth/role-permissions/");
         setRows(res.data || []);
       } catch {
-        Alert.alert("تعذر التحميل", "حدث خطأ أثناء تحميل الصلاحيات.");
+        Alert.alert(
+          t("dashboard.rolesLoadErrorTitle", "تعذر التحميل"),
+          t("dashboard.rolesLoadErrorBody", "حدث خطأ أثناء تحميل الصلاحيات."),
+        );
       } finally {
         setLoading(false);
       }
@@ -124,25 +129,39 @@ const DashboardRolePermissions: React.FC = () => {
           return api.patch(`auth/role-permissions/${row.id}/`, payload);
         })
       );
-      Alert.alert("تم الحفظ", "تم تحديث الصلاحيات بنجاح.");
+      Alert.alert(
+        t("dashboard.rolesSaveSuccessTitle", "تم الحفظ"),
+        t("dashboard.rolesSaveSuccessBody", "تم تحديث الصلاحيات بنجاح."),
+      );
     } catch {
-      Alert.alert("تعذر الحفظ", "حدث خطأ أثناء حفظ الصلاحيات.");
+      Alert.alert(
+        t("dashboard.rolesSaveErrorTitle", "تعذر الحفظ"),
+        t("dashboard.rolesSaveErrorBody", "حدث خطأ أثناء حفظ الصلاحيات."),
+      );
     } finally {
       setSaving(false);
     }
   };
 
   if (!allowed) {
-    return <DashboardAccessDenied title="الأدوار والصلاحيات" subtitle="تخصيص صلاحيات الموظفين والمشرفين." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.rolesTitle", "الأدوار والصلاحيات")}
+        subtitle={t("dashboard.rolesSubtitle", "تخصيص صلاحيات الموظفين والمشرفين.")}
+      />
+    );
   }
 
   if (loading) {
     return (
-      <DashboardShell title="الأدوار والصلاحيات" subtitle="تخصيص صلاحيات الموظفين والمشرفين.">
+      <DashboardShell
+        title={t("dashboard.rolesTitle", "الأدوار والصلاحيات")}
+        subtitle={t("dashboard.rolesSubtitle", "تخصيص صلاحيات الموظفين والمشرفين.")}
+      >
         <DashboardSection>
           <View style={styles.loading}>
             <ActivityIndicator />
-            <Text style={{ color: theme.palette.muted }}>جاري التحميل...</Text>
+            <Text style={{ color: theme.palette.muted }}>{t("common.loading", "جاري التحميل...")}</Text>
           </View>
         </DashboardSection>
       </DashboardShell>
@@ -152,15 +171,22 @@ const DashboardRolePermissions: React.FC = () => {
   const editableRows = rows.filter((r) => r.role === "supervisor" || r.role === "staff");
 
   return (
-    <DashboardShell title="الأدوار والصلاحيات" subtitle="إدارة صلاحيات الموظفين والمشرفين.">
+    <DashboardShell
+      title={t("dashboard.rolesTitle", "الأدوار والصلاحيات")}
+      subtitle={t("dashboard.rolesManageSubtitle", "إدارة صلاحيات الموظفين والمشرفين.")}
+    >
       {editableRows.map((row) => (
-        <DashboardSection key={row.id} title={`دور: ${roleLabel(row.role)}`} subtitle="فعّل الصلاحيات المطلوبة ثم احفظ.">
-          <Text style={[styles.groupTitle, { color: theme.palette.text }]}>صلاحيات عامة</Text>
+        <DashboardSection
+          key={row.id}
+          title={`${t("dashboard.rolesRolePrefix", "دور")}: ${roleLabel(row.role, t)}`}
+          subtitle={t("dashboard.rolesSectionHint", "فعّل الصلاحيات المطلوبة ثم احفظ.")}
+        >
+          <Text style={[styles.groupTitle, { color: theme.palette.text }]}>{t("dashboard.rolesGroupGeneral", "صلاحيات عامة")}</Text>
           <View style={{ gap: 8 }}>
             {generalPermissions.map((p) => (
               <DashboardListItem
                 key={p.key}
-                title={p.label}
+                title={t(p.labelKey, p.labelFallback)}
                 icon={p.icon}
                 right={
                   <Switch
@@ -174,12 +200,14 @@ const DashboardRolePermissions: React.FC = () => {
             ))}
           </View>
 
-          <Text style={[styles.groupTitle, { color: theme.palette.text, marginTop: 8 }]}>صلاحيات الموارد البشرية</Text>
+          <Text style={[styles.groupTitle, { color: theme.palette.text, marginTop: 8 }]}>
+            {t("dashboard.rolesGroupHR", "صلاحيات الموارد البشرية")}
+          </Text>
           <View style={{ gap: 8 }}>
             {hrPermissions.map((p) => (
               <DashboardListItem
                 key={p.key}
-                title={p.label}
+                title={t(p.labelKey, p.labelFallback)}
                 icon={p.icon}
                 right={
                   <Switch
@@ -196,13 +224,17 @@ const DashboardRolePermissions: React.FC = () => {
       ))}
 
       <View style={{ paddingHorizontal: 12 }}>
-        <Button title={saving ? "جارٍ الحفظ..." : "حفظ الصلاحيات"} onPress={saveAll} disabled={saving} />
+        <Button
+          title={saving ? t("common.saving", "جارٍ الحفظ...") : t("dashboard.rolesSaveButton", "حفظ الصلاحيات")}
+          onPress={saveAll}
+          disabled={saving}
+        />
       </View>
     </DashboardShell>
   );
 };
 
-const createStyles = (_theme: ReturnType<typeof useTheme>) =>
+const createStyles = (_theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     loading: {
       alignItems: "center",
@@ -210,7 +242,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       paddingVertical: 20,
     },
     groupTitle: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "900",
     },

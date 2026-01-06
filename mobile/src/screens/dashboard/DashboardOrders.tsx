@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 
-import { Alert, Linking, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -31,6 +31,7 @@ import DashboardShell from "./components/DashboardShell";
 import StatBadge from "./components/StatBadge";
 
 import { has, hasAny } from "./components/permissions";
+import { useI18n } from "../../i18n";
 
 
 
@@ -142,83 +143,8 @@ type OrderDetailsRow = {
 
 
 
-const STATUS_OPTIONS: Array<{ value: OrderStatusValue | null; label: string }> = [
-
-  { value: null, label: "الكل" },
-
-  { value: "pending", label: "قيد المراجعة" },
-
-  { value: "confirmed", label: "تم التأكيد" },
-
-  { value: "preparing", label: "قيد التحضير" },
-
-  { value: "ready", label: "جاهز للتسليم" },
-
-  { value: "completed", label: "مكتمل" },
-
-  { value: "cancelled", label: "ملغي" },
-
-];
-
-
-
 const statusLabel = (value?: string | null, display?: string | null) =>
-
   normalizeArabicText(display) || normalizeArabicText(value) || "";
-
-
-
-const orderTypeLabel = (value?: string | null) => {
-
-  if (!value) return "";
-
-  if (value === "dine_in") return "طلب داخل الصالة";
-
-  if (value === "takeaway") return "سفري";
-
-  if (value === "delivery") return "توصيل";
-
-  return normalizeArabicText(value);
-
-};
-
-
-
-const paymentMethodLabel = (value?: string | null) => {
-
-  if (!value) return "";
-
-  if (value === "cash") return "نقدي";
-
-  if (value === "card" || value === "card_pos") return "بطاقة / نقاط بيع";
-
-  if (value === "online") return "دفع إلكتروني";
-
-  if (value === "wallet") return "محفظة";
-
-  return normalizeArabicText(value);
-
-};
-
-
-
-const paymentStatusLabel = (value?: string | null) => {
-
-  if (!value) return "";
-
-  if (value === "pending") return "بانتظار الدفع";
-
-  if (value === "paid") return "مدفوع";
-
-  if (value === "failed") return "فشل الدفع";
-
-  if (value === "refunded") return "تم الاسترجاع";
-
-  return normalizeArabicText(value);
-
-};
-
-
 
 const safeNumber = (val: unknown): number => {
   if (typeof val === "number") return Number.isFinite(val) ? val : 0;
@@ -244,8 +170,48 @@ const safeNumber = (val: unknown): number => {
 const DashboardOrders: React.FC = () => {
 
   const theme = useTheme();
+  const { t, isRTL } = useI18n();
 
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const statusOptions = useMemo(
+    () => [
+      { value: null, label: t("dashboard.ordersStatusAll", "الكل") },
+      { value: "pending", label: t("dashboard.ordersStatusPending", "قيد المراجعة") },
+      { value: "confirmed", label: t("dashboard.ordersStatusConfirmed", "تم التأكيد") },
+      { value: "preparing", label: t("dashboard.ordersStatusPreparing", "قيد التحضير") },
+      { value: "ready", label: t("dashboard.ordersStatusReady", "جاهز للتسليم") },
+      { value: "completed", label: t("dashboard.ordersStatusCompleted", "مكتمل") },
+      { value: "cancelled", label: t("dashboard.ordersStatusCancelled", "ملغي") },
+    ],
+    [t]
+  );
+
+  const orderTypeLabel = (value?: string | null) => {
+    if (!value) return "";
+    if (value === "dine_in") return t("dashboard.ordersTypeDineIn", "طلب داخل الصالة");
+    if (value === "takeaway") return t("dashboard.ordersTypeTakeaway", "سفري");
+    if (value === "delivery") return t("dashboard.ordersTypeDelivery", "توصيل");
+    return normalizeArabicText(value);
+  };
+
+  const paymentMethodLabel = (value?: string | null) => {
+    if (!value) return "";
+    if (value === "cash") return t("dashboard.ordersPaymentCash", "نقدي");
+    if (value === "card" || value === "card_pos") return t("dashboard.ordersPaymentCard", "بطاقة / نقاط بيع");
+    if (value === "online") return t("dashboard.ordersPaymentOnline", "دفع إلكتروني");
+    if (value === "wallet") return t("dashboard.ordersPaymentWallet", "محفظة");
+    return normalizeArabicText(value);
+  };
+
+  const paymentStatusLabel = (value?: string | null) => {
+    if (!value) return "";
+    if (value === "pending") return t("dashboard.ordersPaymentStatusPending", "بانتظار الدفع");
+    if (value === "paid") return t("dashboard.ordersPaymentStatusPaid", "مدفوع");
+    if (value === "failed") return t("dashboard.ordersPaymentStatusFailed", "فشل الدفع");
+    if (value === "refunded") return t("dashboard.ordersPaymentStatusRefunded", "تم الاسترجاع");
+    return normalizeArabicText(value);
+  };
+
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
 
   const qc = useQueryClient();
 
@@ -377,7 +343,10 @@ const DashboardOrders: React.FC = () => {
 
     } catch {
 
-      Alert.alert("فشل تحديث الحالة", "تعذر تحديث حالة الطلب. حاول مرة أخرى.");
+      Alert.alert(
+        t("dashboard.ordersUpdateErrorTitle", "فشل تحديث الحالة"),
+        t("dashboard.ordersUpdateErrorBody", "تعذر تحديث حالة الطلب. حاول مرة أخرى.")
+      );
 
     } finally {
 
@@ -399,7 +368,10 @@ const DashboardOrders: React.FC = () => {
 
       if (!url) {
 
-        Alert.alert("لا يوجد رابط فاتورة", "تعذر العثور على رابط الفاتورة لهذا الطلب.");
+        Alert.alert(
+          t("dashboard.ordersInvoiceMissingTitle", "لا يوجد رابط فاتورة"),
+          t("dashboard.ordersInvoiceMissingBody", "تعذر العثور على رابط الفاتورة لهذا الطلب.")
+        );
 
         return;
 
@@ -409,7 +381,10 @@ const DashboardOrders: React.FC = () => {
 
     } catch {
 
-      Alert.alert("تعذر فتح الفاتورة", "حصل خطأ أثناء جلب الفاتورة.");
+      Alert.alert(
+        t("dashboard.ordersInvoiceOpenErrorTitle", "تعذر فتح الفاتورة"),
+        t("dashboard.ordersInvoiceOpenErrorBody", "حصل خطأ أثناء جلب الفاتورة.")
+      );
 
     }
 
@@ -419,7 +394,12 @@ const DashboardOrders: React.FC = () => {
 
   if (!allowed) {
 
-    return <DashboardAccessDenied title="صلاحيات غير كافية" subtitle="أنت بحاجة لصلاحية إدارة/عرض لوحة التحكم لفتح طلبات العملاء." />;
+    return (
+      <DashboardAccessDenied
+        title={t("dashboard.ordersDeniedTitle", "صلاحيات غير كافية")}
+        subtitle={t("dashboard.ordersDeniedSubtitle", "أنت بحاجة لصلاحية إدارة/عرض لوحة التحكم لفتح طلبات العملاء.")}
+      />
+    );
 
   }
 
@@ -449,31 +429,35 @@ const DashboardOrders: React.FC = () => {
 
   return (
 
-    <DashboardShell title="طلبات العملاء" subtitle="عرض ومتابعة جميع الطلبات من لوحة التحكم.">
-
-      <DashboardSection title="ملخص الطلبات" subtitle="إحصائيات سريعة للطلبات الأخيرة.">
+    <DashboardShell
+      title={t("dashboard.ordersTitle", "طلبات العملاء")}
+      subtitle={t("dashboard.ordersSubtitle", "عرض ومتابعة جميع الطلبات من لوحة التحكم.")}
+    >
+      <DashboardSection
+        title={t("dashboard.ordersSummaryTitle", "ملخص الطلبات")}
+        subtitle={t("dashboard.ordersSummarySubtitle", "إحصائيات سريعة للطلبات الأخيرة.")}
+      >
 
         <View style={styles.statsRow}>
 
-          <StatBadge label="إجمالي الطلبات" value={stats?.total_orders ?? "-"} color={theme.palette.accentSoft} />
-
-          <StatBadge label="قيد التأكيد" value={stats?.pending_orders ?? "-"} color={theme.palette.accent} />
-
-          <StatBadge label="قيد التحضير" value={stats?.preparing_orders ?? "-"} color="#3b82f6" />
+          <StatBadge label={t("dashboard.ordersStatsTotal", "إجمالي الطلبات")} value={stats?.total_orders ?? "-"} color={theme.palette.accentSoft} />
+          <StatBadge label={t("dashboard.ordersStatsPending", "قيد التأكيد")} value={stats?.pending_orders ?? "-"} color={theme.palette.accent} />
+          <StatBadge label={t("dashboard.ordersStatsPreparing", "قيد التحضير")} value={stats?.preparing_orders ?? "-"} color="#3b82f6" />
 
         </View>
 
         <View style={styles.statsRow}>
 
-          <StatBadge label="جاهز للتسليم" value={stats?.ready_orders ?? "-"} color="#10b981" />
-
-          <StatBadge label="مكتمل" value={stats?.completed_orders ?? "-"} color={theme.palette.success} />
+          <StatBadge label={t("dashboard.ordersStatsReady", "جاهز للتسليم")} value={stats?.ready_orders ?? "-"} color="#10b981" />
+          <StatBadge label={t("dashboard.ordersStatsCompleted", "مكتمل")} value={stats?.completed_orders ?? "-"} color={theme.palette.success} />
 
           <View style={[styles.revenueBadge, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
 
             <CurrencyAmount value={stats?.revenue ?? "-"} color={theme.palette.text} symbolSize={14} textStyle={styles.revenueValue} />
 
-            <Text style={[styles.revenueLabel, { color: theme.palette.muted }]}>الإيرادات</Text>
+            <Text style={[styles.revenueLabel, { color: theme.palette.muted }]}>
+              {t("dashboard.ordersStatsRevenue", "الإيرادات")}
+            </Text>
 
           </View>
 
@@ -483,13 +467,20 @@ const DashboardOrders: React.FC = () => {
 
 
 
-      <DashboardSection title="الطلبات" subtitle="رشّح حسب الحالة أو ابحث برقم الطلب/الحالة.">
-
-        <Input label="بحث" value={search} onChangeText={setSearch} placeholder="مثال: 123 أو كاش أو سفري" />
+      <DashboardSection
+        title={t("dashboard.ordersSectionTitle", "الطلبات")}
+        subtitle={t("dashboard.ordersSectionSubtitle", "رشّح حسب الحالة أو ابحث برقم الطلب/الحالة.")}
+      >
+        <Input
+          label={t("dashboard.ordersSearchLabel", "بحث")}
+          value={search}
+          onChangeText={setSearch}
+          placeholder={t("dashboard.ordersSearchPlaceholder", "مثال: 123 أو كاش أو سفري")}
+        />
 
         <View style={styles.filtersRow}>
 
-          {STATUS_OPTIONS.map((s) => (
+          {statusOptions.map((s) => (
 
             <Button
 
@@ -514,20 +505,25 @@ const DashboardOrders: React.FC = () => {
 
 
       <DashboardSection
-
-        title="قائمة الطلبات"
-
-        subtitle={isLoading ? "جارٍ التحميل..." : "اختر طلبًا لعرض التفاصيل وتحديث الحالة."}
-
+        title={t("dashboard.ordersListTitle", "قائمة الطلبات")}
+        subtitle={
+          isLoading
+            ? t("common.loading", "جاري التحميل...")
+            : t("dashboard.ordersListSubtitle", "اختر طلبًا لعرض التفاصيل والتحديث.")
+        }
       >
 
         {ordersError ? (
 
-          <Text style={[styles.emptyText, { color: theme.palette.danger }]}>حدث خطأ أثناء جلب الطلبات.</Text>
+          <Text style={[styles.emptyText, { color: theme.palette.danger }]}>
+            {t("dashboard.ordersFetchError", "حدث خطأ أثناء تحميل الطلبات.")}
+          </Text>
 
         ) : filteredOrders.length === 0 ? (
 
-          <Text style={[styles.emptyText, { color: theme.palette.muted }]}>لا توجد طلبات مطابقة للبحث أو الفلتر الحالي.</Text>
+          <Text style={[styles.emptyText, { color: theme.palette.muted }]}>
+            {t("dashboard.ordersEmpty", "لا توجد طلبات مطابقة لبحثك الحالي.")}
+          </Text>
 
         ) : (
 
@@ -539,13 +535,15 @@ const DashboardOrders: React.FC = () => {
 
               const subtitleParts = [
 
-                order.user_name ? `العميل: ${order.user_name}` : null,
+                order.user_name ? `${t("dashboard.ordersCustomerLabel", "العميل")}: ${order.user_name}` : null,
 
                 statusLabel(order.status, order.status_display) || order.status,
 
                 order.order_type ? orderTypeLabel(order.order_type) : null,
 
-                order.payment_method ? `طريقة الدفع: ${paymentMethodLabel(order.payment_method)}` : null,
+                order.payment_method
+                  ? `${t("dashboard.ordersPaymentMethodLabel", "طريقة الدفع")}: ${paymentMethodLabel(order.payment_method)}`
+                  : null,
 
                 new Date(order.created_at).toLocaleString(),
 
@@ -559,7 +557,7 @@ const DashboardOrders: React.FC = () => {
 
                   <DashboardListItem
 
-                    title={`طلب #${order.id}`}
+                    title={`${t("common.orderLabel", "طلب")} #${order.id}`}
 
                     subtitle={subtitleParts.join(" • ")}
 
@@ -611,13 +609,17 @@ const DashboardOrders: React.FC = () => {
 
                                   <Text style={[styles.detailTitle, { color: theme.palette.text }]} numberOfLines={1}>
 
-                                    {order.order_type ? orderTypeLabel(order.order_type) : "غير محدد"}
+                                    {order.order_type ? orderTypeLabel(order.order_type) : t("dashboard.ordersUnspecified", "غير محدد")}
 
                                   </Text>
 
                                   <Text style={[styles.detailMuted, { color: theme.palette.muted }]} numberOfLines={1}>
 
-                                    {order.payment_method ? `وسيلة الدفع: ${paymentMethodLabel(order.payment_method)}` : "غير محدد"}
+                                    {order.payment_method
+                                      ? `${t("dashboard.ordersPaymentMethodLabel", "طريقة الدفع")}: ${paymentMethodLabel(
+                                          order.payment_method,
+                                        )}`
+                                      : t("dashboard.ordersUnspecified", "غير محدد")}
 
                                   </Text>
 
@@ -634,33 +636,28 @@ const DashboardOrders: React.FC = () => {
                               <View style={styles.metaList}>
 
                                 <MetaRow
-
-                                  label="العميل"
-
+                                  label={t("dashboard.ordersCustomerLabel", "العميل")}
                                   value={normalizeArabicText(
-
-                                    resolvedDetails?.user_name || resolvedDetails?.customer_name || order.user_name || "غير معروف",
-
+                                    resolvedDetails?.user_name ||
+                                      resolvedDetails?.customer_name ||
+                                      order.user_name ||
+                                      t("dashboard.ordersUnknownCustomer", "غير معروف"),
                                   )}
-
-                                />
-
-                                <MetaRow label="حالة الدفع" value={paymentStatusLabel(resolvedDetails?.payment_status)} />
-
-                                <MetaRow
-
-                                  label="نوع الطلب"
-
-                                  value={order.order_type ? orderTypeLabel(order.order_type) : "غير محدد"}
-
                                 />
 
                                 <MetaRow
+                                  label={t("dashboard.ordersPaymentStatusLabel", "حالة الدفع")}
+                                  value={paymentStatusLabel(resolvedDetails?.payment_status)}
+                                />
 
-                                  label="موظف الخدمة"
+                                <MetaRow
+                                  label={t("dashboard.ordersOrderTypeLabel", "نوع الطلب")}
+                                  value={order.order_type ? orderTypeLabel(order.order_type) : t("dashboard.ordersUnspecified", "غير محدد")}
+                                />
 
+                                <MetaRow
+                                  label={t("dashboard.ordersServedByLabel", "موظف الخدمة")}
                                   value={resolvedDetails?.served_by_name ? normalizeArabicText(resolvedDetails.served_by_name) : "—"}
-
                                 />
 
                                 {resolvedDetails?.delivery ? (
@@ -669,7 +666,7 @@ const DashboardOrders: React.FC = () => {
 
                                     <MetaRow
 
-                                      label="عنوان التوصيل"
+                                      label={t("dashboard.ordersDeliveryAddressLabel", "عنوان التوصيل")}
 
                                       value={normalizeArabicText(resolvedDetails.delivery_address || "") || "—"}
 
@@ -677,7 +674,7 @@ const DashboardOrders: React.FC = () => {
 
                                     <MetaRow
 
-                                      label="رسوم التوصيل"
+                                      label={t("dashboard.ordersDeliveryFeeLabel", "رسوم التوصيل")}
 
                                       value={
 
@@ -705,7 +702,7 @@ const DashboardOrders: React.FC = () => {
 
                                   <MetaRow
 
-                                    label="الطاولة"
+                                    label={t("dashboard.ordersTableLabel", "الطاولة")}
 
                                     value={`${resolvedDetails.table.label}${
 
@@ -725,7 +722,7 @@ const DashboardOrders: React.FC = () => {
 
                                 <Text style={[styles.note, { color: theme.palette.text }]}>
 
-                                  ملاحظة: {normalizeArabicText(resolvedDetails.note)}
+                                  {t("dashboard.ordersNoteLabel", "ملاحظة")}: {normalizeArabicText(resolvedDetails.note)}
 
                                 </Text>
 
@@ -737,7 +734,9 @@ const DashboardOrders: React.FC = () => {
 
                                 <View style={[styles.chargeBox, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
 
-                                  <Text style={[styles.chargeLabel, { color: theme.palette.muted }]}>قيمة الخصم</Text>
+                                  <Text style={[styles.chargeLabel, { color: theme.palette.muted }]}>
+                                    {t("dashboard.ordersDiscountLabel", "قيمة الخصم")}
+                                  </Text>
 
                                   <CurrencyAmount value={discountAmount} color={theme.palette.text} symbolSize={12} textStyle={styles.chargeValue} />
 
@@ -745,7 +744,9 @@ const DashboardOrders: React.FC = () => {
 
                                 <View style={[styles.chargeBox, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
 
-                                  <Text style={[styles.chargeLabel, { color: theme.palette.muted }]}>الإجمالي بعد الخصم</Text>
+                                  <Text style={[styles.chargeLabel, { color: theme.palette.muted }]}>
+                                    {t("dashboard.ordersTotalAfterDiscountLabel", "الإجمالي بعد الخصم")}
+                                  </Text>
 
                                   <CurrencyAmount value={totalAmount || order.total} color={theme.palette.text} symbolSize={12} textStyle={styles.chargeValue} />
 
@@ -761,11 +762,14 @@ const DashboardOrders: React.FC = () => {
 
                                   {resolvedDetails!.items!.slice(0, 20).map((it) => {
 
-                                    const itemName = normalizeArabicText(it.product?.name) || `صنف #${it.id}`;
+                                    const itemName =
+                                      normalizeArabicText(it.product?.name) || `${t("dashboard.ordersItemFallback", "صنف")} #${it.id}`;
 
                                     const addons = (it.addons || []).map((a) => normalizeArabicText(a.name)).filter(Boolean);
 
-                                    const addonsText = addons.length ? ` • الإضافات: ${addons.join(" + ")}` : "";
+                                    const addonsText = addons.length
+                                      ? ` • ${t("dashboard.ordersAddonsLabel", "الإضافات")}: ${addons.join(" + ")}`
+                                      : "";
 
                                     const lineTotal = safeNumber(it.price) * Number(it.quantity || 1);
 
@@ -777,7 +781,7 @@ const DashboardOrders: React.FC = () => {
 
                                         title={itemName}
 
-                                        subtitle={`الكمية: ${it.quantity}${addonsText}`}
+                                        subtitle={`${t("dashboard.ordersQuantityLabel", "الكمية")}: ${it.quantity}${addonsText}`}
 
                                         icon="fast-food-outline"
 
@@ -793,11 +797,15 @@ const DashboardOrders: React.FC = () => {
 
                               ) : detailsLoading ? (
 
-                                <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>جارٍ تحميل تفاصيل الأصناف...</Text>
+                                <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>
+                                  {t("dashboard.ordersItemsLoading", "جاري تحميل عناصر الطلب...")}
+                                </Text>
 
                               ) : (
 
-                                <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>لا توجد تفاصيل أصناف لهذا الطلب.</Text>
+                                <Text style={[styles.detailMuted, { color: theme.palette.muted }]}>
+                                  {t("dashboard.ordersItemsEmpty", "لا توجد عناصر لهذا الطلب.")}
+                                </Text>
 
                               )}
 
@@ -805,9 +813,19 @@ const DashboardOrders: React.FC = () => {
 
                               <View style={styles.actionRow}>
 
-                                <Button title="فتح الفاتورة" variant="secondary" onPress={() => openInvoice(order.id)} {...chipProps} />
+                                <Button
+                                  title={t("dashboard.ordersOpenInvoice", "فتح الفاتورة")}
+                                  variant="secondary"
+                                  onPress={() => openInvoice(order.id)}
+                                  {...chipProps}
+                                />
 
-                                <Button title="إغلاق" variant="ghost" onPress={() => setExpandedId(null)} {...chipProps} />
+                                <Button
+                                  title={t("dashboard.ordersClose", "إغلاق")}
+                                  variant="ghost"
+                                  onPress={() => setExpandedId(null)}
+                                  {...chipProps}
+                                />
 
                               </View>
 
@@ -817,17 +835,21 @@ const DashboardOrders: React.FC = () => {
 
                             <View style={[styles.statusCard, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
 
-                              <Text style={[styles.statusTitle, { color: theme.palette.text }]}>تغيير حالة الطلب</Text>
+                              <Text style={[styles.statusTitle, { color: theme.palette.text }]}>
+                                {t("dashboard.ordersChangeTitle", "تغيير حالة الطلب")}
+                              </Text>
 
                               <Text style={[styles.statusHint, { color: theme.palette.muted }]}>
 
-                                {canManageOrders ? "اختر الحالة المناسبة لتحديث الطلب." : "لا تملك صلاحية تغيير الحالة."}
+                                {canManageOrders
+                                  ? t("dashboard.ordersChangeHint", "اختر الحالة الجديدة لتحديث الطلب.")
+                                  : t("dashboard.ordersChangeDenied", "لا تملك صلاحية تغيير حالة الطلب.")}
 
                               </Text>
 
                               <View style={styles.statusWrap}>
 
-                                {STATUS_OPTIONS.filter((s) => s.value != null).map((s) => (
+                                {statusOptions.filter((s) => s.value != null).map((s) => (
 
                                   <Button
 
@@ -882,7 +904,7 @@ const DashboardOrders: React.FC = () => {
 
 
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
 
   StyleSheet.create({
 
@@ -962,7 +984,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
     emptyText: {
 
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
 
       fontSize: 13,
 
@@ -1047,7 +1069,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
       fontWeight: "900",
 
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
 
     detailMuted: {
@@ -1056,7 +1078,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
       fontWeight: "700",
 
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
 
     bigTotal: {
@@ -1073,7 +1095,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       lineHeight: 18,
       fontWeight: "700",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     metaList: {
       gap: 6,
@@ -1087,14 +1109,14 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     metaLabel: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       color: theme.palette.muted,
     },
     metaValue: {
       flex: 1,
       fontSize: 13,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       color: theme.palette.text,
     },
     chargesRow: {
@@ -1113,12 +1135,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     chargeLabel: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     chargeValue: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     itemsList: {
       gap: 8,
@@ -1155,7 +1177,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
       fontWeight: "900",
 
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
 
     statusHint: {
@@ -1164,7 +1186,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
       fontWeight: "700",
 
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
 
     statusWrap: {
@@ -1184,4 +1206,3 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
 
 export default DashboardOrders;
-

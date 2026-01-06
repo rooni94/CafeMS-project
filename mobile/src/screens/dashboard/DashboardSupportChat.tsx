@@ -1,6 +1,6 @@
 // mobile/src/screens/dashboard/DashboardSupportChat.tsx
-import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, Alert, I18nManager } from "react-native";
+import React, {useMemo, useState} from "react";
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,7 +35,8 @@ const DashboardSupportChat: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const qc = useQueryClient();
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   const { id, owner_name, subject, guest_email, is_guest } = route.params || {};
   const [reply, setReply] = useState("");
 
@@ -187,7 +188,7 @@ const DashboardSupportChat: React.FC = () => {
               value={reply}
               onChangeText={setReply}
               multiline
-              textAlign="right"
+              textAlign={isRTL ? "right" : "left"}
             />
             <Pressable
               onPress={() => sendMessage.mutate()}
@@ -207,7 +208,8 @@ const DashboardSupportChat: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (isRTL: boolean) =>
+  StyleSheet.create({
   chatPane: {
     flex: 1,
     backgroundColor: "#f5f7fb",
@@ -244,12 +246,12 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "900",
     color: "#0f172a",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   helper: {
     fontSize: 12,
     color: "#94a3b8",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   messages: {
     paddingVertical: 6,
@@ -301,13 +303,13 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 14,
     lineHeight: 20,
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   bubbleMeta: {
     marginTop: 6,
     fontSize: 11,
     color: "#94a3b8",
-    textAlign: I18nManager.isRTL ? "right" : "left",
+    textAlign: isRTL ? "right" : "left",
   },
   composer: {
     flexDirection: "row",
@@ -339,4 +341,3 @@ const styles = StyleSheet.create({
 });
 
 export default DashboardSupportChat;
-

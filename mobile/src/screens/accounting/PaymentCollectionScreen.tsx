@@ -9,7 +9,7 @@ const PaymentCollectionScreen: React.FC = () => {
   const [amount, setAmount] = useState("");
   const [reference, setReference] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const { t } = useI18n();
+  const { t, isRTL } = useI18n();
 
   const submit = async () => {
     setMessage(null);

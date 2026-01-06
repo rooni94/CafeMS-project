@@ -24,7 +24,7 @@ const StoreSettingsContext = createContext<
 export const StoreSettingsProvider: React.FC<{
   children: React.ReactNode;
 }> = ({ children }) => {
-  const { copy, t } = useI18n();
+  const { copy, t, isRTL } = useI18n();
   const [settings, setSettings] = useState<StoreSettings | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 

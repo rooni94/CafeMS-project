@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Linking, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Linking, StyleSheet, Text, View } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -12,73 +12,88 @@ import OrderTimeline from "../../components/OrderTimeline";
 import FloatingCart from "../../components/FloatingCart";
 import { OrderDetails, OrderSummary } from "../../types";
 import { formatDateTime } from "../../utils/format";
-import { decodeUnicodeEscapes, normalizeArabicText } from "../../utils/text";
+import { normalizeArabicText } from "../../utils/text";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import DashboardListItem from "../dashboard/components/DashboardListItem";
 import DashboardTile from "../dashboard/components/DashboardTile";
 import { AppStackParamList } from "../../navigation/AppNavigator";
+import { useI18n } from "../../i18n";
 
-const T = {
-  trackTitle: "\\u062a\\u062a\\u0628\\u0639 \\u0627\\u0644\\u0637\\u0644\\u0628",
-  myOrdersTitle: "\\u0637\\u0644\\u0628\\u0627\\u062a\\u064a",
-  orderWord: "\\u0637\\u0644\\u0628",
-  dot: "\\u2022",
-  dash: "\\u2014",
-  shellSubtitleGuest:
-    "\\u0623\\u062f\\u062e\\u0644 \\u0631\\u0642\\u0645 \\u0627\\u0644\\u0637\\u0644\\u0628 \\u0644\\u0645\\u0639\\u0631\\u0641\\u0629 \\u062d\\u0627\\u0644\\u062a\\u0647 \\u0648\\u062a\\u062d\\u0645\\u064a\\u0644 \\u0627\\u0644\\u0641\\u0627\\u062a\\u0648\\u0631\\u0629 \\u0625\\u0646 \\u0648\\u062c\\u062f\\u062a.",
-  shellSubtitleUser:
-    "\\u0627\\u0633\\u062a\\u0639\\u0631\\u0636 \\u0622\\u062e\\u0631 \\u0637\\u0644\\u0628\\u0627\\u062a\\u0643 \\u0648\\u062a\\u062a\\u0628\\u0639 \\u062d\\u0627\\u0644\\u062a\\u0647\\u0627 \\u0623\\u0648 \\u0623\\u062f\\u062e\\u0644 \\u0631\\u0642\\u0645 \\u0637\\u0644\\u0628 \\u0644\\u0644\\u062a\\u062a\\u0628\\u0639.",
-  trackSectionSubtitle:
-    "\\u0623\\u062f\\u062e\\u0644 \\u0631\\u0642\\u0645 \\u0627\\u0644\\u0637\\u0644\\u0628 \\u062b\\u0645 \\u0627\\u0636\\u063a\\u0637 \\u062a\\u062a\\u0628\\u0639.",
-  orderIdLabel: "\\u0631\\u0642\\u0645 \\u0627\\u0644\\u0637\\u0644\\u0628",
-  orderIdPlaceholder: "\\u0645\\u062b\\u0627\\u0644: 123",
-  trackBtn: "\\u062a\\u062a\\u0628\\u0639",
-  guestTitle:
-    "\\u0633\\u062c\\u0651\\u0644 \\u062f\\u062e\\u0648\\u0644\\u0643 \\u0644\\u0644\\u0648\\u0635\\u0648\\u0644 \\u0625\\u0644\\u0649 \\u0637\\u0644\\u0628\\u0627\\u062a\\u0643",
-  guestSubtitle:
-    "\\u0633\\u062c\\u0651\\u0644 \\u062f\\u062e\\u0648\\u0644\\u0643 \\u0644\\u0639\\u0631\\u0636 \\u0622\\u062e\\u0631 \\u0627\\u0644\\u0637\\u0644\\u0628\\u0627\\u062a\\u060c \\u062d\\u0641\\u0638 \\u0627\\u0644\\u0639\\u0646\\u0627\\u0648\\u064a\\u0646\\u060c \\u0648\\u0646\\u0642\\u0627\\u0637 \\u0627\\u0644\\u0648\\u0644\\u0627\\u0621.",
-  login: "\\u062a\\u0633\\u062c\\u064a\\u0644 \\u0627\\u0644\\u062f\\u062e\\u0648\\u0644",
-  loginSub: "\\u0627\\u062f\\u062e\\u0644 \\u0625\\u0644\\u0649 \\u062d\\u0633\\u0627\\u0628\\u0643",
-  register: "\\u0625\\u0646\\u0634\\u0627\\u0621 \\u062d\\u0633\\u0627\\u0628",
-  registerSub: "\\u0623\\u0646\\u0634\\u0626 \\u062d\\u0633\\u0627\\u0628\\u0627\\u064b \\u062c\\u062f\\u064a\\u062f\\u0627\\u064b",
-  lastOrders: "\\u0622\\u062e\\u0631 \\u0637\\u0644\\u0628\\u0627\\u062a\\u064a",
-  loadingOrders: "\\u062c\\u0627\\u0631\\u064d \\u062a\\u062d\\u0645\\u064a\\u0644 \\u0627\\u0644\\u0637\\u0644\\u0628\\u0627\\u062a...",
-  tapAnyOrder: "\\u0627\\u0636\\u063a\\u0637 \\u0639\\u0644\\u0649 \\u0623\\u064a \\u0637\\u0644\\u0628 \\u0644\\u0639\\u0631\\u0636 \\u0627\\u0644\\u062a\\u0641\\u0627\\u0635\\u064a\\u0644.",
-  noOrdersYet: "\\u0644\\u0627 \\u062a\\u0648\\u062c\\u062f \\u0637\\u0644\\u0628\\u0627\\u062a \\u0644\\u062f\\u064a\\u0643 \\u062d\\u062a\\u0649 \\u0627\\u0644\\u0622\\u0646.",
-  loading: "\\u062c\\u0627\\u0631\\u064d \\u0627\\u0644\\u062a\\u062d\\u0645\\u064a\\u0644...",
-  noOrdersToShow: "\\u0644\\u0627 \\u062a\\u0648\\u062c\\u062f \\u0637\\u0644\\u0628\\u0627\\u062a \\u0644\\u0639\\u0631\\u0636\\u0647\\u0627.",
-  detailsTitle: "\\u062a\\u0641\\u0627\\u0635\\u064a\\u0644 \\u0627\\u0644\\u0637\\u0644\\u0628",
-  detailsFound: "\\u062a\\u0645 \\u0627\\u0644\\u0639\\u062b\\u0648\\u0631 \\u0639\\u0644\\u0649 \\u0627\\u0644\\u0637\\u0644\\u0628.",
-  detailsNone: "\\u0644\\u0645 \\u064a\\u062a\\u0645 \\u062a\\u062d\\u062f\\u064a\\u062f \\u0637\\u0644\\u0628 \\u0628\\u0639\\u062f.",
-  enterToSee:
-    "\\u0623\\u062f\\u062e\\u0644 \\u0631\\u0642\\u0645 \\u0627\\u0644\\u0637\\u0644\\u0628 \\u0641\\u064a \\u0627\\u0644\\u0623\\u0639\\u0644\\u0649 \\u0644\\u0645\\u0634\\u0627\\u0647\\u062f\\u0629 \\u0627\\u0644\\u062a\\u0641\\u0627\\u0635\\u064a\\u0644.",
-  stagesTitle: "\\u0645\\u0631\\u0627\\u062d\\u0644 \\u0627\\u0644\\u0637\\u0644\\u0628",
-  stagesSub:
-    "\\u062a\\u0627\\u0628\\u0639 \\u062a\\u0642\\u062f\\u0645 \\u0637\\u0644\\u0628\\u0643 \\u062e\\u0637\\u0648\\u0629 \\u0628\\u062e\\u0637\\u0648\\u0629.",
-  invoice: "\\u062a\\u062d\\u0645\\u064a\\u0644 \\u0627\\u0644\\u0641\\u0627\\u062a\\u0648\\u0631\\u0629",
-  noInvoice:
-    "\\u0644\\u0627 \\u062a\\u0648\\u062c\\u062f \\u0641\\u0627\\u062a\\u0648\\u0631\\u0629 \\u0645\\u062a\\u0627\\u062d\\u0629 \\u0644\\u0647\\u0630\\u0627 \\u0627\\u0644\\u0637\\u0644\\u0628 \\u062d\\u062a\\u0649 \\u0627\\u0644\\u0622\\u0646.",
-  errEmpty: "\\u064a\\u0631\\u062c\\u0649 \\u0625\\u062f\\u062e\\u0627\\u0644 \\u0631\\u0642\\u0645 \\u0627\\u0644\\u0637\\u0644\\u0628.",
-  errNotFound: "\\u0644\\u0645 \\u064a\\u062a\\u0645 \\u0627\\u0644\\u0639\\u062b\\u0648\\u0631 \\u0639\\u0644\\u0649 \\u0637\\u0644\\u0628 \\u0628\\u0647\\u0630\\u0627 \\u0627\\u0644\\u0631\\u0642\\u0645.",
-  errGeneric: "\\u062a\\u0639\\u0630\\u0631 \\u062c\\u0644\\u0628 \\u062a\\u0641\\u0627\\u0635\\u064a\\u0644 \\u0627\\u0644\\u0637\\u0644\\u0628. \\u062d\\u0627\\u0648\\u0644 \\u0645\\u0631\\u0629 \\u0623\\u062e\\u0631\\u0649.",
-  orderNumber: "\\u0631\\u0642\\u0645 \\u0627\\u0644\\u0637\\u0644\\u0628",
-  status: "\\u0627\\u0644\\u062d\\u0627\\u0644\\u0629",
-  date: "\\u0627\\u0644\\u062a\\u0627\\u0631\\u064a\\u062e",
-  total: "\\u0627\\u0644\\u0625\\u062c\\u0645\\u0627\\u0644\\u064a",
-};
+const DOT = "\u2022";
+const DASH = "\u2014";
 
 const OrderTrackingScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<AppStackParamList, "OrderTracking">>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user } = useAuth();
-  const t = useMemo(() => {
-    const out: Record<string, string> = {};
-    for (const [key, val] of Object.entries(T)) out[key] = decodeUnicodeEscapes(String(val));
-    return out as typeof T;
-  }, []);
+  const labels = useMemo(
+    () => ({
+      trackTitle: t("orders.trackTitle", "تتبع الطلب"),
+      myOrdersTitle: t("orders.myOrdersTitle", "طلباتي"),
+      shellSubtitleGuest: t(
+        "orders.trackGuestSubtitle",
+        "أدخل رقم الطلب لمعرفة حالته وتحميل الفاتورة إن وجدت."
+      ),
+      shellSubtitleUser: t(
+        "orders.trackUserSubtitle",
+        "استعرض آخر طلباتك وتتبع حالتها أو أدخل رقم طلب للتتبع."
+      ),
+      trackSectionSubtitle: t("orders.trackSectionSubtitle", "أدخل رقم الطلب ثم اضغط تتبع."),
+      orderIdLabel: t("orders.orderIdLabel", "رقم الطلب"),
+      orderIdPlaceholder: t("orders.orderIdPlaceholder", "مثال: 123"),
+      trackBtn: t("orders.trackBtn", "تتبع"),
+      guestTitle: t("orders.guestTitle", "سجّل دخولك للوصول إلى طلباتك"),
+      guestSubtitle: t(
+        "orders.guestDescription",
+        "سجّل دخولك لعرض آخر الطلبات، حفظ العناوين، ونقاط الولاء."
+      ),
+      login: t("auth.loginTitle", "تسجيل الدخول"),
+      loginSub: t("profile.tileLoginSubtitle", "ادخل إلى حسابك"),
+      register: t("auth.createAccount", "إنشاء حساب"),
+      registerSub: t("profile.tileRegisterSubtitle", "أنشئ حساباً جديداً"),
+      lastOrders: t("orders.lastOrdersTitle", "آخر طلباتي"),
+      loadingOrders: t("orders.loadingOrders", "جارٍ تحميل الطلبات..."),
+      tapAnyOrder: t("orders.tapAnyOrder", "اضغط على أي طلب لعرض التفاصيل."),
+      noOrdersYet: t("orders.noOrdersYet", "لا توجد طلبات لديك حتى الآن."),
+      loading: t("common.loading", "جارٍ التحميل..."),
+      noOrdersToShow: t("orders.noOrdersToShow", "لا توجد طلبات لعرضها."),
+      detailsTitle: t("orders.detailsTitle", "تفاصيل الطلب"),
+      detailsFound: t("orders.detailsFound", "تم العثور على الطلب."),
+      detailsNone: t("orders.detailsNone", "لم يتم تحديد طلب بعد."),
+      enterToSee: t("orders.enterToSee", "أدخل رقم الطلب في الأعلى لمشاهدة التفاصيل."),
+      stagesTitle: t("orders.stagesTitle", "مراحل الطلب"),
+      stagesSub: t("orders.stagesSubtitle", "تابع تقدم طلبك خطوة بخطوة."),
+      invoice: t("orders.invoice", "تحميل الفاتورة"),
+      noInvoice: t("orders.noInvoice", "لا توجد فاتورة متاحة لهذا الطلب حتى الآن."),
+      errEmpty: t("orders.errorEmpty", "يرجى إدخال رقم الطلب."),
+      errNotFound: t("orders.notFound", "لم يتم العثور على طلب بهذا الرقم."),
+      errGeneric: t("orders.fetchError", "تعذر جلب تفاصيل الطلب. حاول مرة أخرى."),
+      orderNumber: t("orders.orderNumberLabel", "رقم الطلب"),
+      status: t("orders.statusLabel", "الحالة"),
+      date: t("orders.dateLabel", "التاريخ"),
+      total: t("orders.totalLabel", "الإجمالي"),
+      orderLabel: t("common.orderLabel", "طلب"),
+    }),
+    [t]
+  );
+  const statusLabels = useMemo(
+    () => ({
+      pending: t("orders.timeline.pending", "قيد المراجعة"),
+      confirmed: t("orders.timeline.confirmed", "تم التأكيد"),
+      preparing: t("orders.timeline.preparing", "قيد التحضير"),
+      ready: t("orders.timeline.ready", "جاهز للاستلام"),
+      completed: t("orders.timeline.completed", "مكتمل"),
+      paid: t("orders.timeline.completed", "مكتمل"),
+      failed: t("orders.timeline.failed", "فشلت العملية"),
+      refunded: t("orders.timeline.refunded", "تم استرجاع المبلغ"),
+      cancelled: t("orders.timeline.cancelled", "تم إلغاء الطلب"),
+    }),
+    [t]
+  );
 
   const [orderId, setOrderId] = useState("");
   const [order, setOrder] = useState<OrderDetails | null>(null);
@@ -92,7 +107,7 @@ const OrderTrackingScreen: React.FC = () => {
   const fetchOrder = async (id: string) => {
     const trimmed = id.trim();
     if (!trimmed) {
-      setError(T.errEmpty);
+      setError(labels.errEmpty);
       return;
     }
 
@@ -112,8 +127,8 @@ const OrderTrackingScreen: React.FC = () => {
         setInvoiceUrl(null);
       }
     } catch (err: any) {
-      if (err?.response?.status === 404) setError(T.errNotFound);
-      else setError(T.errGeneric);
+      if (err?.response?.status === 404) setError(labels.errNotFound);
+      else setError(labels.errGeneric);
     } finally {
       setLoading(false);
     }
@@ -154,10 +169,12 @@ const OrderTrackingScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [(route.params as any)?.orderId]);
 
-  const screenTitle = user ? t.myOrdersTitle : t.trackTitle;
-  const screenSubtitle = user ? t.shellSubtitleUser : t.shellSubtitleGuest;
+  const screenTitle = user ? labels.myOrdersTitle : labels.trackTitle;
+  const screenSubtitle = user ? labels.shellSubtitleUser : labels.shellSubtitleGuest;
 
+  const rawStatus = (order as any)?.status as keyof typeof statusLabels | undefined;
   const statusLabel =
+    (rawStatus && statusLabels[rawStatus]) ||
     normalizeArabicText((order as any)?.status_display) ||
     normalizeArabicText((order as any)?.status) ||
     "";
@@ -193,32 +210,32 @@ const OrderTrackingScreen: React.FC = () => {
   return (
     <View style={{ flex: 1 }}>
       <DashboardShell title={screenTitle} subtitle={screenSubtitle}>
-      <DashboardSection title={t.trackTitle} subtitle={t.trackSectionSubtitle}>
+      <DashboardSection title={labels.trackTitle} subtitle={labels.trackSectionSubtitle}>
         <Input
-          label={t.orderIdLabel}
+          label={labels.orderIdLabel}
           value={orderId}
           onChangeText={setOrderId}
           keyboardType="number-pad"
-          placeholder={t.orderIdPlaceholder}
+          placeholder={labels.orderIdPlaceholder}
         />
-        <Button title={t.trackBtn} loading={loading} onPress={() => fetchOrder(orderId)} disabled={loading} style={styles.primaryBtn} />
+        <Button title={labels.trackBtn} loading={loading} onPress={() => fetchOrder(orderId)} disabled={loading} style={styles.primaryBtn} />
         {error ? <Text style={[styles.error, { color: theme.palette.danger }]}>{error}</Text> : null}
       </DashboardSection>
 
       {!user ? (
-        <DashboardSection title={t.guestTitle} subtitle={t.guestSubtitle}>
+        <DashboardSection title={labels.guestTitle} subtitle={labels.guestSubtitle}>
           <View style={styles.singleColTiles}>
             <DashboardTile
-              title={t.login}
-              subtitle={t.loginSub}
+              title={labels.login}
+              subtitle={labels.loginSub}
               icon="log-in-outline"
               onPress={() => navigation.navigate("Login")}
               color={theme.palette.accent}
               style={{ width: "100%" }}
             />
             <DashboardTile
-              title={t.register}
-              subtitle={t.registerSub}
+              title={labels.register}
+              subtitle={labels.registerSub}
               icon="person-add-outline"
               onPress={() => navigation.navigate("Register")}
               color={theme.palette.accentSoft}
@@ -227,18 +244,21 @@ const OrderTrackingScreen: React.FC = () => {
           </View>
         </DashboardSection>
       ) : (
-        <DashboardSection title={t.lastOrders} subtitle={myOrdersLoading ? t.loadingOrders : myOrders.length ? t.tapAnyOrder : t.noOrdersYet}>
+        <DashboardSection
+          title={labels.lastOrders}
+          subtitle={myOrdersLoading ? labels.loadingOrders : myOrders.length ? labels.tapAnyOrder : labels.noOrdersYet}
+        >
           {myOrdersLoading ? (
-            <Text style={[styles.muted, { color: theme.palette.muted }]}>{t.loading}</Text>
+            <Text style={[styles.muted, { color: theme.palette.muted }]}>{labels.loading}</Text>
           ) : myOrders.length === 0 ? (
-            <Text style={[styles.muted, { color: theme.palette.muted }]}>{t.noOrdersToShow}</Text>
+            <Text style={[styles.muted, { color: theme.palette.muted }]}>{labels.noOrdersToShow}</Text>
           ) : (
             <View style={styles.listGap}>
               {myOrders.slice(0, 15).map((o) => (
                 <DashboardListItem
                   key={o.id}
-                  title={`${t.orderWord} #${o.id}`}
-                  subtitle={`${normalizeArabicText((o as any).status || "")} ${t.dot} ${formatDateTime((o as any).created_at)}`}
+                  title={`${labels.orderLabel} #${o.id}`}
+                  subtitle={`${normalizeArabicText((o as any).status || "")} ${DOT} ${formatDateTime((o as any).created_at)}`}
                   icon="receipt-outline"
                   onPress={() => {
                     setOrderId(String(o.id));
@@ -252,16 +272,16 @@ const OrderTrackingScreen: React.FC = () => {
         </DashboardSection>
       )}
 
-      <DashboardSection title={t.detailsTitle} subtitle={order ? t.detailsFound : t.detailsNone}>
+      <DashboardSection title={labels.detailsTitle} subtitle={order ? labels.detailsFound : labels.detailsNone}>
         {order ? (
           <View style={styles.detailsWrap}>
             <View style={styles.summaryGrid}>
-              <InfoCard icon="receipt-outline" label={t.orderNumber} value={`#${order.id}`} />
-              <InfoCard icon="pulse-outline" label={t.status} value={statusLabel || t.dash} />
-              <InfoCard icon="calendar-outline" label={t.date} value={formatDateTime((order as any).created_at)} />
+              <InfoCard icon="receipt-outline" label={labels.orderNumber} value={`#${order.id}`} />
+              <InfoCard icon="pulse-outline" label={labels.status} value={statusLabel || DASH} />
+              <InfoCard icon="calendar-outline" label={labels.date} value={formatDateTime((order as any).created_at)} />
               <InfoCard
                 icon="pricetag-outline"
-                label={t.total}
+                label={labels.total}
                 value={<CurrencyAmount value={(order as any).total} color={theme.palette.text} symbolSize={12} textStyle={styles.amountBig} />}
               />
             </View>
@@ -271,9 +291,9 @@ const OrderTrackingScreen: React.FC = () => {
                 <View style={[styles.stageIcon, { backgroundColor: `${theme.palette.accent}14`, borderColor: `${theme.palette.accent}33` }]}>
                   <Ionicons name="git-branch-outline" size={18} color={theme.palette.accent} />
                 </View>
-                <View style={{ flex: 1, alignItems: "flex-end", gap: 2 }}>
-                  <Text style={[styles.stageTitle, { color: theme.palette.text }]}>{t.stagesTitle}</Text>
-                  <Text style={[styles.stageSub, { color: theme.palette.muted }]}>{t.stagesSub}</Text>
+                <View style={styles.stageText}>
+                  <Text style={[styles.stageTitle, { color: theme.palette.text }]}>{labels.stagesTitle}</Text>
+                  <Text style={[styles.stageSub, { color: theme.palette.muted }]}>{labels.stagesSub}</Text>
                 </View>
               </View>
 
@@ -281,13 +301,13 @@ const OrderTrackingScreen: React.FC = () => {
             </View>
 
             {invoiceUrl ? (
-              <Button title={t.invoice} variant="secondary" onPress={() => Linking.openURL(invoiceUrl)} />
+              <Button title={labels.invoice} variant="secondary" onPress={() => Linking.openURL(invoiceUrl)} />
             ) : (
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>{t.noInvoice}</Text>
+              <Text style={[styles.muted, { color: theme.palette.muted }]}>{labels.noInvoice}</Text>
             )}
           </View>
         ) : (
-          <Text style={[styles.muted, { color: theme.palette.muted }]}>{t.enterToSee}</Text>
+          <Text style={[styles.muted, { color: theme.palette.muted }]}>{labels.enterToSee}</Text>
         )}
       </DashboardSection>
 
@@ -297,7 +317,7 @@ const OrderTrackingScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     primaryBtn: {
       alignSelf: "stretch",
@@ -309,12 +329,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 10,
     },
     error: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "800",
     },
     muted: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       lineHeight: 18,
     },
@@ -355,18 +375,18 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     infoBody: {
       flex: 1,
-      alignItems: "flex-end",
+      alignItems: isRTL ? "flex-end" : "flex-start",
       gap: 4,
     },
     infoLabel: {
       fontSize: 11,
       fontWeight: "800",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     infoValue: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       lineHeight: 18,
     },
     stageCard: {
@@ -380,6 +400,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       alignItems: "center",
       gap: 10,
     },
+    stageText: {
+      flex: 1,
+      alignItems: isRTL ? "flex-end" : "flex-start",
+      gap: 2,
+    },
     stageIcon: {
       width: 36,
       height: 36,
@@ -391,11 +416,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     stageTitle: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     stageSub: {
       fontSize: 12,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       lineHeight: 18,
     },
   });

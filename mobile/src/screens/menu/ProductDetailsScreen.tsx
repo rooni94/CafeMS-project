@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Image, Pressable, I18nManager } from "react-native";
+import { View, Text, StyleSheet, Image, Pressable } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -21,7 +21,7 @@ const ProductDetailsScreen: React.FC = () => {
   const route = useRoute<RouteProp<AppStackParamList, "ProductDetails">>();
   const { addItem } = useCart();
   const theme = useTheme();
-  const { copy, t } = useI18n();
+  const { copy, t, isRTL } = useI18n();
   const [quantity, setQuantity] = useState(1);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
@@ -69,7 +69,7 @@ const ProductDetailsScreen: React.FC = () => {
     });
   };
 
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
 
   if (isLoading) {
     return (
@@ -190,7 +190,7 @@ const ProductDetailsScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       paddingHorizontal: 12,
@@ -224,13 +224,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     title: {
       fontSize: 20,
       fontWeight: "800",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       color: theme.palette.text,
     },
     description: {
       fontSize: 13,
       color: theme.palette.muted,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     metaRow: {
       flexDirection: "row",
@@ -272,7 +272,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     sectionTitle: {
       fontSize: 15,
       fontWeight: "800",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       color: theme.palette.text,
     },
     addonList: {
@@ -307,7 +307,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     addonName: {
       fontSize: 13,
       color: theme.palette.text,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       flex: 1,
     },
     addonPrice: {

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, I18nManager } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -17,10 +17,10 @@ type Check = { key: string; label: string; ok: boolean };
 const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const { copy, t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { settings } = useStoreSettings();
   const { register, startPhoneRegistration, verifyPhoneOtp, loading } = useAuth();
-  const { copy, t } = useI18n();
   const brandName = normalizeBrandName(settings?.store_name, copy.brandFallback);
 
   const [method, setMethod] = useState<"email" | "phone">("email");
@@ -355,7 +355,7 @@ const RegisterScreen: React.FC = () => {
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       paddingHorizontal: 12,
@@ -382,7 +382,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     brand: {
       fontSize: 18,
       fontWeight: "900",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       flex: 1,
     },
     badge: {
@@ -396,7 +396,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     subtitle: {
       fontSize: 13,
       lineHeight: 18,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
     },
     card: {
       borderRadius: 22,
@@ -432,7 +432,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     checkText: {
       fontSize: 13,
       fontWeight: "800",
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       flex: 1,
     },
     termsRow: {
@@ -452,7 +452,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     termsText: {
       flex: 1,
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "900",
     },
@@ -466,7 +466,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontWeight: "800",
     },
     error: {
-      textAlign: I18nManager.isRTL ? "right" : "left",
+      textAlign: isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "800",
     },
