@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, View, Text, StyleSheet, Pressable, ScrollView } from "react-native";
+import { Modal, View, Text, StyleSheet, Pressable, ScrollView, I18nManager } from "react-native";
 import { Product, ProductAddon } from "../types";
 import { useTheme } from "../theme";
 import CurrencyAmount from "./CurrencyAmount";
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "800",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   closeBtn: {
     width: 28,
@@ -200,7 +200,7 @@ const styles = StyleSheet.create({
   addonName: {
     fontSize: 13,
     fontWeight: "600",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   addonPrice: {
     fontWeight: "700",
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   empty: {
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
     color: "#6b7280",
   },
   summary: {

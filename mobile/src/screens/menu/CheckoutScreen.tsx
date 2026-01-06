@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import EmptyState from "../../components/EmptyState";
@@ -339,12 +339,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     itemName: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     itemAddons: {
       fontSize: 12,
       lineHeight: 16,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     itemMetaRow: {
       flexDirection: "row",
@@ -354,7 +354,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     itemMetaText: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     summary: {
       borderTopWidth: 1,
@@ -371,12 +371,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     summaryLabel: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     summaryValue: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     chipGroup: {
       flexDirection: "row",
@@ -409,18 +409,18 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     addressLabel: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     addressDetails: {
       fontSize: 12,
       lineHeight: 18,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     errorText: {
       fontSize: 13,
       lineHeight: 18,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
   });
 

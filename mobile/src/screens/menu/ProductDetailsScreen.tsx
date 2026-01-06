@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Image, Pressable } from "react-native";
+import { View, Text, StyleSheet, Image, Pressable, I18nManager } from "react-native";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -224,13 +224,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     title: {
       fontSize: 20,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       color: theme.palette.text,
     },
     description: {
       fontSize: 13,
       color: theme.palette.muted,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     metaRow: {
       flexDirection: "row",
@@ -272,7 +272,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     sectionTitle: {
       fontSize: 15,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       color: theme.palette.text,
     },
     addonList: {
@@ -307,7 +307,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     addonName: {
       fontSize: 13,
       color: theme.palette.text,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       flex: 1,
     },
     addonPrice: {

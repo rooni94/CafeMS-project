@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import Screen from "../../components/Screen";
@@ -91,15 +91,15 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 22,
       fontWeight: "900",
       color: theme.palette.text,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     subtitle: {
       fontSize: 14,
       color: theme.palette.muted,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     status: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       marginBottom: 6,
       fontSize: 13,
       fontWeight: "700",

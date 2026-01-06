@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, StyleSheet, Text, View, I18nManager } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Button, Input } from "../components/ui";
@@ -217,7 +217,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 13,
       lineHeight: 18,
       color: theme.palette.text,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     socialWrap: {
       flexDirection: "row",
@@ -240,12 +240,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       fontWeight: "800",
       color: theme.palette.text,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     status: {
       fontSize: 12,
       lineHeight: 18,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
   });
 

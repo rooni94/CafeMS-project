@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Input } from "../../components/ui";
 import CurrencyAmount from "../../components/CurrencyAmount";
@@ -205,7 +205,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       color: theme.palette.accent,
     },
     empty: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
     },
   });

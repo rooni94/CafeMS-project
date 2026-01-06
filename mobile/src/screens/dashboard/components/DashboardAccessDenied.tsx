@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, I18nManager } from "react-native";
 import { useTheme } from "../../../theme";
 import DashboardShell from "./DashboardShell";
 import DashboardSection from "./DashboardSection";
@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   text: {
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
     fontSize: 13,
     lineHeight: 18,
   },

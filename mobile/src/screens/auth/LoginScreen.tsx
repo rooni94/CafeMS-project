@@ -1,13 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import Screen from "../../components/Screen";
@@ -141,7 +133,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     brand: {
       fontSize: 18,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       flex: 1,
     },
     badge: {
@@ -155,7 +147,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     subtitle: {
       fontSize: 13,
       lineHeight: 18,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     card: {
       borderRadius: 22,
@@ -168,7 +160,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       alignItems: "center",
     },
     error: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "800",
     },

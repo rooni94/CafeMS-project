@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../components/ui";
@@ -83,7 +83,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       gap: 10,
     },
     note: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 12,
       lineHeight: 18,
     },

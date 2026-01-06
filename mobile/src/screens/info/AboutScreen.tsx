@@ -1,5 +1,5 @@
 ﻿import React, { useMemo } from "react";
-import { Image, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Linking, Pressable, StyleSheet, Text, View, I18nManager } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 
@@ -146,7 +146,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     body: {
       fontSize: 13,
       color: theme.palette.text,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       lineHeight: 20,
     },
     list: {
@@ -160,7 +160,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     listText: {
       flex: 1,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       color: theme.palette.text,
       fontSize: 13,
       lineHeight: 18,
@@ -179,7 +179,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 13,
       lineHeight: 18,
       color: theme.palette.text,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     socialWrap: {
       flexDirection: "row",

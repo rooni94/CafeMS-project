@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, StyleProp, ViewStyle } from "react-native";
+import { View, Text, StyleSheet, StyleProp, ViewStyle, I18nManager } from "react-native";
 import { Card } from "../../../components/ui";
 import { useTheme } from "../../../theme";
 
@@ -46,12 +46,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 16,
       fontWeight: "800",
       color: theme.palette.text,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     subtitle: {
       fontSize: 12,
       color: theme.palette.muted,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       lineHeight: 18,
     },
   });

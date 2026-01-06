@@ -1,16 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  Modal,
-  TextInput,
-  ScrollView,
-  ActivityIndicator,
-  Platform,
-  Keyboard,
-} from "react-native";
+import { View, Text, StyleSheet, Pressable, Modal, TextInput, ScrollView, ActivityIndicator, Platform, Keyboard, I18nManager } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
@@ -1024,18 +1013,18 @@ const createStyles = () =>
       fontSize: 15,
       fontWeight: "700",
       color: "#0f172a",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     bodyHint: {
       fontSize: 12,
       color: "#6b7280",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     inputLabel: {
       fontSize: 12,
       fontWeight: "700",
       color: "#374151",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     input: {
       borderWidth: 1,
@@ -1048,7 +1037,7 @@ const createStyles = () =>
     },
     error: {
       color: "#dc2626",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 12,
     },
     codeRow: {
@@ -1125,12 +1114,12 @@ const createStyles = () =>
       fontSize: 10,
       color: "#64748b",
       marginBottom: 2,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     messageText: {
       fontSize: 12,
       color: "#0f172a",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     messageTime: {
       fontSize: 9,
@@ -1155,7 +1144,7 @@ const createStyles = () =>
       borderRadius: 999,
       paddingHorizontal: 10,
       paddingVertical: 6,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       backgroundColor: "#fff",
       color: "#0f172a",
     },

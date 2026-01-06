@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Input } from "../../components/ui";
 import { api } from "../../services/api";
@@ -181,10 +181,10 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     label: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     empty: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
     },
   });

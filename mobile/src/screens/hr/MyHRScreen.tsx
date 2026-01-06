@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Image, Linking, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, Linking, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 
@@ -638,12 +638,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "space-between",
     },
     notice: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
       lineHeight: 18,
     },
     smallLabel: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 12,
       fontWeight: "800",
     },

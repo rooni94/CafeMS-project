@@ -1,6 +1,6 @@
 // mobile/src/screens/dashboard/DashboardSupport.tsx
 import React, { useMemo } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 
@@ -140,7 +140,7 @@ const DashboardSupport: React.FC = () => {
 const createStyles = (_theme: ReturnType<typeof useTheme>) =>
   StyleSheet.create({
     empty: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
     },
     loadingRow: {
@@ -151,7 +151,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     },
     loadingText: {
       fontSize: 13,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     dot: {
       width: 10,

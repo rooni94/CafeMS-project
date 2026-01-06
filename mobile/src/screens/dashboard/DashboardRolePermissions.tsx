@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Switch, Text, View, I18nManager } from "react-native";
 import { Button } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
@@ -210,7 +210,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       paddingVertical: 20,
     },
     groupTitle: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "900",
     },

@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { View, Text, StyleSheet, Image, Pressable, FlatList } from "react-native";
+import { View, Text, StyleSheet, Image, Pressable, FlatList, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Screen from "../../components/Screen";
 import EmptyState from "../../components/EmptyState";
@@ -115,12 +115,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#111827",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   cartPrice: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   cartPriceRow: {
     flexDirection: "row",
@@ -130,18 +130,18 @@ const styles = StyleSheet.create({
   cartPriceLabel: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   cartAddons: {
     fontSize: 12,
     color: "#6b7280",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   cartLineTotal: {
     fontSize: 14,
     color: "#F59E0B",
     fontWeight: "700",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   quantityControls: {
     flexDirection: "row",

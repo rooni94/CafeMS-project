@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet, Image, ImageBackground, Dimensions, Pressable, FlatList, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Image, ImageBackground, Dimensions, Pressable, FlatList, ScrollView, I18nManager } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Carousel from "react-native-reanimated-carousel";
 import { useNavigation } from "@react-navigation/native";
@@ -449,14 +449,14 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 26,
     fontWeight: "900",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   brandOrange: { color: "#f59e0b" },
   brandPurple: { color: "#6138A1" },
   brandTagline: {
     fontSize: 13,
     color: "#64748b",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   cartBadge: {
     width: 52,
@@ -535,19 +535,19 @@ const styles = StyleSheet.create({
   heroTagText: {
     color: "#111827",
     fontSize: 12,
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   heroTitle: {
     color: "#111827",
     fontSize: 24,
     fontWeight: "900",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   heroDescription: {
     color: "#475569",
     fontSize: 13,
     lineHeight: 20,
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   heroActions: {
     flexDirection: "row",
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
   helperText: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
     marginBottom: 6,
   },
 });

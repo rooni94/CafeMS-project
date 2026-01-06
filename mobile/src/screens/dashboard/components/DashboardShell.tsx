@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, ViewStyle, StyleProp } from "react-native";
+import { View, Text, StyleSheet, ScrollView, ViewStyle, StyleProp, I18nManager } from "react-native";
 import Screen from "../../../components/Screen";
 import { Card } from "../../../components/ui";
 import { useTheme } from "../../../theme";
@@ -66,12 +66,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 18,
       fontWeight: "900",
       color: theme.palette.text,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     subtitle: {
       fontSize: 13,
       color: theme.palette.muted,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
   });
 

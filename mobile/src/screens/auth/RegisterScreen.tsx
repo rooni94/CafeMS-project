@@ -1,14 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -391,7 +382,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     brand: {
       fontSize: 18,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       flex: 1,
     },
     badge: {
@@ -405,7 +396,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     subtitle: {
       fontSize: 13,
       lineHeight: 18,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     card: {
       borderRadius: 22,
@@ -441,7 +432,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     checkText: {
       fontSize: 13,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       flex: 1,
     },
     termsRow: {
@@ -461,7 +452,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     termsText: {
       flex: 1,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "900",
     },
@@ -475,7 +466,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontWeight: "800",
     },
     error: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "800",
     },

@@ -1,12 +1,5 @@
 import React from "react";
-import {
-  Pressable,
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ViewStyle,
-} from "react-native";
+import { Pressable, View, Text, Image, StyleSheet, ViewStyle, I18nManager } from "react-native";
 import { Product } from "../types";
 import CurrencyAmount from "./CurrencyAmount";
 import { useI18n } from "../i18n";
@@ -93,12 +86,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 15,
     color: "#111827",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   description: {
     fontSize: 12,
     color: "#6b7280",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   price: {
     fontWeight: "700",

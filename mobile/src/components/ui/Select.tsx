@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable, I18nManager } from "react-native";
 import { Menu, Divider } from "react-native-paper";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "../../theme";
@@ -73,7 +73,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 4,
     },
     label: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "800",
     },
@@ -89,7 +89,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     value: {
       flex: 1,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 14,
       fontWeight: "700",
     },
@@ -100,7 +100,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       overflow: "hidden",
     },
     menuItem: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontWeight: "800",
       fontSize: 13,
     },

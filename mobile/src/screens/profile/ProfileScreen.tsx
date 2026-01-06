@@ -1,5 +1,5 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Linking, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import QRCode from "react-native-qrcode-svg";
 
@@ -546,7 +546,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       marginBottom: 6,
     },
     muted: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
       lineHeight: 18,
     },

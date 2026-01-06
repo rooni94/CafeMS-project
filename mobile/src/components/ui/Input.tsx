@@ -1,5 +1,5 @@
 import React, { ComponentProps } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, I18nManager } from "react-native";
 import { TextInput as PaperTextInput } from "react-native-paper";
 import { useTheme } from "../../theme";
 
@@ -39,22 +39,22 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   label: {
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
     fontSize: 13,
     fontWeight: "800",
   },
   input: {
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   content: {
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   hint: {
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
     fontSize: 11,
   },
   error: {
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
     fontSize: 11,
   },
 });

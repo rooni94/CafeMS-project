@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Linking, StyleSheet, Text, View } from "react-native";
+import { Linking, StyleSheet, Text, View, I18nManager } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -227,12 +227,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     guestTitle: {
       fontSize: 16,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     guestCopy: {
       fontSize: 13,
       lineHeight: 20,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     guestActions: {
       flexDirection: "row",
@@ -251,7 +251,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     summaryLabel: {
       fontSize: 12,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     summaryValue: {
       fontSize: 13,
@@ -265,7 +265,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     },
     empty: {
       fontSize: 13,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     qrWrap: {
       alignItems: "center",
@@ -293,12 +293,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     tierName: {
       fontSize: 15,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     tierPoints: {
       fontSize: 12,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     perkRow: {
       flexDirection: "row",
@@ -313,7 +313,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     perkText: {
       fontSize: 13,
       flex: 1,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     actionRow: {
       flexDirection: "row",
@@ -332,11 +332,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     actionTitle: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     actionCopy: {
       fontSize: 13,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
   });
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, I18nManager } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { OrderStatus } from "../types";
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   specialText: {
     flex: 1,
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
     fontSize: 13,
     fontWeight: "800",
   },

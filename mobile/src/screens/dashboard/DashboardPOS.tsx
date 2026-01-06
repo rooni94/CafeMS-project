@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, I18nManager } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -538,22 +538,22 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       justifyContent: "center",
     },
     label: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 12,
       fontWeight: "800",
     },
     itemTitle: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 14,
       fontWeight: "900",
     },
     itemSub: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 12,
       fontWeight: "700",
     },
     stockText: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 12,
       fontWeight: "800",
     },
@@ -569,7 +569,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       textAlign: "center",
     },
     empty: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
     },
     cartRow: {
@@ -616,7 +616,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     totalLabel: {
       fontSize: 13,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     totalValue: {
       fontSize: 14,

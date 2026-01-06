@@ -1,5 +1,5 @@
 ﻿import React, { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, I18nManager } from "react-native";
 import { useTheme } from "../../theme";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
@@ -75,13 +75,13 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
     sectionTitle: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       marginTop: 6,
     },
     paragraph: {
       fontSize: 13,
       lineHeight: 20,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     bulletRow: {
       flexDirection: "row",
@@ -99,7 +99,7 @@ const createStyles = (_theme: ReturnType<typeof useTheme>) =>
       flex: 1,
       fontSize: 13,
       lineHeight: 20,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
   });
 

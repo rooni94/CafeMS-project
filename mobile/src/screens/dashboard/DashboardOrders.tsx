@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 
-import { Alert, Linking, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, StyleSheet, Text, View, I18nManager } from "react-native";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -962,7 +962,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
     emptyText: {
 
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
 
       fontSize: 13,
 
@@ -1047,7 +1047,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
       fontWeight: "900",
 
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
 
     detailMuted: {
@@ -1056,7 +1056,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
       fontWeight: "700",
 
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
 
     bigTotal: {
@@ -1073,7 +1073,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       fontSize: 12,
       lineHeight: 18,
       fontWeight: "700",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     metaList: {
       gap: 6,
@@ -1087,14 +1087,14 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     metaLabel: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       color: theme.palette.muted,
     },
     metaValue: {
       flex: 1,
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       color: theme.palette.text,
     },
     chargesRow: {
@@ -1113,12 +1113,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     chargeLabel: {
       fontSize: 12,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     chargeValue: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     itemsList: {
       gap: 8,
@@ -1155,7 +1155,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
       fontWeight: "900",
 
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
 
     statusHint: {
@@ -1164,7 +1164,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
 
       fontWeight: "700",
 
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
 
     statusWrap: {

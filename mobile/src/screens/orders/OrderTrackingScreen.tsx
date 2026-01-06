@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Linking, StyleSheet, Text, View } from "react-native";
+import { Linking, StyleSheet, Text, View, I18nManager } from "react-native";
 import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -309,12 +309,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 10,
     },
     error: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
       fontWeight: "800",
     },
     muted: {
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       fontSize: 13,
       lineHeight: 18,
     },
@@ -361,12 +361,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     infoLabel: {
       fontSize: 11,
       fontWeight: "800",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     infoValue: {
       fontSize: 13,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       lineHeight: 18,
     },
     stageCard: {
@@ -391,11 +391,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
     stageTitle: {
       fontSize: 14,
       fontWeight: "900",
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     stageSub: {
       fontSize: 12,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       lineHeight: 18,
     },
   });

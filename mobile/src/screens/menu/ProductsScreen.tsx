@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 
@@ -144,12 +144,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "800",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   body: {
     fontSize: 13,
     color: "#475569",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   grid: {
     flexDirection: "row",

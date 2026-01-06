@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, I18nManager } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import { Button } from "../../components/ui";
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   paragraph: {
     fontSize: 13,
     lineHeight: 20,
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   list: {
     gap: 8,
@@ -87,13 +87,13 @@ const styles = StyleSheet.create({
   listItem: {
     fontSize: 13,
     lineHeight: 20,
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
   note: {
     marginTop: 8,
     fontSize: 12,
     lineHeight: 18,
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
   },
 });
 

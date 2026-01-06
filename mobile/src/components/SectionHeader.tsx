@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, I18nManager } from "react-native";
 
 type SectionHeaderProps = {
   title: string;
@@ -31,13 +31,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "700",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
     color: "#111827",
   },
   subtitle: {
     fontSize: 13,
     color: "#6b7280",
-    textAlign: "auto",
+    textAlign: I18nManager.isRTL ? "right" : "left",
     marginTop: 4,
   },
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View, StyleProp, ViewStyle } from "react-native";
+import { Pressable, StyleSheet, Text, View, StyleProp, ViewStyle, I18nManager } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "../../../theme";
 
@@ -73,12 +73,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       lineHeight: 18,
       fontWeight: "900",
       color: theme.palette.text,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
     },
     subtitle: {
       fontSize: 11,
       color: theme.palette.muted,
-      textAlign: "auto",
+      textAlign: I18nManager.isRTL ? "right" : "left",
       lineHeight: 16,
     },
   });
