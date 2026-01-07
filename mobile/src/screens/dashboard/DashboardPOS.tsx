@@ -49,6 +49,8 @@ type InventorySummary = {
 
 type CartItem = { product_id: number; name: string; price: number; quantity: number };
 
+const cashQuickAmounts = [5, 10, 20, 50, 100, 200];
+
 const parseNumber = (value: unknown): number => {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   if (typeof value === "string") {
@@ -117,12 +119,20 @@ const DashboardPOS: React.FC = () => {
   const [discountValue, setDiscountValue] = useState("0");
   const [note, setNote] = useState("");
   const [paymentMethod, setpaymentMethod] = useState<"cash" | "card_pos" | "online">("cash");
+  const [cashReceived, setCashReceived] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState("0");
 
   const [membershipId, setMembershipId] = useState("");
   const [pointsDelta, setPointsDelta] = useState("10");
 
   useEffect(() => {
     if (orderType !== "dine_in") setSelectedTable(null);
+    if (orderType !== "delivery") {
+      setDeliveryAddress("");
+      setDeliveryFee("0");
+    }
   }, [orderType]);
 
   useEffect(() => {
@@ -206,12 +216,29 @@ const DashboardPOS: React.FC = () => {
   }, [discountNumeric, discountType, subtotal]);
   const total = useMemo(() => Math.max(subtotal - discountAmount, 0), [subtotal, discountAmount]);
   const cartCount = useMemo(() => cart.reduce((sum, it) => sum + it.quantity, 0), [cart]);
+  const deliveryFeeValue = useMemo(() => {
+    if (orderType !== "delivery") return 0;
+    return Math.max(0, parseNumber(deliveryFee));
+  }, [deliveryFee, orderType]);
+  const grandTotal = useMemo(() => Math.max(total + deliveryFeeValue, 0), [total, deliveryFeeValue]);
+  const cashReceivedValue = useMemo(() => parseNumber(cashReceived), [cashReceived]);
+  const cashDelta = cashReceivedValue - grandTotal;
+  const cashChange = Math.max(cashDelta, 0);
+  const cashRemaining = Math.max(-cashDelta, 0);
+  const isCashPayment = paymentMethod === "cash";
+  const isCashInsufficient = isCashPayment && cashReceivedValue < grandTotal;
 
   const createOrder = useMutation({
     mutationFn: async () => {
       if (cart.length === 0) return;
       if (orderType === "dine_in" && !selectedTable) {
         throw new Error(t("dashboard.posTableRequired", "حدد طاولة قبل التأكيد."));
+      }
+      if (orderType === "delivery" && !deliveryAddress.trim()) {
+        throw new Error(t("dashboard.posDeliveryAddressRequired", "أدخل عنوان التوصيل."));
+      }
+      if (isCashInsufficient) {
+        throw new Error(t("dashboard.posCashInsufficient", "المبلغ المستلم أقل من الإجمالي."));
       }
       await api.post("orders/pos/cashier/orders/", {
         items: cart.map((it) => ({ product_id: it.product_id, quantity: it.quantity })),
@@ -220,11 +247,13 @@ const DashboardPOS: React.FC = () => {
         discount_type: discountType,
         discount_value: discountType === "percent" ? Math.min(100, discountNumeric) : discountNumeric,
         note,
-        customer_name: user?.username,
+        customer_name: customerName.trim() || user?.username || undefined,
         token: (typeof api.defaults.headers.common["Authorization"] === "string"
           ? (api.defaults.headers.common["Authorization"] as string).replace(/^Bearer\s+/i, "")
           : undefined),
         payment_method: paymentMethod,
+        delivery_address: orderType === "delivery" ? deliveryAddress.trim() : null,
+        delivery_fee: orderType === "delivery" ? deliveryFeeValue : 0,
         delivery: orderType === "delivery",
       });
     },
@@ -233,6 +262,10 @@ const DashboardPOS: React.FC = () => {
       setDiscountType("amount");
       setDiscountValue("0");
       setNote("");
+      setCashReceived("");
+      setCustomerName("");
+      setDeliveryAddress("");
+      setDeliveryFee("0");
       if (orderType === "dine_in") setSelectedTable(null);
       qc.invalidateQueries({ queryKey: ["dashboard", "pos", "tables"] });
       qc.invalidateQueries({ queryKey: ["dashboard", "pos", "inventory-summary"] });
@@ -479,7 +512,7 @@ const DashboardPOS: React.FC = () => {
         >
           <View style={styles.statsRow}>
             <StatBadge label={t("dashboard.posCartCountLabel", "في السلة")} value={cartCount} color={theme.status.info} />
-            <StatBadge label={t("dashboard.posGrandTotalLabel", "الإجمالي")} value={total.toFixed(2)} color={theme.palette.accent} />
+            <StatBadge label={t("dashboard.posGrandTotalLabel", "الإجمالي")} value={grandTotal.toFixed(2)} color={theme.palette.accent} />
             <StatBadge label={t("dashboard.posAlertsLabel", "تنبيهات")} value={inventory?.total_low_stock ?? inventory?.low_stock?.length ?? 0} color={theme.palette.danger} />
           </View>
 
@@ -514,6 +547,33 @@ const DashboardPOS: React.FC = () => {
             />
           )}
 
+          <Input
+            label={t("dashboard.posCustomerNameLabel", "اسم العميل (اختياري)")}
+            value={customerName}
+            onChangeText={setCustomerName}
+            placeholder={t("dashboard.posCustomerNamePlaceholder", "اسم العميل")}
+          />
+
+          {orderType === "delivery" ? (
+            <>
+              <Input
+                label={t("dashboard.posDeliveryAddressLabel", "عنوان التوصيل")}
+                value={deliveryAddress}
+                onChangeText={setDeliveryAddress}
+                multiline
+                numberOfLines={2}
+                placeholder={t("dashboard.posDeliveryAddressPlaceholder", "اكتب عنوان التوصيل بالكامل")}
+              />
+              <Input
+                label={t("dashboard.posDeliveryFeeLabel", "رسوم التوصيل")}
+                value={deliveryFee}
+                onChangeText={setDeliveryFee}
+                keyboardType="decimal-pad"
+                placeholder="0"
+              />
+            </>
+          ) : null}
+
           <Select
             label={t("dashboard.posPaymentMethodLabel", "طريقة الدفع")}
             value={paymentMethod}
@@ -524,6 +584,62 @@ const DashboardPOS: React.FC = () => {
               { value: "online", label: t("dashboard.posPaymentOnline", "أونلاين") },
             ]}
           />
+
+          {paymentMethod === "cash" ? (
+            <View style={{ gap: 8 }}>
+              <Input
+                label={t("dashboard.posCashReceivedLabel", "المبلغ المستلم")}
+                value={cashReceived}
+                onChangeText={setCashReceived}
+                keyboardType="decimal-pad"
+                placeholder="0"
+              />
+              <View style={styles.chipsRow}>
+                {cashQuickAmounts.map((amount) => (
+                  <Button
+                    key={amount}
+                    title={`${amount}`}
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => setCashReceived(String(amount))}
+                  />
+                ))}
+              </View>
+              <View style={styles.chipsRow}>
+                <Button
+                  title={t("dashboard.posCashFullAmount", "المبلغ كامل")}
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => setCashReceived(grandTotal ? grandTotal.toFixed(2) : "")}
+                />
+                <Button
+                  title={t("dashboard.posCashClear", "مسح")}
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => setCashReceived("")}
+                />
+              </View>
+              <View style={styles.cashSummary}>
+                <View style={[styles.cashCard, { borderColor: theme.palette.border }]}>
+                  <Text style={[styles.cashLabel, { color: theme.palette.muted }]}>
+                    {t("dashboard.posCashRemainingLabel", "المتبقي على العميل")}
+                  </Text>
+                  <CurrencyAmount value={cashRemaining} color={theme.palette.text} symbolSize={12} textStyle={styles.cashValue} />
+                </View>
+                <View style={[styles.cashCard, { borderColor: theme.palette.border }]}>
+                  <Text style={[styles.cashLabel, { color: theme.palette.muted }]}>
+                    {t("dashboard.posCashChangeLabel", "الباقي للعميل")}
+                  </Text>
+                  <CurrencyAmount value={cashChange} color={theme.palette.text} symbolSize={12} textStyle={styles.cashValue} />
+                </View>
+              </View>
+              {isCashInsufficient ? (
+                <Text style={[styles.itemSub, { color: theme.palette.danger }]}>
+                  {t("dashboard.posCashInsufficient", "المبلغ المستلم أقل من الإجمالي.")}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
 
           <Input
             label={t("dashboard.posNoteLabel", "ملاحظة (اختياري)")}
@@ -546,11 +662,19 @@ const DashboardPOS: React.FC = () => {
               </Text>
               <CurrencyAmount value={discountAmount} color={theme.palette.text} symbolSize={12} textStyle={styles.totalValue} />
             </View>
+            {orderType === "delivery" ? (
+              <View style={styles.totalRow}>
+                <Text style={[styles.totalLabel, { color: theme.palette.muted }]}>
+                  {t("dashboard.posDeliveryFeeLabel", "رسوم التوصيل")}
+                </Text>
+                <CurrencyAmount value={deliveryFeeValue} color={theme.palette.text} symbolSize={12} textStyle={styles.totalValue} />
+              </View>
+            ) : null}
             <View style={styles.totalRow}>
               <Text style={[styles.totalLabel, { color: theme.palette.text }]}>
                 {t("dashboard.posGrandTotalLabel", "الإجمالي")}
               </Text>
-              <CurrencyAmount value={total} color={theme.palette.text} symbolSize={14} textStyle={[styles.totalValue, { fontSize: 16 }]} />
+              <CurrencyAmount value={grandTotal} color={theme.palette.text} symbolSize={14} textStyle={[styles.totalValue, { fontSize: 16 }]} />
             </View>
           </View>
 
@@ -565,7 +689,12 @@ const DashboardPOS: React.FC = () => {
               title={t("dashboard.posConfirmOrder", "تأكيد الطلب")}
               onPress={() => createOrder.mutate()}
               loading={createOrder.isPending}
-              disabled={createOrder.isPending || cart.length === 0}
+              disabled={
+                createOrder.isPending ||
+                cart.length === 0 ||
+                isCashInsufficient ||
+                (orderType === "delivery" && !deliveryAddress.trim())
+              }
             />
           </View>
         </DashboardSection>
@@ -752,6 +881,27 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       backgroundColor: theme.palette.surface,
       padding: 10,
       gap: 6,
+    },
+    cashSummary: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    cashCard: {
+      flex: 1,
+      borderRadius: 16,
+      borderWidth: 1,
+      padding: 10,
+      backgroundColor: theme.palette.surface,
+    },
+    cashLabel: {
+      fontSize: 11,
+      fontWeight: "700",
+      textAlign: isRTL ? "right" : "left",
+    },
+    cashValue: {
+      fontSize: 14,
+      fontWeight: "900",
+      textAlign: isRTL ? "right" : "left",
     },
     totalRow: {
       flexDirection: "row",

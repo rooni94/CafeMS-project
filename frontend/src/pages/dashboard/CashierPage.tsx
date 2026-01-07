@@ -35,7 +35,8 @@ type InventoryAlert = {
   low_stock: boolean;
 };
 
-type DiscountType = "amount" | "percent";
+type DiscountType = "none" | "amount" | "percent";
+type PaymentMethod = "cash" | "card_pos" | "online";
 
 const parseNumber = (value: unknown): number => {
   if (typeof value === "number") {
@@ -66,6 +67,8 @@ const orderTypes = [
   { value: "delivery", label: "توصيل" },
 ];
 
+const cashQuickAmounts = [5, 10, 20, 50, 100, 200];
+
 const CashierPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -76,6 +79,11 @@ const CashierPage: React.FC = () => {
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState<DiscountType>("amount");
   const [note, setNote] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [cashReceived, setCashReceived] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [tables, setTables] = useState<Table[]>([]);
   const [tablesLoading, setTablesLoading] = useState(true);
   const [tableUpdating, setTableUpdating] = useState<number | null>(null);
@@ -144,6 +152,10 @@ const CashierPage: React.FC = () => {
     if (orderType !== "dine_in") {
       setSelectedTable(null);
     }
+    if (orderType !== "delivery") {
+      setDeliveryAddress("");
+      setDeliveryFee(0);
+    }
   }, [orderType]);
 
   const filteredProducts = useMemo(() => {
@@ -190,9 +202,31 @@ const CashierPage: React.FC = () => {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+  const sanitizedDiscount =
+    discountType === "percent"
+      ? Math.min(100, Math.max(0, discount))
+      : Math.max(0, discount);
   const discountAmount =
-    discountType === "percent" ? (subtotal * discount) / 100 : discount;
+    discountType === "none"
+      ? 0
+      : discountType === "percent"
+      ? (subtotal * sanitizedDiscount) / 100
+      : sanitizedDiscount;
   const total = Math.max(subtotal - discountAmount, 0);
+  const deliveryFeeValue =
+    orderType === "delivery" ? Math.max(0, deliveryFee) : 0;
+  const grandTotal = Math.max(total + deliveryFeeValue, 0);
+  const cashReceivedValue = parseNumber(cashReceived);
+  const cashDelta = cashReceivedValue - grandTotal;
+  const cashChange = Math.max(cashDelta, 0);
+  const cashRemaining = Math.max(-cashDelta, 0);
+  const isCashPayment = paymentMethod === "cash";
+  const isCashInsufficient = isCashPayment && cashReceivedValue < grandTotal;
+  const canSubmit =
+    orderItems.length > 0 &&
+    !submitting &&
+    (!isCashPayment || cashReceivedValue >= grandTotal) &&
+    (orderType !== "delivery" || !!deliveryAddress.trim());
 
   const handleSubmitOrder = async () => {
     if (orderItems.length === 0) return;
@@ -200,9 +234,19 @@ const CashierPage: React.FC = () => {
       setStatusMessage("اختر طاولة لخدمة الطلب المحلي.");
       return;
     }
+    if (orderType === "delivery" && !deliveryAddress.trim()) {
+      setStatusMessage("يرجى إدخال عنوان التوصيل.");
+      return;
+    }
+    if (isCashInsufficient) {
+      setStatusMessage("المبلغ المستلم أقل من الإجمالي المطلوب.");
+      return;
+    }
     const normalizedDiscount =
       discountType === "percent"
         ? Math.min(100, Math.max(0, discount))
+        : discountType === "none"
+        ? 0
         : Math.max(0, discount);
 
     setSubmitting(true);
@@ -218,12 +262,22 @@ const CashierPage: React.FC = () => {
         discount_type: discountType,
         discount_value: normalizedDiscount,
         note,
-        payment_method: "cash",
+        customer_name: customerName.trim() || undefined,
+        payment_method: paymentMethod,
+        delivery_address:
+          orderType === "delivery" ? deliveryAddress.trim() : null,
+        delivery_fee: orderType === "delivery" ? deliveryFeeValue : 0,
         delivery: orderType === "delivery",
       });
       setOrderItems([]);
       setDiscount(0);
+      setDiscountType("amount");
       setNote("");
+      setPaymentMethod("cash");
+      setCashReceived("");
+      setCustomerName("");
+      setDeliveryAddress("");
+      setDeliveryFee(0);
       if (orderType === "dine_in") {
         setSelectedTable(null);
       }
@@ -519,61 +573,220 @@ const CashierPage: React.FC = () => {
               </div>
             )}
 
-            <div className="border-t pt-3 space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span>المجموع</span>
-                <span className="font-semibold">
-                  <CurrencyAmount value={subtotal} />
-                </span>
+            <div className="border-t pt-3 space-y-3 text-sm">
+              <div className="space-y-2">
+                <span className="text-xs text-gray-500">بيانات العميل</span>
+                <input
+                  className="w-full border rounded-2xl px-3 py-2 text-xs bg-amber-50/40"
+                  placeholder="اسم العميل (اختياري)"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                />
               </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>الخصم</span>
-                  <div className="flex items-center gap-1 rounded-full border border-amber-200 text-[11px] overflow-hidden">
-                    {(["amount", "percent"] as DiscountType[]).map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setDiscountType(type)}
-                        className={`px-2 py-0.5 ${
-                          discountType === type
-                            ? "bg-amber-500 text-white"
-                            : "bg-white text-gray-600"
-                        }`}
-                      >
-                        {type === "amount" ? "مبلغ" : "٪ نسبة"}
-                      </button>
-                    ))}
+
+              {orderType === "delivery" ? (
+                <div className="space-y-2">
+                  <span className="text-xs text-gray-500">تفاصيل التوصيل</span>
+                  <textarea
+                    className="w-full border rounded-2xl px-3 py-2 text-xs bg-amber-50/40"
+                    placeholder="عنوان التوصيل بالكامل"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    rows={2}
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] text-gray-500">
+                      رسوم التوصيل
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.5"
+                      className="w-24 border rounded-lg px-2 py-1 text-xs text-right"
+                      value={deliveryFee}
+                      onChange={(e) =>
+                        setDeliveryFee(Math.max(0, Number(e.target.value) || 0))
+                      }
+                    />
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-2">
-                  <input
-                    type="number"
-                    min={0}
-                    max={discountType === "percent" ? 100 : undefined}
-                    step={discountType === "percent" ? "0.5" : "1"}
-                    className="w-24 border rounded-lg px-2 py-1 text-xs text-right"
-                    value={discount}
-                    onChange={(e) => {
-                      const value = Number(e.target.value) || 0;
-                      if (discountType === "percent") {
-                        setDiscount(Math.min(100, Math.max(0, value)));
-                      } else {
-                        setDiscount(Math.max(0, value));
-                      }
-                    }}
-                  />
-                  <span className="text-[11px] text-gray-500">
-                    {discountType === "percent" ? "% من الإجمالي" : "ريال سعودي"}
+              ) : null}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span>المجموع</span>
+                  <span className="font-semibold">
+                    <CurrencyAmount value={subtotal} />
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>الخصم</span>
+                    <div className="flex items-center gap-1 rounded-full border border-amber-200 text-[11px] overflow-hidden">
+                      {(["none", "amount", "percent"] as DiscountType[]).map(
+                        (type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setDiscountType(type)}
+                            className={`px-2 py-0.5 ${
+                              discountType === type
+                                ? "bg-amber-500 text-white"
+                                : "bg-white text-gray-600"
+                            }`}
+                          >
+                            {type === "none"
+                              ? "بدون خصم"
+                              : type === "amount"
+                              ? "مبلغ"
+                              : "٪ نسبة"}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                  {discountType !== "none" ? (
+                    <div className="flex items-center justify-between gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={discountType === "percent" ? 100 : undefined}
+                        step={discountType === "percent" ? "0.5" : "1"}
+                        className="w-24 border rounded-lg px-2 py-1 text-xs text-right"
+                        value={discount}
+                        onChange={(e) => {
+                          const value = Number(e.target.value) || 0;
+                          if (discountType === "percent") {
+                            setDiscount(Math.min(100, Math.max(0, value)));
+                          } else {
+                            setDiscount(Math.max(0, value));
+                          }
+                        }}
+                      />
+                      <span className="text-[11px] text-gray-500">
+                        {discountType === "percent"
+                          ? "% من الإجمالي"
+                          : "ريال سعودي"}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+                {orderType === "delivery" ? (
+                  <div className="flex items-center justify-between text-sm">
+                    <span>رسوم التوصيل</span>
+                    <span className="font-semibold">
+                      <CurrencyAmount value={deliveryFeeValue} />
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between font-bold text-amber-700">
+                  <span>الإجمالي النهائي</span>
+                  <span>
+                    <CurrencyAmount value={grandTotal} />
                   </span>
                 </div>
               </div>
-              <div className="flex items-center justify-between font-bold text-amber-700">
-                <span>الإجمالي</span>
-                <span>
-                  <CurrencyAmount value={total} />
-                </span>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>طريقة الدفع</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "cash", label: "نقدًا" },
+                    { value: "card_pos", label: "بطاقة / POS" },
+                    { value: "online", label: "أونلاين" },
+                  ].map((method) => (
+                    <button
+                      key={method.value}
+                      type="button"
+                      onClick={() =>
+                        setPaymentMethod(method.value as PaymentMethod)
+                      }
+                      className={`px-3 py-1.5 rounded-full text-xs border ${
+                        paymentMethod === method.value
+                          ? "bg-amber-500 text-white border-amber-500"
+                          : "bg-white text-gray-700 border-gray-200"
+                      }`}
+                    >
+                      {method.label}
+                    </button>
+                  ))}
+                </div>
+                {paymentMethod === "cash" ? (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.5"
+                        className="flex-1 min-w-[140px] border rounded-lg px-2 py-1 text-xs text-right"
+                        placeholder="المبلغ المستلم"
+                        value={cashReceived}
+                        onChange={(e) => setCashReceived(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 rounded-full text-[11px] border border-amber-200 text-amber-700"
+                        onClick={() =>
+                          setCashReceived(
+                            grandTotal ? grandTotal.toFixed(2) : ""
+                          )
+                        }
+                      >
+                        المبلغ كامل
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 rounded-full text-[11px] border border-gray-200 text-gray-500"
+                        onClick={() => setCashReceived("")}
+                      >
+                        مسح
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {cashQuickAmounts.map((amount) => (
+                        <button
+                          key={amount}
+                          type="button"
+                          className="px-3 py-1.5 rounded-full text-[11px] border border-amber-100 text-amber-700"
+                          onClick={() => setCashReceived(String(amount))}
+                        >
+                          {amount} ر.س
+                        </button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px]">
+                      <div className="rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2">
+                        <p className="text-gray-500">المتبقي على العميل</p>
+                        <p
+                          className={`font-semibold ${
+                            cashRemaining > 0 ? "text-red-600" : "text-gray-700"
+                          }`}
+                        >
+                          <CurrencyAmount value={cashRemaining} />
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2">
+                        <p className="text-gray-500">الباقي للعميل</p>
+                        <p
+                          className={`font-semibold ${
+                            cashChange > 0 ? "text-emerald-600" : "text-gray-700"
+                          }`}
+                        >
+                          <CurrencyAmount value={cashChange} />
+                        </p>
+                      </div>
+                    </div>
+                    {isCashInsufficient ? (
+                      <p className="text-xs text-red-500">
+                        المبلغ المستلم أقل من الإجمالي المطلوب.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
+
               <textarea
                 className="w-full border rounded-2xl px-3 py-2 text-xs bg-amber-50/40"
                 placeholder="ملاحظات خاصة بالطلب..."
@@ -584,22 +797,32 @@ const CashierPage: React.FC = () => {
               {statusMessage && (
                 <p
                   className={`text-xs ${
-                    statusMessage.includes("تعذر")
-                      ? "text-red-500"
-                      : "text-emerald-600"
+                    statusMessage.includes("بنجاح")
+                      ? "text-emerald-600"
+                      : "text-red-500"
                   }`}
                 >
                   {statusMessage}
                 </p>
               )}
-              <button
-                type="button"
-                onClick={handleSubmitOrder}
-                disabled={orderItems.length === 0 || submitting}
-                className="w-full py-2.5 rounded-full bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-60"
-              >
-                {submitting ? "جاري حفظ الطلب..." : "تأكيد الطلب"}
-              </button>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => setOrderItems([])}
+                  disabled={orderItems.length === 0}
+                  className="flex-1 py-2.5 rounded-full border border-amber-200 text-amber-700 text-sm font-semibold disabled:opacity-60"
+                >
+                  تفريغ السلة
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitOrder}
+                  disabled={!canSubmit}
+                  className="flex-1 py-2.5 rounded-full bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 disabled:opacity-60"
+                >
+                  {submitting ? "جاري حفظ الطلب..." : "تأكيد الطلب"}
+                </button>
+              </div>
             </div>
           </div>
 
