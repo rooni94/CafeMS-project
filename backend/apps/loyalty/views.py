@@ -1,32 +1,18 @@
+import logging
+
+from django.http import HttpResponse
+from django.utils import timezone
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.http import HttpResponse
-from django.utils import timezone
 
-from apps.accounts.permissions import (
-    CanAccessCashier,
-    HasFeaturePermission,
-    get_role_permission,
-)
-
-from .models import (
-    LoyaltyPassRegistration,
-    LoyaltyProfile,
-    LoyaltySettings,
-    LoyaltyTransaction,
-)
-from .serializers import (
-    LoyaltyProfileSerializer,
-    LoyaltySettingsSerializer,
-    LoyaltyTransactionSerializer,
-)
-from .services import (
-    get_or_create_profile,
-    adjust_points_by_membership,
-)
+from apps.accounts.permissions import CanAccessCashier, HasFeaturePermission, get_role_permission
 from apps.store.models import StoreSettings
+
+from .models import LoyaltyPassRegistration, LoyaltyProfile, LoyaltySettings, LoyaltyTransaction
+from .serializers import LoyaltyProfileSerializer, LoyaltySettingsSerializer, LoyaltyTransactionSerializer
+from .services import get_or_create_profile, adjust_points_by_membership
 from .passkit import (
     PassKitConfigError,
     build_pkpass,
@@ -38,6 +24,8 @@ from .passkit import (
     parse_passes_updated_since,
     verify_auth_token,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class CanManageLoyalty(HasFeaturePermission):
@@ -51,12 +39,7 @@ class MyLoyaltyProfileView(APIView):
         profile = get_or_create_profile(request.user)
         serializer = LoyaltyProfileSerializer(profile)
         settings_serializer = LoyaltySettingsSerializer(LoyaltySettings.load())
-        return Response(
-            {
-                "profile": serializer.data,
-                "settings": settings_serializer.data,
-            }
-        )
+        return Response({"profile": serializer.data, "settings": settings_serializer.data})
 
 
 class LoyaltyTransactionsView(generics.ListAPIView):
@@ -65,12 +48,15 @@ class LoyaltyTransactionsView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        membership_id = self.request.query_params.get("membership_id")
+        membership_id = (self.request.query_params.get("membership_id") or "").strip()
+
+        # لو المستخدم عنده صلاحية إدارة الولاء يقدر يستعرض حسب membership_id
         rp = get_role_permission(user)
-        if membership_id and rp and getattr(rp, "can_manage_loyalty", False):
-            return LoyaltyTransaction.objects.filter(
-                profile__membership_id=membership_id
-            )
+        can_manage = bool(rp and getattr(rp, "can_manage_loyalty", False))
+
+        if membership_id and can_manage:
+            return LoyaltyTransaction.objects.filter(profile__membership_id=membership_id)
+
         profile = get_or_create_profile(user)
         return profile.transactions.all()
 
@@ -87,32 +73,44 @@ class LoyaltyScanView(APIView):
     permission_classes = [IsAuthenticated, CanAccessCashier]
 
     def post(self, request):
-        membership_id = request.data.get("membership_id")
         try:
-            delta = int(request.data.get("points_delta", 0))
-        except (TypeError, ValueError):
-            delta = 0
-        note = request.data.get("note", "")
+            membership_id = (request.data.get("membership_id") or "").strip()
+            note = (request.data.get("note") or "").strip()
 
-        if not membership_id or delta == 0:
-            return Response(
-                {"detail": "membership_id و points_delta مطلوبة."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            try:
+                delta = int(request.data.get("points_delta", 0))
+            except (TypeError, ValueError):
+                return Response(
+                    {"detail": "points_delta يجب أن يكون رقم صحيح."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
-        result = adjust_points_by_membership(membership_id, delta, note=note)
-        if not result:
+            if not membership_id or delta == 0:
+                return Response(
+                    {"detail": "membership_id و points_delta مطلوبة (points_delta لا يمكن أن تكون 0)."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            result = adjust_points_by_membership(membership_id, delta, note=note)
+            if not result:
+                return Response(
+                    {"detail": "لم يتم العثور على هذا العميل."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            profile, txn = result
             return Response(
-                {"detail": "لم يتم العثور على هذا العميل."},
-                status=status.HTTP_404_NOT_FOUND,
+                {
+                    "profile": LoyaltyProfileSerializer(profile).data,
+                    "transaction": LoyaltyTransactionSerializer(txn).data,
+                }
             )
-        profile, txn = result
-        return Response(
-            {
-                "profile": LoyaltyProfileSerializer(profile).data,
-                "transaction": LoyaltyTransactionSerializer(txn).data,
-            }
-        )
+        except Exception as exc:
+            logger.exception("Loyalty scan failed: %s", exc)
+            return Response(
+                {"detail": "حدث خطأ داخلي أثناء تحديث نقاط العميل."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class LoyaltyPassView(APIView):
@@ -121,30 +119,38 @@ class LoyaltyPassView(APIView):
     def post(self, request, platform: str):
         profile = get_or_create_profile(request.user)
         if platform not in ("apple", "google"):
-            return Response(
-                {"detail": "منصة غير مدعومة."}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"detail": "منصة غير مدعومة."}, status=status.HTTP_400_BAD_REQUEST)
+
         settings_obj, _ = StoreSettings.objects.get_or_create(id=1)
-        base_url = (
-            settings_obj.wallet_pass_base_url
-            if settings_obj.wallet_pass_base_url
-            else "https://example.invalid"
-        )
+        base_url = settings_obj.wallet_pass_base_url or "https://example.invalid"
         base_url = base_url.rstrip("/")
-        fake_url = f"{base_url}/passes/{platform}/{profile.membership_id}.pkpass"
+
+        pass_url = f"{base_url}/passes/{platform}/{profile.membership_id}.pkpass"
+
         if platform == "apple":
             try:
                 build_pkpass(profile)
             except PassKitConfigError as exc:
-                return Response(
-                    {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
-                )
+                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
         return Response(
             {
-                "detail": "تم إنشاء البطاقة بشكل تجريبي. قم بربط شهادات Apple/Google لاحقاً.",
-                "pass_url": fake_url,
+                "detail": "تم تجهيز رابط البطاقة.",
+                "pass_url": pass_url,
             }
         )
+
+
+# apps/loyalty/views.py
+from django.http import HttpResponse
+from django.utils import timezone
+from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+from .models import LoyaltyProfile
+from .passkit import PassKitConfigError, build_pkpass, build_pass_response
 
 
 class PassDownloadView(APIView):
@@ -153,47 +159,51 @@ class PassDownloadView(APIView):
     def get(self, request, platform: str, serial_number: str):
         if platform != "apple":
             return Response({"detail": "Unsupported platform."}, status=404)
+
         profile = LoyaltyProfile.objects.filter(membership_id=serial_number).first()
         if not profile:
             return Response({"detail": "Pass not found."}, status=404)
+
         try:
             pkpass, last_modified = build_pkpass(profile)
         except PassKitConfigError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            # لا ترجع HTML 500
+            return Response({"detail": "Failed to generate pass."}, status=500)
+
         data, headers = build_pass_response(pkpass, last_modified)
-        response = HttpResponse(data, content_type=headers["Content-Type"])
-        for key, value in headers.items():
-            response[key] = value
-        response["Content-Disposition"] = f'attachment; filename="{serial_number}.pkpass"'
-        return response
+
+        resp = HttpResponse(data, content_type=headers["Content-Type"])
+        for k, v in headers.items():
+            resp[k] = v
+
+        resp["Content-Disposition"] = f'attachment; filename="{serial_number}.pkpass"'
+        resp["Content-Length"] = str(len(data))
+        return resp
 
 
 class PassKitRegistrationView(APIView):
     permission_classes = [AllowAny]
 
-    def post(
-        self,
-        request,
-        device_library_identifier: str,
-        pass_type_identifier: str,
-        serial_number: str,
-    ):
+    def post(self, request, device_library_identifier: str, pass_type_identifier: str, serial_number: str):
         expected = get_expected_pass_type_identifier()
         if expected and pass_type_identifier != expected:
             return Response(status=404)
+
         profile = LoyaltyProfile.objects.filter(membership_id=serial_number).first()
         if not profile:
             return Response(status=404)
+
         auth_token = extract_auth_token(request.headers.get("Authorization"))
         if not verify_auth_token(profile, auth_token):
             return Response(status=401)
+
         push_token = request.data.get("pushToken")
         if not push_token:
-            return Response(
-                {"detail": "pushToken is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        registration, created = LoyaltyPassRegistration.objects.update_or_create(
+            return Response({"detail": "pushToken is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        _obj, created = LoyaltyPassRegistration.objects.update_or_create(
             profile=profile,
             device_library_id=device_library_identifier,
             pass_type_identifier=pass_type_identifier,
@@ -201,22 +211,19 @@ class PassKitRegistrationView(APIView):
         )
         return Response(status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
-    def delete(
-        self,
-        request,
-        device_library_identifier: str,
-        pass_type_identifier: str,
-        serial_number: str,
-    ):
+    def delete(self, request, device_library_identifier: str, pass_type_identifier: str, serial_number: str):
         expected = get_expected_pass_type_identifier()
         if expected and pass_type_identifier != expected:
             return Response(status=404)
+
         profile = LoyaltyProfile.objects.filter(membership_id=serial_number).first()
         if not profile:
             return Response(status=404)
+
         auth_token = extract_auth_token(request.headers.get("Authorization"))
         if not verify_auth_token(profile, auth_token):
             return Response(status=401)
+
         deleted, _ = LoyaltyPassRegistration.objects.filter(
             profile=profile,
             device_library_id=device_library_identifier,
@@ -238,10 +245,13 @@ class PassKitDevicePassesView(APIView):
             device_library_id=device_library_identifier,
             pass_type_identifier=pass_type_identifier,
         ).select_related("profile")
+
         if since:
             registrations = registrations.filter(profile__updated_at__gt=since)
+
         registrations = list(registrations)
         serials = [reg.profile.membership_id for reg in registrations if reg.profile]
+
         if not serials:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -249,12 +259,8 @@ class PassKitDevicePassesView(APIView):
             (reg.profile.updated_at or timezone.now() for reg in registrations),
             default=timezone.now(),
         )
-        return Response(
-            {
-                "serialNumbers": serials,
-                "lastUpdated": format_last_updated(last_updated),
-            }
-        )
+
+        return Response({"serialNumbers": serials, "lastUpdated": format_last_updated(last_updated)})
 
 
 class PassKitLatestPassView(APIView):
@@ -264,21 +270,24 @@ class PassKitLatestPassView(APIView):
         expected = get_expected_pass_type_identifier()
         if expected and pass_type_identifier != expected:
             return Response(status=404)
+
         profile = LoyaltyProfile.objects.filter(membership_id=serial_number).first()
         if not profile:
             return Response(status=404)
+
         auth_token = extract_auth_token(request.headers.get("Authorization"))
         if not verify_auth_token(profile, auth_token):
             return Response(status=401)
+
         last_modified = profile.updated_at or timezone.now()
-        if not is_pass_modified_since(
-            last_modified, request.headers.get("If-Modified-Since")
-        ):
+        if not is_pass_modified_since(last_modified, request.headers.get("If-Modified-Since")):
             return HttpResponse(status=304)
+
         try:
             pkpass, last_modified = build_pkpass(profile)
         except PassKitConfigError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
         data, headers = build_pass_response(pkpass, last_modified)
         response = HttpResponse(data, content_type=headers["Content-Type"])
         for key, value in headers.items():

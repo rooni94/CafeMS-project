@@ -22,7 +22,7 @@ class LoyaltySettingsSerializer(serializers.ModelSerializer):
 
 
 class LoyaltyTransactionSerializer(serializers.ModelSerializer):
-    order_id = serializers.IntegerField(source="order_id", read_only=True)
+    order_id = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = LoyaltyTransaction
@@ -71,8 +71,11 @@ class LoyaltyProfileSerializer(serializers.ModelSerializer):
         return "tier_3"
 
     def get_user_name(self, obj):
-        full = obj.user.get_full_name()
-        return full or obj.user.username
+        try:
+            full = obj.user.get_full_name()
+            return full or getattr(obj.user, "username", "") or "User"
+        except Exception:
+            return "User"
 
     def _wallet_base_url(self):
         if not hasattr(self, "_wallet_base_cache"):

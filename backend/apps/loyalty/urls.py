@@ -16,6 +16,8 @@ urlpatterns = [
     path("settings/", LoyaltySettingsView.as_view(), name="loyalty-settings"),
     path("scan/", LoyaltyScanView.as_view(), name="loyalty-scan"),
     path("pass/<str:platform>/", LoyaltyPassView.as_view(), name="loyalty-pass"),
+
+    # PassKit spec paths (بدون سلاش أخير غالباً)
     path(
         "passkit/v1/devices/<str:device_library_identifier>/registrations/<str:pass_type_identifier>",
         PassKitDevicePassesView.as_view(),

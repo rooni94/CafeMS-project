@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import math
 import uuid
-from typing import Optional
+from typing import Optional, Tuple
 
 from django.db import transaction
 from django.utils import timezone
@@ -11,6 +11,7 @@ from django.utils import timezone
 from .models import LoyaltyProfile, LoyaltySettings, LoyaltyTransaction
 
 logger = logging.getLogger(__name__)
+
 
 def get_or_create_profile(user) -> LoyaltyProfile:
     profile, created = LoyaltyProfile.objects.get_or_create(
@@ -39,30 +40,37 @@ def apply_points_change(
     note: str = "",
     order=None,
 ) -> LoyaltyTransaction:
-    profile.points_balance = max(0, profile.points_balance + delta)
+    profile.points_balance = max(0, (profile.points_balance or 0) + int(delta))
     profile.save(update_fields=["points_balance", "updated_at"])
+
     txn = LoyaltyTransaction.objects.create(
         profile=profile,
-        points_delta=delta,
+        points_delta=int(delta),
         source=source,
-        note=note,
+        note=note or "",
         order=order,
     )
+
     try:
         from .passkit import notify_pass_update
 
         notify_pass_update(profile)
     except Exception as exc:
         logger.warning("pass update notify failed: %s", exc)
+
     return txn
 
 
 def award_points_for_order(order):
-    if not order or not order.user_id:
+    if not order or not getattr(order, "user_id", None):
         return
 
     settings_obj = LoyaltySettings.load()
-    earn_rate = float(settings_obj.earn_rate or 0)
+    try:
+        earn_rate = float(settings_obj.earn_rate or 0)
+    except Exception:
+        earn_rate = 0.0
+
     if earn_rate <= 0:
         return
 
@@ -86,19 +94,21 @@ def auto_reward_if_needed(
     profile: LoyaltyProfile, settings_obj: Optional[LoyaltySettings] = None
 ):
     settings_obj = settings_obj or LoyaltySettings.load()
-    threshold = settings_obj.auto_reward_threshold
-    if not threshold or profile.points_balance < threshold:
+    threshold = int(settings_obj.auto_reward_threshold or 0)
+    if threshold <= 0 or (profile.points_balance or 0) < threshold:
         return
 
-    profile.points_balance -= threshold
+    profile.points_balance = max(0, (profile.points_balance or 0) - threshold)
     profile.last_reward_at = timezone.now()
     profile.save(update_fields=["points_balance", "last_reward_at", "updated_at"])
+
     LoyaltyTransaction.objects.create(
         profile=profile,
         points_delta=-threshold,
         source="reward",
-        note=settings_obj.auto_reward_message,
+        note=settings_obj.auto_reward_message or "",
     )
+
     try:
         from .passkit import notify_pass_update
 
@@ -107,12 +117,20 @@ def auto_reward_if_needed(
         logger.warning("pass update notify failed: %s", exc)
 
 
-def adjust_points_by_membership(membership_id: str, delta: int, note: str = ""):
+@transaction.atomic
+def adjust_points_by_membership(
+    membership_id: str, delta: int, note: str = ""
+) -> Optional[Tuple[LoyaltyProfile, LoyaltyTransaction]]:
+    membership_id = (membership_id or "").strip()
+    if not membership_id:
+        return None
+
     try:
         profile = LoyaltyProfile.objects.select_for_update().get(
             membership_id=membership_id
         )
     except LoyaltyProfile.DoesNotExist:
         return None
-    txn = apply_points_change(profile, delta, source="scan", note=note)
+
+    txn = apply_points_change(profile, int(delta), source="scan", note=note or "")
     return profile, txn
