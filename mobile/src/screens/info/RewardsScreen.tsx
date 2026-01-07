@@ -212,14 +212,18 @@ const RewardsScreen: React.FC = () => {
               <Button
                 title={t("rewards.appleWallet", "إضافة إلى Apple Wallet")}
                 variant="secondary"
-                onPress={() => Linking.openURL(profile.apple_wallet_pass_url!)}
+                onPress={() =>
+                  handleWalletPass("apple", profile.apple_wallet_pass_url)
+                }
               />
             ) : null}
             {profile?.google_wallet_pass_url ? (
               <Button
                 title={t("rewards.googleWallet", "إضافة إلى Google Wallet")}
                 variant="secondary"
-                onPress={() => Linking.openURL(profile.google_wallet_pass_url!)}
+                onPress={() =>
+                  handleWalletPass("google", profile.google_wallet_pass_url)
+                }
               />
             ) : null}
           </View>
