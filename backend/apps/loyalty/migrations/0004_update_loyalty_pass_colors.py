@@ -1,3 +1,4 @@
+# backend/apps/loyalty/migrations/0004_update_loyalty_pass_colors.py
 from django.db import migrations
 
 

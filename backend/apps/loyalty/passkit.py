@@ -1,3 +1,4 @@
+# backend/apps/loyalty/passkit.py
 import hashlib
 import io
 import json
@@ -87,6 +88,29 @@ def _hex_to_rgb(value: str) -> Tuple[int, int, int]:
         return (0, 0, 0)
     return tuple(int(value[i : i + 2], 16) for i in (0, 2, 4))
 
+def _remove_solid_bg(image: Image.Image, tolerance: int = 28) -> Image.Image:
+    """
+    يحاول إزالة خلفية لون واحد حول الشعار (مثل مربع أبيض/أسود).
+    يأخذ لون الزاوية العلوية اليسرى كخلفية ويجعلها شفافة ضمن tolerance.
+    """
+    img = image.convert("RGBA")
+    px = img.load()
+    w, h = img.size
+    bg = px[0, 0]
+
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            if (
+                abs(r - bg[0]) <= tolerance
+                and abs(g - bg[1]) <= tolerance
+                and abs(b - bg[2]) <= tolerance
+            ):
+                px[x, y] = (r, g, b, 0)
+    return img
+
 
 def _load_logo_bytes(settings_obj: StoreSettings, loyalty_settings: LoyaltySettings) -> Optional[bytes]:
     global _LOGO_CACHE_KEY, _LOGO_CACHE_BYTES
@@ -161,26 +185,19 @@ def _build_strip_image(
     accent_hex: str,
     logo_bytes: Optional[bytes],
 ) -> bytes:
+    # strip أنيق جداً: نفس لون الخلفية تقريباً مع فرق بسيط جداً
     base_rgb = _hex_to_rgb(base_hex)
-    accent_rgb = _hex_to_rgb(accent_hex)
-    accent_rgb = _mix_rgb(base_rgb, accent_rgb, 0.55)
-    gradient = _build_gradient_image(size, base_rgb, accent_rgb).convert("RGBA")
 
-    if logo_bytes:
-        try:
-            logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
-            max_w = int(size[0] * 0.75)
-            max_h = int(size[1] * 0.7)
-            logo.thumbnail((max_w, max_h), Image.LANCZOS)
-            x = (size[0] - logo.width) // 2
-            y = (size[1] - logo.height) // 2
-            gradient.paste(logo, (x, y), logo)
-        except Exception as exc:
-            logger.warning("Failed to compose strip logo: %s", exc)
+    # بدل التدرج القوي (الذهبي)، نخلي فرق 6% فقط
+    end_rgb = _mix_rgb(base_rgb, (255, 255, 255), 0.06)
 
+    gradient = _build_gradient_image(size, base_rgb, end_rgb).convert("RGBA")
+
+    # مهم: لا نضع اللوغو داخل strip نهائياً (لمنع تكرار اللوغو)
     buffer = io.BytesIO()
     gradient.save(buffer, format="PNG")
     return buffer.getvalue()
+
 
 
 def _build_strip_images(
@@ -189,9 +206,13 @@ def _build_strip_images(
     base_color = loyalty_settings.pass_primary_color or "#0b0f19"
     accent_color = loyalty_settings.pass_label_color or "#f59e0b"
     return {
-        "strip.png": _build_strip_image((320, 123), base_color, accent_color, logo_bytes),
-        "strip@2x.png": _build_strip_image((640, 246), base_color, accent_color, logo_bytes),
-    }
+    "strip.png": _build_strip_image((320, 100), base_color, accent_color, None),
+    "strip@2x.png": _build_strip_image((640, 200), base_color, accent_color, None),
+}
+
+
+
+
 
 
 def _prepare_pass_images(settings_obj: StoreSettings, loyalty_settings: LoyaltySettings) -> Dict[str, bytes]:
@@ -200,12 +221,18 @@ def _prepare_pass_images(settings_obj: StoreSettings, loyalty_settings: LoyaltyS
 
     if logo_bytes:
         try:
-            base = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
+            base = Image.open(io.BytesIO(logo_bytes))
+            base = _remove_solid_bg(base)  # ✅ إزالة مربع الخلفية إن وجد
+            base = base.convert("RGBA")
+
             images["logo.png"] = _resize_image(base, (160, 50))
             images["logo@2x.png"] = _resize_image(base, (320, 100))
+
             images["icon.png"] = _resize_image(base, (29, 29))
             images["icon@2x.png"] = _resize_image(base, (58, 58))
-            images.update(_build_strip_images(loyalty_settings, logo_bytes))
+
+        # ✅ strip أنيق بدون لوغو
+            images.update(_build_strip_images(loyalty_settings, None))
             return images
         except Exception as exc:
             logger.warning("Failed to process pass logo: %s", exc)
@@ -281,9 +308,11 @@ def build_pass_payload(profile: LoyaltyProfile) -> Dict:
     payload.setdefault("formatVersion", 1)
     payload.setdefault("organizationName", settings_obj.store_name)
     payload.setdefault("description", "Loyalty Card")
-    if "logoText" not in payload:
-        logo_available = bool(_load_logo_bytes(settings_obj, loyalty_settings))
-        payload["logoText"] = "" if logo_available else settings_obj.store_name
+
+    logo_available = bool(_load_logo_bytes(settings_obj, loyalty_settings))
+# مهم: لا تخلي logoText في التمبلت يطغى ويطلع مقصوص
+    payload["logoText"] = "" if logo_available else (payload.get("logoText") or settings_obj.store_name)
+
     payload.setdefault("suppressStripShine", True)
 
     payload["serialNumber"] = profile.membership_id

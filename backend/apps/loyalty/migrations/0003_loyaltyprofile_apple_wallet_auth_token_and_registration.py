@@ -1,3 +1,4 @@
+# backend/apps/loyalty/migrations/0003_loyaltyprofile_apple_wallet_auth_token_and_registration.py
 from django.db import migrations, models
 import django.db.models.deletion
 
