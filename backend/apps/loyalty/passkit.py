@@ -90,18 +90,34 @@ def _hex_to_rgb(value: str) -> Tuple[int, int, int]:
 
 def _load_logo_bytes(settings_obj: StoreSettings, loyalty_settings: LoyaltySettings) -> Optional[bytes]:
     global _LOGO_CACHE_KEY, _LOGO_CACHE_BYTES
-    logo_url = (loyalty_settings.pass_logo_url or "").strip()
+    configured_url = (loyalty_settings.pass_logo_url or "").strip()
+    candidate_urls = []
+    if configured_url:
+        candidate_urls.append(configured_url)
+    else:
+        candidate_urls.extend(
+            ["/loyalty-logo.png", "/loyalty-logo.jpg", "/loyalty-logo.jpeg"]
+        )
+
+    normalized_urls = []
+    for url in candidate_urls:
+        if url.startswith("/"):
+            normalized_urls.append(f"{_wallet_base_url(settings_obj)}{url}")
+        else:
+            normalized_urls.append(url)
+
     logo_path = settings_obj.logo.path if getattr(settings_obj, "logo", None) else None
-    cache_key = (logo_url or None, logo_path or None)
+    cache_key = (tuple(normalized_urls), logo_path or None)
     if cache_key == _LOGO_CACHE_KEY:
         return _LOGO_CACHE_BYTES
 
     logo_bytes = None
-    if logo_url:
+    for url in normalized_urls:
         try:
-            resp = requests.get(logo_url, timeout=5)
+            resp = requests.get(url, timeout=5)
             if resp.ok and resp.content:
                 logo_bytes = resp.content
+                break
         except requests.RequestException as exc:
             logger.warning("Failed to fetch pass logo URL: %s", exc)
 
@@ -125,6 +141,59 @@ def _build_image_bytes(color_hex: str, size: Tuple[int, int]) -> bytes:
     return buffer.getvalue()
 
 
+def _mix_rgb(left: Tuple[int, int, int], right: Tuple[int, int, int], ratio: float) -> Tuple[int, int, int]:
+    ratio = max(0.0, min(1.0, ratio))
+    return tuple(int(left[i] * (1 - ratio) + right[i] * ratio) for i in range(3))
+
+
+def _build_gradient_image(
+    size: Tuple[int, int], start_rgb: Tuple[int, int, int], end_rgb: Tuple[int, int, int]
+) -> Image.Image:
+    base = Image.new("RGB", size, start_rgb)
+    top = Image.new("RGB", size, end_rgb)
+    mask = Image.linear_gradient("L").resize(size)
+    return Image.composite(top, base, mask)
+
+
+def _build_strip_image(
+    size: Tuple[int, int],
+    base_hex: str,
+    accent_hex: str,
+    logo_bytes: Optional[bytes],
+) -> bytes:
+    base_rgb = _hex_to_rgb(base_hex)
+    accent_rgb = _hex_to_rgb(accent_hex)
+    accent_rgb = _mix_rgb(base_rgb, accent_rgb, 0.55)
+    gradient = _build_gradient_image(size, base_rgb, accent_rgb).convert("RGBA")
+
+    if logo_bytes:
+        try:
+            logo = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
+            max_w = int(size[0] * 0.75)
+            max_h = int(size[1] * 0.7)
+            logo.thumbnail((max_w, max_h), Image.LANCZOS)
+            x = (size[0] - logo.width) // 2
+            y = (size[1] - logo.height) // 2
+            gradient.paste(logo, (x, y), logo)
+        except Exception as exc:
+            logger.warning("Failed to compose strip logo: %s", exc)
+
+    buffer = io.BytesIO()
+    gradient.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def _build_strip_images(
+    loyalty_settings: LoyaltySettings, logo_bytes: Optional[bytes]
+) -> Dict[str, bytes]:
+    base_color = loyalty_settings.pass_primary_color or "#0b0f19"
+    accent_color = loyalty_settings.pass_label_color or "#f59e0b"
+    return {
+        "strip.png": _build_strip_image((320, 123), base_color, accent_color, logo_bytes),
+        "strip@2x.png": _build_strip_image((640, 246), base_color, accent_color, logo_bytes),
+    }
+
+
 def _prepare_pass_images(settings_obj: StoreSettings, loyalty_settings: LoyaltySettings) -> Dict[str, bytes]:
     logo_bytes = _load_logo_bytes(settings_obj, loyalty_settings)
     images: Dict[str, bytes] = {}
@@ -136,6 +205,7 @@ def _prepare_pass_images(settings_obj: StoreSettings, loyalty_settings: LoyaltyS
             images["logo@2x.png"] = _resize_image(base, (320, 100))
             images["icon.png"] = _resize_image(base, (29, 29))
             images["icon@2x.png"] = _resize_image(base, (58, 58))
+            images.update(_build_strip_images(loyalty_settings, logo_bytes))
             return images
         except Exception as exc:
             logger.warning("Failed to process pass logo: %s", exc)
@@ -145,6 +215,7 @@ def _prepare_pass_images(settings_obj: StoreSettings, loyalty_settings: LoyaltyS
     images["logo@2x.png"] = _build_image_bytes(primary, (320, 100))
     images["icon.png"] = _build_image_bytes(primary, (29, 29))
     images["icon@2x.png"] = _build_image_bytes(primary, (58, 58))
+    images.update(_build_strip_images(loyalty_settings, None))
     return images
 
 
@@ -210,7 +281,10 @@ def build_pass_payload(profile: LoyaltyProfile) -> Dict:
     payload.setdefault("formatVersion", 1)
     payload.setdefault("organizationName", settings_obj.store_name)
     payload.setdefault("description", "Loyalty Card")
-    payload.setdefault("logoText", settings_obj.store_name)
+    if "logoText" not in payload:
+        logo_available = bool(_load_logo_bytes(settings_obj, loyalty_settings))
+        payload["logoText"] = "" if logo_available else settings_obj.store_name
+    payload.setdefault("suppressStripShine", True)
 
     payload["serialNumber"] = profile.membership_id
     payload["authenticationToken"] = _ensure_auth_token(profile)

@@ -41,9 +41,9 @@ class LoyaltySettings(models.Model):
     qr_prefix = models.CharField(
         max_length=20, default="CAFLOY", help_text="بادئة QR/ID لجميع الأعضاء."
     )
-    pass_primary_color = models.CharField(max_length=7, default="#f59e0b")
-    pass_secondary_color = models.CharField(max_length=7, default="#4c1d95")
-    pass_label_color = models.CharField(max_length=7, default="#ffffff")
+    pass_primary_color = models.CharField(max_length=7, default="#0b0f19")
+    pass_secondary_color = models.CharField(max_length=7, default="#f8fafc")
+    pass_label_color = models.CharField(max_length=7, default="#f59e0b")
     pass_logo_url = models.URLField(blank=True, null=True)
     updated_at = models.DateTimeField(auto_now=True)
 

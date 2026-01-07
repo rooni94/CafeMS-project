@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigation } from "@react-navigation/native";
@@ -43,6 +43,19 @@ const RewardsScreen: React.FC = () => {
   const { user, accessToken } = useAuth();
   const isAuthenticated = !!user && !!accessToken;
   const isGuest = !isAuthenticated;
+
+  const handleWalletPass = useCallback(
+    async (platform: "apple" | "google", url?: string) => {
+      if (!url) return;
+      try {
+        await api.post(`loyalty/pass/${platform}/`);
+      } catch {
+        // Keep going to open the pass URL even if prep fails.
+      }
+      Linking.openURL(url);
+    },
+    [accessToken],
+  );
 
   const tiers = useMemo(
     () => [
