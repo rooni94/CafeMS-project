@@ -1,3 +1,4 @@
+# backend/apps/loyalty/passkit.py
 import hashlib
 import io
 import json
@@ -6,6 +7,7 @@ import os
 import secrets
 import tempfile
 import zipfile
+from collections import deque
 from datetime import datetime
 from email.utils import parsedate_to_datetime
 from typing import Dict, Iterable, Optional, Tuple
@@ -16,7 +18,10 @@ from PIL import Image
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.serialization import pkcs12
-from cryptography.hazmat.primitives.serialization.pkcs7 import PKCS7Options, PKCS7SignatureBuilder
+from cryptography.hazmat.primitives.serialization.pkcs7 import (
+    PKCS7Options,
+    PKCS7SignatureBuilder,
+)
 from django.conf import settings
 from django.utils import timezone
 from django.utils.http import http_date
@@ -85,44 +90,80 @@ def _hex_to_rgb(value: str) -> Tuple[int, int, int]:
     return tuple(int(value[i : i + 2], 16) for i in (0, 2, 4))
 
 
-def _remove_solid_bg(image: Image.Image, tolerance: int = 28) -> Image.Image:
+def _remove_bg_floodfill(img: Image.Image, tolerance: int = 18) -> Image.Image:
     """
-    إزالة خلفية لون واحد حول الشعار (مثل مربع أبيض/أسود).
-    يأخذ لون الزاوية العلوية اليسرى كخلفية.
+    إزالة الخلفية بطريقة FloodFill من الزوايا فقط (آمنة أكثر من المسح الكامل).
+    ممتازة للخلفيات السوداء/البيضاء الكبيرة حول الشعار بدون تخريب التفاصيل الداخلية.
     """
-    img = image.convert("RGBA")
-    px = img.load()
-    w, h = img.size
-    bg = px[0, 0]
+    im = img.convert("RGBA")
+    w, h = im.size
+    px = im.load()
 
-    for y in range(h):
-        for x in range(w):
+    corners = [px[0, 0], px[w - 1, 0], px[0, h - 1], px[w - 1, h - 1]]
+
+    def close(c1, c2):
+        return (
+            abs(c1[0] - c2[0]) <= tolerance
+            and abs(c1[1] - c2[1]) <= tolerance
+            and abs(c1[2] - c2[2]) <= tolerance
+        )
+
+    q = deque()
+    visited = set()
+    starts = [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]
+    for s in starts:
+        q.append(s)
+        visited.add(s)
+
+    def is_bg(x, y):
+        c = px[x, y]
+        for corner in corners:
+            if close(c, corner):
+                return True
+        return False
+
+    while q:
+        x, y = q.popleft()
+        if is_bg(x, y):
             r, g, b, a = px[x, y]
-            if a == 0:
-                continue
-            if (
-                abs(r - bg[0]) <= tolerance
-                and abs(g - bg[1]) <= tolerance
-                and abs(b - bg[2]) <= tolerance
-            ):
-                px[x, y] = (r, g, b, 0)
-    return img
+            px[x, y] = (r, g, b, 0)
+
+            for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in visited:
+                    visited.add((nx, ny))
+                    q.append((nx, ny))
+
+    return im
 
 
-def _wallet_base_url(settings_obj: StoreSettings) -> str:
-    base = settings_obj.wallet_pass_base_url or "https://example.invalid"
-    return base.rstrip("/")
+def _trim_transparent_padding(img: Image.Image, alpha_threshold: int = 8, pad: int = 2) -> Image.Image:
+    """
+    قص الفراغات الشفافة حول الشعار لتكبيره داخل المساحة.
+    """
+    im = img.convert("RGBA")
+    alpha = im.split()[-1]
+    bbox = alpha.point(lambda a: 255 if a > alpha_threshold else 0).getbbox()
+    if not bbox:
+        return im
+
+    left, top, right, bottom = bbox
+    left = max(0, left - pad)
+    top = max(0, top - pad)
+    right = min(im.size[0], right + pad)
+    bottom = min(im.size[1], bottom + pad)
+    return im.crop((left, top, right, bottom))
 
 
 def _load_logo_bytes(settings_obj: StoreSettings, loyalty_settings: LoyaltySettings) -> Optional[bytes]:
     global _LOGO_CACHE_KEY, _LOGO_CACHE_BYTES
-
     configured_url = (loyalty_settings.pass_logo_url or "").strip()
     candidate_urls = []
     if configured_url:
         candidate_urls.append(configured_url)
     else:
-        candidate_urls.extend(["/loyalty-logo.png", "/loyalty-logo.jpg", "/loyalty-logo.jpeg"])
+        candidate_urls.extend(
+            ["/loyalty-logo.png", "/loyalty-logo.jpg", "/loyalty-logo.jpeg"]
+        )
 
     normalized_urls = []
     for url in candidate_urls:
@@ -163,7 +204,9 @@ def _mix_rgb(left: Tuple[int, int, int], right: Tuple[int, int, int], ratio: flo
     return tuple(int(left[i] * (1 - ratio) + right[i] * ratio) for i in range(3))
 
 
-def _build_gradient_image(size: Tuple[int, int], start_rgb: Tuple[int, int, int], end_rgb: Tuple[int, int, int]) -> Image.Image:
+def _build_gradient_image(
+    size: Tuple[int, int], start_rgb: Tuple[int, int, int], end_rgb: Tuple[int, int, int]
+) -> Image.Image:
     base = Image.new("RGB", size, start_rgb)
     top = Image.new("RGB", size, end_rgb)
     mask = Image.linear_gradient("L").resize(size)
@@ -177,86 +220,119 @@ def _resize_image(image: Image.Image, size: Tuple[int, int], align: str = "cente
     """
     resized = image.copy().convert("RGBA")
     resized.thumbnail(size, Image.LANCZOS)
-
     canvas = Image.new("RGBA", size, (0, 0, 0, 0))
 
     if align == "right":
-        x = max(0, size[0] - resized.width)
+        x = size[0] - resized.width
     elif align == "left":
         x = 0
     else:
-        x = max(0, (size[0] - resized.width) // 2)
+        x = (size[0] - resized.width) // 2
 
-    y = max(0, (size[1] - resized.height) // 2)
-
-    # استخدم mask لضمان RGBA
+    y = (size[1] - resized.height) // 2
     canvas.paste(resized, (x, y), resized)
 
-    buf = io.BytesIO()
-    canvas.save(buf, format="PNG")
-    return buf.getvalue()
+    buffer = io.BytesIO()
+    canvas.save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
-def _build_strip_image(size: Tuple[int, int], base_hex: str) -> bytes:
-    base_rgb = _hex_to_rgb(base_hex)
-    end_rgb = _mix_rgb(base_rgb, (255, 255, 255), 0.03)  # فرق بسيط جداً
-
-    gradient = _build_gradient_image(size, base_rgb, end_rgb).convert("RGBA")
-    buf = io.BytesIO()
-    gradient.save(buf, format="PNG")
-    return buf.getvalue()
-
-
-def _build_strip_images(loyalty_settings: LoyaltySettings) -> Dict[str, bytes]:
-    base_color = loyalty_settings.pass_primary_color or "#0b0f19"
-    return {
-        "strip.png": _build_strip_image((320, 123), base_color),
-        "strip@2x.png": _build_strip_image((640, 246), base_color),
-    }
-
-
-def _solid_rgba_png(color_hex: str, size: Tuple[int, int]) -> bytes:
-    r, g, b = _hex_to_rgb(color_hex)
-    img = Image.new("RGBA", size, (r, g, b, 255))
+def _transparent_png(size: Tuple[int, int]) -> bytes:
+    img = Image.new("RGBA", size, (0, 0, 0, 0))
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return buf.getvalue()
 
 
+def _solid_rgba_png(hex_color: str, size: Tuple[int, int]) -> bytes:
+    rgb = _hex_to_rgb(hex_color)
+    img = Image.new("RGBA", size, (rgb[0], rgb[1], rgb[2], 255))
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _build_strip_image(
+    size: Tuple[int, int],
+    base_hex: str,
+    accent_hex: str,
+    logo_img: Optional[Image.Image],
+) -> bytes:
+    """
+    Strip أنيق + لوغو على اليمين (محاذاة يمين).
+    هذا هو الذي سيظهر داخل جسم الكرت، ويعطيك "اللوغو يمين".
+    """
+    base_rgb = _hex_to_rgb(base_hex)
+    end_rgb = _mix_rgb(base_rgb, (255, 255, 255), 0.03)  # فرق خفيف جداً
+    strip = _build_gradient_image(size, base_rgb, end_rgb).convert("RGBA")
+
+    if logo_img:
+        try:
+            logo = logo_img.copy().convert("RGBA")
+            # حجم اللوغو داخل strip (تكبير واضح)
+            max_h = int(size[1] * 0.62)
+            max_w = int(size[0] * 0.34)
+            logo.thumbnail((max_w, max_h), Image.LANCZOS)
+
+            pad_x = int(size[0] * 0.06)
+            x = size[0] - pad_x - logo.width
+            y = int(size[1] * 0.18)  # قريب من الأعلى مثل لقطة Wallet
+            strip.paste(logo, (x, y), logo)
+        except Exception as exc:
+            logger.warning("Failed to paste logo on strip: %s", exc)
+
+    buf = io.BytesIO()
+    strip.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _build_strip_images(loyalty_settings: LoyaltySettings, logo_img: Optional[Image.Image]) -> Dict[str, bytes]:
+    base_color = loyalty_settings.pass_primary_color or "#0b0f19"
+    accent_color = loyalty_settings.pass_label_color or "#f59e0b"
+    return {
+        "strip.png": _build_strip_image((320, 123), base_color, accent_color, logo_img),
+        "strip@2x.png": _build_strip_image((640, 246), base_color, accent_color, logo_img),
+    }
+
+
 def _prepare_pass_images(settings_obj: StoreSettings, loyalty_settings: LoyaltySettings) -> Dict[str, bytes]:
     """
-    - logo يمين بمحاذاة منطقة العنوان/النقاط
-    - fallback RGBA دائمًا
-    - strip بدون لوغو
+    ✅ المطلوب:
+    - اللوغو يمين: نضعه داخل strip.png وليس logo.png
+    - logo.png نجعله شفاف حتى لا يظهر أعلى يسار
+    - قص الفراغات + إزالة الخلفية لتكبير اللوغو فعلياً
+    - fallback يولد PNGs سليمة RGBA دائمًا
     """
+    logo_bytes = _load_logo_bytes(settings_obj, loyalty_settings)
     images: Dict[str, bytes] = {}
 
-    logo_bytes = _load_logo_bytes(settings_obj, loyalty_settings)
     if logo_bytes:
         try:
-            base = Image.open(io.BytesIO(logo_bytes))
-            base = _remove_solid_bg(base).convert("RGBA")
+            base = Image.open(io.BytesIO(logo_bytes)).convert("RGBA")
+            base = _remove_bg_floodfill(base, tolerance=18)
+            base = _trim_transparent_padding(base, alpha_threshold=8, pad=2)
 
-            # ✅ logo يمين
-            images["logo.png"] = _resize_image(base, (160, 50), align="right")
-            images["logo@2x.png"] = _resize_image(base, (320, 100), align="right")
+            # ✅ لا نعرض logo.png في الهيدر (يظهر يسار) => نجعله شفاف
+            images["logo.png"] = _transparent_png((160, 50))
+            images["logo@2x.png"] = _transparent_png((320, 100))
 
-            # icons (center)
+            # icons لازم تكون موجودة وصحيحة
             images["icon.png"] = _resize_image(base, (29, 29), align="center")
             images["icon@2x.png"] = _resize_image(base, (58, 58), align="center")
 
-            images.update(_build_strip_images(loyalty_settings))
+            # ✅ strip فيه اللوغو على اليمين
+            images.update(_build_strip_images(loyalty_settings, base))
             return images
         except Exception as exc:
             logger.exception("Failed to process pass logo: %s", exc)
 
-    # ✅ fallback RGBA دائمًا
+    # ✅ fallback: RGBA دائمًا
     primary = loyalty_settings.pass_primary_color or "#0b0f19"
-    images["logo.png"] = _solid_rgba_png(primary, (160, 50))
-    images["logo@2x.png"] = _solid_rgba_png(primary, (320, 100))
+    images["logo.png"] = _transparent_png((160, 50))
+    images["logo@2x.png"] = _transparent_png((320, 100))
     images["icon.png"] = _solid_rgba_png(primary, (29, 29))
     images["icon@2x.png"] = _solid_rgba_png(primary, (58, 58))
-    images.update(_build_strip_images(loyalty_settings))
+    images.update(_build_strip_images(loyalty_settings, None))
     return images
 
 
@@ -280,6 +356,11 @@ def _ensure_auth_token(profile: LoyaltyProfile) -> str:
     profile.apple_wallet_auth_token = token
     profile.save(update_fields=["apple_wallet_auth_token"])
     return token
+
+
+def _wallet_base_url(settings_obj: StoreSettings) -> str:
+    base = settings_obj.wallet_pass_base_url or "https://example.invalid"
+    return base.rstrip("/")
 
 
 def _web_service_url(settings_obj: StoreSettings) -> str:
@@ -307,8 +388,8 @@ def build_pass_payload(profile: LoyaltyProfile) -> Dict:
     payload.setdefault("organizationName", settings_obj.store_name)
     payload.setdefault("description", "Loyalty Card")
 
-    logo_available = bool(_load_logo_bytes(settings_obj, loyalty_settings))
-    payload["logoText"] = "" if logo_available else (payload.get("logoText") or settings_obj.store_name)
+    # ✅ لأننا نعرض اللوغو في strip وليس الهيدر
+    payload["logoText"] = ""
 
     payload.setdefault("suppressStripShine", True)
 
@@ -518,7 +599,6 @@ def _get_apns_cert_files() -> Tuple[str, str]:
     key_file.flush()
     cert_file.close()
     key_file.close()
-
     try:
         os.chmod(cert_file.name, 0o600)
         os.chmod(key_file.name, 0o600)
