@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import LoyaltyProfile, LoyaltySettings, LoyaltyTransaction
+from .models import (
+    LoyaltyProfile,
+    LoyaltySettings,
+    LoyaltyTransaction,
+    LoyaltyPassRegistration,
+)
 
 
 @admin.register(LoyaltySettings)
@@ -26,3 +31,15 @@ class LoyaltyTransactionAdmin(admin.ModelAdmin):
     list_display = ["profile", "points_delta", "source", "created_at"]
     list_filter = ["source"]
     search_fields = ["profile__user__username", "note"]
+
+
+@admin.register(LoyaltyPassRegistration)
+class LoyaltyPassRegistrationAdmin(admin.ModelAdmin):
+    list_display = [
+        "profile",
+        "device_library_id",
+        "pass_type_identifier",
+        "updated_at",
+    ]
+    search_fields = ["profile__membership_id", "device_library_id", "push_token"]
+    readonly_fields = ["created_at", "updated_at"]

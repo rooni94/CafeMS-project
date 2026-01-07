@@ -126,6 +126,14 @@ EXPO_PUSH_URL = env(
     default="https://exp.host/--/api/v2/push/send",
 ).strip()
 
+# ================== Apple Wallet / PassKit ==================
+APPLE_WWDR_PEM = env("APPLE_WWDR_PEM", default="").strip()
+APPLE_PASS_P12 = env("APPLE_PASS_P12", default="").strip()
+APPLE_PASS_P12_PASSWORD = env("APPLE_PASS_P12_PASSWORD", default="").strip()
+APPLE_WALLET_WEB_SERVICE_URL = env("APPLE_WALLET_WEB_SERVICE_URL", default="").strip()
+APPLE_WALLET_APNS_SANDBOX = env.bool("APPLE_WALLET_APNS_SANDBOX", default=False)
+APPLE_WALLET_APNS_HOST = env("APPLE_WALLET_APNS_HOST", default="").strip()
+
 # ================== Authentica OTP (Phone Verification) ==================
 # IMPORTANT: Do not hardcode API keys in source control. Configure via environment variables.
 AUTHENTICA_API_KEY = env("AUTHENTICA_API_KEY", default="").strip()

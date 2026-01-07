@@ -181,6 +181,19 @@ const ProfileScreen: React.FC = () => {
     }
   }, [accessToken]);
 
+  const handleWalletPass = useCallback(
+    async (platform: "apple" | "google", url?: string) => {
+      if (!url) return;
+      try {
+        await api.post(`loyalty/pass/${platform}/`);
+      } catch {
+        // Still attempt to open the pass URL even if the prep call fails.
+      }
+      Linking.openURL(url);
+    },
+    [accessToken]
+  );
+
   useEffect(() => {
     if (!isAuthenticated) {
       setAddresses([]);
@@ -500,10 +513,22 @@ const ProfileScreen: React.FC = () => {
                   </View>
                 ) : null}
                 {loyalty.apple_wallet_pass_url ? (
-                  <Button title={t("profile.loyaltyAppleWallet", "إضافة إلى Apple Wallet")} variant="secondary" onPress={() => Linking.openURL(loyalty.apple_wallet_pass_url!)} />
+                  <Button
+                    title={t("profile.loyaltyAppleWallet", "إضافة إلى Apple Wallet")}
+                    variant="secondary"
+                    onPress={() =>
+                      handleWalletPass("apple", loyalty.apple_wallet_pass_url)
+                    }
+                  />
                 ) : null}
                 {loyalty.google_wallet_pass_url ? (
-                  <Button title={t("profile.loyaltyGoogleWallet", "إضافة إلى Google Wallet")} variant="secondary" onPress={() => Linking.openURL(loyalty.google_wallet_pass_url!)} />
+                  <Button
+                    title={t("profile.loyaltyGoogleWallet", "إضافة إلى Google Wallet")}
+                    variant="secondary"
+                    onPress={() =>
+                      handleWalletPass("google", loyalty.google_wallet_pass_url)
+                    }
+                  />
                 ) : null}
               </View>
             ) : (

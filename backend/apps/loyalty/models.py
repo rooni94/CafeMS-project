@@ -72,6 +72,7 @@ class LoyaltyProfile(models.Model):
     last_reward_at = models.DateTimeField(null=True, blank=True)
     apple_wallet_pass_id = models.CharField(max_length=120, blank=True, default="")
     google_wallet_pass_id = models.CharField(max_length=120, blank=True, default="")
+    apple_wallet_auth_token = models.CharField(max_length=64, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -120,6 +121,26 @@ class LoyaltyTransaction(models.Model):
 
     def __str__(self):
         return f"{self.profile} ({self.points_delta})"
+
+
+class LoyaltyPassRegistration(models.Model):
+    profile = models.ForeignKey(
+        LoyaltyProfile, on_delete=models.CASCADE, related_name="pass_registrations"
+    )
+    device_library_id = models.CharField(max_length=64)
+    pass_type_identifier = models.CharField(max_length=120)
+    push_token = models.CharField(max_length=255)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("profile", "device_library_id", "pass_type_identifier")
+        indexes = [
+            models.Index(fields=["device_library_id", "pass_type_identifier"]),
+        ]
+
+    def __str__(self):
+        return f"{self.profile} ({self.device_library_id})"
 
 
 def generate_membership_id():

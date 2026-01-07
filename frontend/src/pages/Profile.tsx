@@ -402,6 +402,9 @@ const Profile: React.FC = () => {
           ? `تم إنشاء البطاقة، الرابط: ${link}`
           : res.data?.detail || "تم تحديث البطاقة."
       );
+      if (link) {
+        window.open(link, "_blank", "noopener,noreferrer");
+      }
       const fresh = await api.get("loyalty/profile/");
       setLoyalty(fresh.data);
     } catch (error) {

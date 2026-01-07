@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 import uuid
 from typing import Optional
@@ -9,6 +10,7 @@ from django.utils import timezone
 
 from .models import LoyaltyProfile, LoyaltySettings, LoyaltyTransaction
 
+logger = logging.getLogger(__name__)
 
 def get_or_create_profile(user) -> LoyaltyProfile:
     profile, created = LoyaltyProfile.objects.get_or_create(
@@ -46,6 +48,12 @@ def apply_points_change(
         note=note,
         order=order,
     )
+    try:
+        from .passkit import notify_pass_update
+
+        notify_pass_update(profile)
+    except Exception as exc:
+        logger.warning("pass update notify failed: %s", exc)
     return txn
 
 
@@ -91,6 +99,12 @@ def auto_reward_if_needed(
         source="reward",
         note=settings_obj.auto_reward_message,
     )
+    try:
+        from .passkit import notify_pass_update
+
+        notify_pass_update(profile)
+    except Exception as exc:
+        logger.warning("pass update notify failed: %s", exc)
 
 
 def adjust_points_by_membership(membership_id: str, delta: int, note: str = ""):

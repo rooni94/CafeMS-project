@@ -3,6 +3,7 @@ from django.urls import path, include
 from django.conf import settings         
 from django.conf.urls.static import static  
 from apps.core.views import health
+from apps.loyalty.views import PassDownloadView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("health/", health),
@@ -17,6 +18,11 @@ urlpatterns = [
     path("api/store/", include("apps.store.urls")),
     path("api/loyalty/", include("apps.loyalty.urls")),
     path("api/accounting/", include("apps.accounting.urls")),
+    path(
+        "passes/<str:platform>/<str:serial_number>.pkpass",
+        PassDownloadView.as_view(),
+        name="pass-download",
+    ),
     
 ]
 if settings.DEBUG:
