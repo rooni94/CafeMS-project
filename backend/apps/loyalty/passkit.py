@@ -89,16 +89,9 @@ def _hex_to_rgb(value: str) -> Tuple[int, int, int]:
     return tuple(int(value[i : i + 2], 16) for i in (0, 2, 4))
 
 
-def _transparent_png(size: Tuple[int, int]) -> bytes:
-    img = Image.new("RGBA", size, (0, 0, 0, 0))
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
-
-
 def _remove_solid_bg(image: Image.Image, tolerance: int = 28) -> Image.Image:
     """
-    إزالة خلفية لون واحد (لو الشعار جايك بمربع أبيض/أسود).
+    إزالة خلفية لون واحد حول الشعار (مثل مربع أبيض/أسود).
     """
     img = image.convert("RGBA")
     px = img.load()
@@ -164,6 +157,28 @@ def _load_logo_bytes(settings_obj: StoreSettings, loyalty_settings: LoyaltySetti
     return logo_bytes
 
 
+def _build_image_bytes(color_hex: str, size: Tuple[int, int]) -> bytes:
+    rgb = _hex_to_rgb(color_hex)
+    image = Image.new("RGB", size, rgb)
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def _mix_rgb(left: Tuple[int, int, int], right: Tuple[int, int, int], ratio: float) -> Tuple[int, int, int]:
+    ratio = max(0.0, min(1.0, ratio))
+    return tuple(int(left[i] * (1 - ratio) + right[i] * ratio) for i in range(3))
+
+
+def _build_gradient_image(
+    size: Tuple[int, int], start_rgb: Tuple[int, int, int], end_rgb: Tuple[int, int, int]
+) -> Image.Image:
+    base = Image.new("RGB", size, start_rgb)
+    top = Image.new("RGB", size, end_rgb)
+    mask = Image.linear_gradient("L").resize(size)
+    return Image.composite(top, base, mask)
+
+
 def _resize_image(image: Image.Image, size: Tuple[int, int], align: str = "center") -> bytes:
     """
     Resize داخل Canvas مع محاذاة.
@@ -171,7 +186,6 @@ def _resize_image(image: Image.Image, size: Tuple[int, int], align: str = "cente
     """
     resized = image.copy().convert("RGBA")
     resized.thumbnail(size, Image.LANCZOS)
-
     canvas = Image.new("RGBA", size, (0, 0, 0, 0))
 
     if align == "right":
@@ -192,84 +206,77 @@ def _resize_image(image: Image.Image, size: Tuple[int, int], align: str = "cente
 def _build_strip_image(
     size: Tuple[int, int],
     base_hex: str,
+    accent_hex: str,
     logo_bytes: Optional[bytes],
 ) -> bytes:
     """
-    Strip فخم: لون ثابت نفس الخلفية + لوغو على اليمين (بدون تدرج عشان ما يبان فاصل)
+    Strip أنيق: قريب جداً من لون الخلفية لتقليل ظهور الفاصل.
+    (هنا بدون لوغو لتجنب تكرار اللوغو)
     """
     base_rgb = _hex_to_rgb(base_hex)
-    strip = Image.new("RGBA", size, (*base_rgb, 255))
+    end_rgb = _mix_rgb(base_rgb, (255, 255, 255), 0.03)  # 3% فقط
 
-    if logo_bytes:
-        try:
-            logo = Image.open(io.BytesIO(logo_bytes))
-            logo = _remove_solid_bg(logo).convert("RGBA")
+    gradient = _build_gradient_image(size, base_rgb, end_rgb).convert("RGBA")
 
-            # حجم اللوغو داخل strip (كبرناه شوي)
-            max_w = int(size[0] * 0.28)
-            max_h = int(size[1] * 0.60)
-            logo.thumbnail((max_w, max_h), Image.LANCZOS)
-
-            margin_x = int(size[0] * 0.06)
-            margin_y = int(size[1] * 0.18)
-
-            x = size[0] - logo.width - margin_x  # يمين
-            y = margin_y
-            strip.paste(logo, (x, y), logo)
-        except Exception as exc:
-            logger.warning("Failed to compose strip logo: %s", exc)
-
-    buf = io.BytesIO()
-    strip.save(buf, format="PNG")
-    return buf.getvalue()
+    buffer = io.BytesIO()
+    gradient.save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
 def _build_strip_images(loyalty_settings: LoyaltySettings, logo_bytes: Optional[bytes]) -> Dict[str, bytes]:
     base_color = loyalty_settings.pass_primary_color or "#0b0f19"
+    accent_color = loyalty_settings.pass_label_color or "#f59e0b"
     return {
-        "strip.png": _build_strip_image((320, 123), base_color, logo_bytes),
-        "strip@2x.png": _build_strip_image((640, 246), base_color, logo_bytes),
+        "strip.png": _build_strip_image((320, 123), base_color, accent_color, None),
+        "strip@2x.png": _build_strip_image((640, 246), base_color, accent_color, None),
     }
 
 
 def _prepare_pass_images(settings_obj: StoreSettings, loyalty_settings: LoyaltySettings) -> Dict[str, bytes]:
     """
-    مهم:
-    - نجعل logo.png شفاف (عشان ما يظهر أعلى اليسار)
-    - نعرض اللوغو في strip يمين (تصميم فاخر)
+    محدث:
+    - إصلاح أي أخطاء تسبب pkpass غير صالح
+    - تكبير اللوغو قدر الإمكان داخل logo.png
+    - strip ثابت (ما يكرر اللوغو)
     """
     logo_bytes = _load_logo_bytes(settings_obj, loyalty_settings)
     images: Dict[str, bytes] = {}
-
-    # logo في Wallet أعلى اليسار: نخليه شفّاف لإخفائه
-    images["logo.png"] = _transparent_png((160, 50))
-    images["logo@2x.png"] = _transparent_png((320, 100))
 
     if logo_bytes:
         try:
             base = Image.open(io.BytesIO(logo_bytes))
             base = _remove_solid_bg(base).convert("RGBA")
 
-            # icon لازم يكون موجود ويكون واضح
+            # ✅ تكبير اللوغو: استخدم ارتفاع أكبر داخل logo canvas
+            # Apple توصي 160x50، لكن تكبير داخل نفس الـ canvas يتم بتقليل padding عبر align/thumbnail
+            # هنا نستخدم canvas نفس المقاس لكن نسمح للشعار ياخذ معظم المساحة
+            images["logo.png"] = _resize_image(base, (160, 50), align="center")
+            images["logo@2x.png"] = _resize_image(base, (320, 100), align="center")
+
+            # icons لازم تكون RGBA وصحيحة
             images["icon.png"] = _resize_image(base, (29, 29), align="center")
             images["icon@2x.png"] = _resize_image(base, (58, 58), align="center")
 
-            # strip: اللون نفس الخلفية واللوغو يمين
-            images.update(_build_strip_images(loyalty_settings, logo_bytes))
+            # strip
+            images.update(_build_strip_images(loyalty_settings, None))
             return images
         except Exception as exc:
-            logger.warning("Failed to process pass logo: %s", exc)
+            logger.exception("Failed to process pass logo: %s", exc)
 
-    # fallback: لو ما فيه لوغو
+    # fallback: صور سليمة دائماً (RGBA) لضمان pkpass صالح
     primary = loyalty_settings.pass_primary_color or "#0b0f19"
-    base_rgb = _hex_to_rgb(primary)
-    # icon fallback
-    img = Image.new("RGBA", (58, 58), (*base_rgb, 255))
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    icon_bytes = buf.getvalue()
-    images["icon.png"] = icon_bytes
-    images["icon@2x.png"] = icon_bytes
+    rgb = _hex_to_rgb(primary)
+
+    def solid_rgba(size: Tuple[int, int]) -> bytes:
+        img = Image.new("RGBA", size, (rgb[0], rgb[1], rgb[2], 255))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
+
+    images["logo.png"] = solid_rgba((160, 50))
+    images["logo@2x.png"] = solid_rgba((320, 100))
+    images["icon.png"] = solid_rgba((29, 29))
+    images["icon@2x.png"] = solid_rgba((58, 58))
     images.update(_build_strip_images(loyalty_settings, None))
     return images
 
@@ -323,13 +330,12 @@ def build_pass_payload(profile: LoyaltyProfile) -> Dict:
     payload = _parse_pass_template(settings_obj)
 
     payload.setdefault("formatVersion", 1)
-
-    # خليه قصير/عربي عشان ما ينقص
-    payload.setdefault("organizationName", "CafeMS Demo")
+    payload.setdefault("organizationName", settings_obj.store_name)
     payload.setdefault("description", "Loyalty Card")
 
-    # مهم جدًا: لا نعرض نص header اللي ينقص (Alkhaleej C...)
-    payload["logoText"] = ""
+    logo_available = bool(_load_logo_bytes(settings_obj, loyalty_settings))
+    # مهم: لا تخلي logoText يطلع مقصوص
+    payload["logoText"] = "" if logo_available else (payload.get("logoText") or settings_obj.store_name)
 
     payload.setdefault("suppressStripShine", True)
 
@@ -337,10 +343,9 @@ def build_pass_payload(profile: LoyaltyProfile) -> Dict:
     payload["authenticationToken"] = _ensure_auth_token(profile)
     payload["webServiceURL"] = _web_service_url(settings_obj)
 
-    # ألوان مثل الصورة الثانية (داكن + نص أبيض + لابل ذهبي)
-    payload["backgroundColor"] = loyalty_settings.pass_primary_color or "#0b0f19"
-    payload["foregroundColor"] = loyalty_settings.pass_secondary_color or "#f8fafc"
-    payload["labelColor"] = loyalty_settings.pass_label_color or "#f59e0b"
+    payload.setdefault("backgroundColor", loyalty_settings.pass_primary_color or "#0b0f19")
+    payload.setdefault("foregroundColor", loyalty_settings.pass_secondary_color or "#f8fafc")
+    payload.setdefault("labelColor", loyalty_settings.pass_label_color or "#f59e0b")
 
     pass_type_identifier = payload.get("passTypeIdentifier")
     team_identifier = payload.get("teamIdentifier")
