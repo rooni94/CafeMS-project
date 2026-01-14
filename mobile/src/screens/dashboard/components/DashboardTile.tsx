@@ -50,7 +50,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       borderColor: theme.palette.border,
       backgroundColor: theme.palette.surface,
       padding: 8,
-      flexDirection: "row",
+      flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
       gap: 8,
     },

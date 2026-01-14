@@ -115,6 +115,7 @@ export const strings = {
       doneTitle: "Done",
       loginTitle: "Sign in",
       loginSubtitle: "Sign in to access your orders, save addresses, and loyalty points.",
+      rememberMe: "Remember username and password",
       loginError: "Unable to sign in. Check your details and try again.",
       registerSubtitle: "Create a new account to access orders, addresses, and loyalty points.",
       registerByEmail: "By email",

@@ -1,5 +1,8 @@
-import React, { useMemo, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { TextInput as PaperTextInput } from "react-native-paper";
 import { useNavigation } from "@react-navigation/native";
 
 import Screen from "../../components/Screen";
@@ -10,6 +13,8 @@ import { safeGoBack } from "../../navigation/helpers";
 import { useTheme } from "../../theme";
 import { normalizeBrandName } from "../../utils/text";
 import { useI18n } from "../../i18n";
+
+const STORAGE_KEY = "cafems-login";
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -22,19 +27,52 @@ const LoginScreen: React.FC = () => {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadSaved = async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (parsed?.username) setUsername(parsed.username);
+        if (parsed?.password) setPassword(parsed.password);
+        if (parsed?.remember) setRemember(true);
+      } catch {
+        // ignore restore issues
+      }
+    };
+    loadSaved();
+  }, []);
 
   const handleSubmit = async () => {
     setError(null);
     if (!username.trim() || !password.trim()) {
-      Alert.alert(t("auth.alertTitle", "تنبيه"), copy.messages.required);
+      const alertFallback = isRTL ? "تنبيه" : "Notice";
+      Alert.alert(t("auth.alertTitle", alertFallback), copy.messages.required);
       return;
     }
     try {
       await login(username.trim(), password);
+      if (remember) {
+        await AsyncStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ username: username.trim(), password, remember: true })
+        );
+      } else {
+        await AsyncStorage.removeItem(STORAGE_KEY);
+      }
       safeGoBack(navigation, { tab: "Profile" });
     } catch (err: any) {
-      setError(err?.message || t("auth.loginError", "تعذر تسجيل الدخول. تأكد من البيانات وحاول مرة أخرى."));
+      setError(
+        err?.message ||
+          t(
+            "auth.loginError",
+            "حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى أو تواصل مع الدعم."
+          )
+      );
     }
   };
 
@@ -53,18 +91,23 @@ const LoginScreen: React.FC = () => {
                   { backgroundColor: theme.palette.accentSoft, color: theme.palette.accent },
                 ]}
               >
-                {t("auth.loginTitle", "تسجيل الدخول")}
+                {t("auth.loginTitle", isRTL ? "تسجيل الدخول" : "Sign in")}
               </Text>
             </View>
             <Text style={[styles.subtitle, { color: theme.palette.muted }]}>
-              {t("auth.loginSubtitle", "سجّل دخولك للوصول إلى طلباتك وحفظ عناوينك ونقاط الولاء.")}
+              {t(
+                "auth.loginSubtitle",
+                isRTL
+                  ? "سجّل دخولك لعرض آخر الطلبات، حفظ العناوين، ونقاط الولاء."
+                  : "Sign in to access your orders, save addresses, and loyalty points."
+              )}
             </Text>
           </Card>
 
           <Card style={styles.card} contentStyle={{ gap: 12 }}>
             <Input
-              label={t("auth.usernameLabel", "اسم المستخدم")}
-              placeholder={t("auth.usernamePlaceholder", "اكتب اسم المستخدم")}
+              label={t("auth.usernameLabel", isRTL ? "اسم المستخدم" : "Username")}
+              placeholder={t("auth.usernamePlaceholder", isRTL ? "اكتب اسم المستخدم" : "Enter username")}
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
@@ -73,31 +116,60 @@ const LoginScreen: React.FC = () => {
               importantForAutofill="yes"
             />
             <Input
-              label={t("auth.passwordLabel", "كلمة المرور")}
-              placeholder={t("auth.passwordPlaceholder", "اكتب كلمة المرور")}
-              secureTextEntry
+              label={t("auth.passwordLabel", isRTL ? "كلمة المرور" : "Password")}
+              placeholder={t("auth.passwordPlaceholder", isRTL ? "اكتب كلمة المرور" : "Enter password")}
+              secureTextEntry={!showPassword}
               value={password}
               onChangeText={setPassword}
               autoComplete="password"
               textContentType="password"
               importantForAutofill="yes"
+              right={
+                <PaperTextInput.Icon
+                  icon={showPassword ? "eye-off" : "eye"}
+                  color={theme.palette.muted}
+                  onPress={() => setShowPassword((prev) => !prev)}
+                  forceTextInputFocus={false}
+                />
+              }
             />
 
+            <Pressable style={styles.rememberRow} onPress={() => setRemember((prev) => !prev)}>
+              <View
+                style={[
+                  styles.rememberIcon,
+                  remember && { borderColor: theme.palette.accent, backgroundColor: `${theme.palette.accent}22` },
+                ]}
+              >
+                {remember ? <Ionicons name="checkmark" size={16} color={theme.palette.accent} /> : null}
+              </View>
+              <Text style={[styles.rememberText, { color: theme.palette.text }]}>
+                {t(
+                  "auth.rememberMe",
+                  isRTL ? "حفظ اسم المستخدم وكلمة المرور" : "Remember username and password"
+                )}
+              </Text>
+            </Pressable>
+
             <Button
-              title={loading ? copy.messages.loading : t("auth.loginTitle", "تسجيل الدخول")}
+              title={
+                loading
+                  ? copy.messages.loading
+                  : t("auth.loginTitle", isRTL ? "تسجيل الدخول" : "Sign in")
+              }
               onPress={handleSubmit}
               disabled={loading}
             />
 
             <View style={styles.linksRow}>
               <Button
-                title={t("auth.createAccount", "إنشاء حساب")}
+                title={t("auth.createAccount", isRTL ? "إنشاء حساب" : "Create account")}
                 variant="link"
                 size="sm"
                 onPress={() => navigation.navigate("Register")}
               />
               <Button
-                title={t("auth.forgotPassword", "نسيت كلمة المرور؟")}
+                title={t("auth.forgotPassword", isRTL ? "نسيت كلمة المرور؟" : "Forgot password?")}
                 variant="link"
                 size="sm"
                 onPress={() => navigation.navigate("ResetPassword")}
@@ -164,6 +236,28 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
+    },
+    rememberRow: {
+      flexDirection: isRTL ? "row-reverse" : "row",
+      alignItems: "center",
+      gap: 8,
+      paddingVertical: 4,
+    },
+    rememberIcon: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      borderWidth: 1.4,
+      borderColor: theme.palette.border,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.palette.surfaceAlt,
+    },
+    rememberText: {
+      flex: 1,
+      fontSize: 13,
+      textAlign: isRTL ? "right" : "left",
+      fontWeight: "700",
     },
     error: {
       textAlign: isRTL ? "right" : "left",

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList, ToastAndroid, Platform } from "react-native";
+import { Directions, FlingGestureHandler, State } from "react-native-gesture-handler";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -17,7 +18,7 @@ import { useTheme } from "../../theme";
 import ProductAddonsModal from "../../components/ProductAddonsModal";
 import ProductGridCard from "../../components/ProductGridCard";
 import { Card } from "../../components/ui";
-import { safeGoBack } from "../../navigation/helpers";
+import { goToTab } from "../../navigation/helpers";
 import { useI18n } from "../../i18n";
 
 type MenuCategory = {
@@ -33,7 +34,7 @@ const MenuScreen: React.FC = () => {
   const theme = useTheme();
   const { copy, t, isRTL } = useI18n();
   const initialCategory: number | null = route.params?.categoryId ?? null;
-  const styles = useMemo(() => createStyles(theme), [theme]);
+  const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
 
   const [activeCategory, setActiveCategory] = useState<number | null>(initialCategory);
   const [search, setSearch] = useState("");
@@ -148,86 +149,99 @@ const MenuScreen: React.FC = () => {
     );
   }
 
+  const handleFling = ({ nativeEvent }: { nativeEvent: any }) => {
+    if (nativeEvent.state === State.END) {
+      goToTab(navigation, "Home");
+    }
+  };
+
   return (
-    <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
-        <View style={styles.topBar}>
-          <Pressable onPress={() => setShowSearch((prev) => !prev)} style={styles.iconBtn}>
-            <Ionicons name="search" size={20} color={theme.palette.text} />
-          </Pressable>
-          <Text style={styles.title}>{activeCategoryName}</Text>
-          <Pressable onPress={() => safeGoBack(navigation, { tab: "Home" })} style={styles.iconBtn}>
-            <Ionicons name={isRTL ? "chevron-forward" : "chevron-back"} size={20} color={theme.palette.text} />
-          </Pressable>
-        </View>
+    <FlingGestureHandler
+      direction={isRTL ? Directions.LEFT : Directions.RIGHT}
+      onHandlerStateChange={handleFling}
+    >
+      <View style={{ flex: 1 }}>
+        <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+            <View style={styles.topBar}>
+              <Pressable onPress={() => goToTab(navigation, "Home")} style={styles.iconBtn}>
+                <Ionicons name={isRTL ? "chevron-forward" : "chevron-back"} size={20} color={theme.palette.text} />
+              </Pressable>
+              <Text style={styles.title}>{activeCategoryName}</Text>
+              <Pressable onPress={() => setShowSearch((prev) => !prev)} style={styles.iconBtn}>
+                <Ionicons name="search" size={20} color={theme.palette.text} />
+              </Pressable>
+            </View>
 
-        {showSearch && (
-          <View style={styles.searchWrap}>
-            <TextInput
-              placeholder={copy.menu.searchPlaceholder}
-              value={search}
-              onChangeText={setSearch}
-              style={styles.searchInput}
-              textAlign={isRTL ? "right" : "left"}
-            />
-          </View>
-        )}
+            {showSearch && (
+              <View style={styles.searchWrap}>
+                <TextInput
+                  placeholder={copy.menu.searchPlaceholder}
+                  value={search}
+                  onChangeText={setSearch}
+                  style={styles.searchInput}
+                  textAlign={isRTL ? "right" : "left"}
+                />
+              </View>
+            )}
 
-        <Card style={styles.sectionCard}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-            <Pressable onPress={() => setActiveCategory(null)} style={styles.categoryPill}>
-              <Text style={[styles.categoryText, activeCategory == null && styles.categoryTextActive]}>{copy.menu.filterAll}</Text>
-            </Pressable>
-            {decoratedCategories.map((cat) => {
-              const isActive = activeCategory === cat.id;
-              return (
-                <Pressable key={cat.id} onPress={() => setActiveCategory(cat.id)} style={styles.categoryPill}>
-                  <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>{cat.name}</Text>
+            <Card style={styles.sectionCard}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+                <Pressable onPress={() => setActiveCategory(null)} style={styles.categoryPill}>
+                  <Text style={[styles.categoryText, activeCategory == null && styles.categoryTextActive]}>{copy.menu.filterAll}</Text>
                 </Pressable>
-              );
-            })}
+                {decoratedCategories.map((cat) => {
+                  const isActive = activeCategory === cat.id;
+                  return (
+                    <Pressable key={cat.id} onPress={() => setActiveCategory(cat.id)} style={styles.categoryPill}>
+                      <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>{cat.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </Card>
+
+            {filteredProducts.length === 0 ? (
+              <EmptyState title={copy.menu.emptyTitle} description={copy.menu.emptyDescription} />
+            ) : (
+              <Card style={styles.sectionCard}>
+                <FlatList
+                  data={filteredProducts}
+                  keyExtractor={(item) => String(item.id)}
+                  numColumns={2}
+                  scrollEnabled={false}
+                  contentContainerStyle={styles.gridList}
+                  columnWrapperStyle={styles.gridRow}
+                  renderItem={({ item: product }) => (
+                    <View style={styles.gridItem}>
+                      <ProductGridCard
+                        product={product}
+                        style={styles.productCard}
+                        onPress={() => navigation.navigate("ProductDetails", { productId: product.id })}
+                        onAdd={() => handleAddRequest(product)}
+                        priceColor={theme.palette.success}
+                      />
+                    </View>
+                  )}
+                />
+              </Card>
+            )}
           </ScrollView>
-        </Card>
 
-        {filteredProducts.length === 0 ? (
-          <EmptyState title={copy.menu.emptyTitle} description={copy.menu.emptyDescription} />
-        ) : (
-          <Card style={styles.sectionCard}>
-            <FlatList
-              data={filteredProducts}
-              keyExtractor={(item) => String(item.id)}
-              numColumns={2}
-              scrollEnabled={false}
-              contentContainerStyle={styles.gridList}
-              columnWrapperStyle={styles.gridRow}
-              renderItem={({ item: product }) => (
-                <View style={styles.gridItem}>
-                  <ProductGridCard
-                    product={product}
-                    style={styles.productCard}
-                    onPress={() => navigation.navigate("ProductDetails", { productId: product.id })}
-                    onAdd={() => handleAddRequest(product)}
-                    priceColor={theme.palette.success}
-                  />
-                </View>
-              )}
-            />
-          </Card>
-        )}
-      </ScrollView>
-
-      <ProductAddonsModal
-        visible={!!addonProduct}
-        product={addonProduct}
-        onClose={() => setAddonProduct(null)}
-        onConfirm={handleConfirmAddons}
-      />
-      <FloatingCart />
-    </Screen>
+          <ProductAddonsModal
+            visible={!!addonProduct}
+            product={addonProduct}
+            onClose={() => setAddonProduct(null)}
+            onConfirm={handleConfirmAddons}
+          />
+          <FloatingCart />
+        </Screen>
+      </View>
+    </FlingGestureHandler>
   );
 };
 
-const createStyles = (theme: ReturnType<typeof useTheme>) =>
+const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       paddingHorizontal: 4,
@@ -236,7 +250,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>) =>
       gap: 6,
     },
     topBar: {
-      flexDirection: "row-reverse",
+      flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
       justifyContent: "space-between",
       marginBottom: 2,

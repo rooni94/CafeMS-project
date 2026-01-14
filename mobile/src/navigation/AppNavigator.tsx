@@ -1,7 +1,9 @@
 import React, { useMemo } from "react";
-import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
+import { NavigationContainer, DefaultTheme, useNavigation, useNavigationState } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { PanGestureHandler, State } from "react-native-gesture-handler";
+import { View } from "react-native";
 
 import HomeScreen from "../screens/HomeScreen";
 import MenuScreen from "../screens/menu/MenuScreen";
@@ -123,21 +125,57 @@ export type AppStackParamList = {
 const Stack = createNativeStackNavigator<AppStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+const TabSwipeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const navigation = useNavigation<any>();
+  const state = useNavigationState((s) => s);
+  const routes = state?.routes || [];
+  const index = state?.index ?? 0;
+
+  const handleSwipe = ({ nativeEvent }: any) => {
+    if (nativeEvent.state !== State.END) return;
+    const { translationX, velocityX } = nativeEvent;
+    const threshold = 40;
+    const swipeDelta = translationX + velocityX * 0.02;
+
+    if (swipeDelta < -threshold && index < routes.length - 1) {
+      navigation.navigate(routes[index + 1].name as any);
+    } else if (swipeDelta > threshold && index > 0) {
+      navigation.navigate(routes[index - 1].name as any);
+    }
+  };
+
+  return (
+    <PanGestureHandler onHandlerStateChange={handleSwipe}>
+      <View style={{ flex: 1 }}>{children}</View>
+    </PanGestureHandler>
+  );
+};
+
+const withTabSwipe = <P extends object>(Component: React.ComponentType<P>) =>
+  function Wrapped(props: P) {
+    return (
+      <TabSwipeWrapper>
+        <Component {...(props as P)} />
+      </TabSwipeWrapper>
+    );
+  };
+
+
 const TabsNavigator = () => {
   const { totalQuantity } = useCart();
   const { user, permissions } = useAuth();
-  const { t, isRTL } = useI18n();
+  const { t } = useI18n();
 
   const isEmployee = user?.role === "manager" || user?.role === "supervisor" || user?.role === "staff";
   const canViewDashboard = isEmployee;
   const canManageSupport = user?.role === "manager" || !!permissions?.can_manage_support;
 
   const thirdTab = !isEmployee ? (
-    <Tab.Screen name="Orders" component={OrderTrackingScreen} options={{ title: t("nav.orders", "طلباتي") }} />
+    <Tab.Screen name="Orders" component={withTabSwipe(OrderTrackingScreen)} options={{ title: t("nav.orders", "Orders") }} />
   ) : canManageSupport ? (
-    <Tab.Screen name="Support" component={DashboardSupport} options={{ title: t("nav.support", "الدعم") }} />
+    <Tab.Screen name="Support" component={withTabSwipe(DashboardSupport)} options={{ title: t("nav.support", "Support") }} />
   ) : (
-    <Tab.Screen name="MyHR" component={MyHRScreen} options={{ title: t("nav.myHr", "طلباتي") }} />
+    <Tab.Screen name="MyHR" component={withTabSwipe(MyHRScreen)} options={{ title: t("nav.myHr", "My HR") }} />
   );
 
   return (
@@ -147,17 +185,17 @@ const TabsNavigator = () => {
         headerShown: false,
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} options={{ title: t("nav.home", "الرئيسية") }} />
-      <Tab.Screen name="Menu" component={MenuScreen} options={{ title: t("nav.menu", "القائمة") }} />
+      <Tab.Screen name="Home" component={withTabSwipe(HomeScreen)} options={{ title: t("nav.home", "Home") }} />
+      <Tab.Screen name="Menu" component={withTabSwipe(MenuScreen)} options={{ title: t("nav.menu", "Menu") }} />
       {thirdTab}
       {canViewDashboard ? (
-        <Tab.Screen name="Dashboard" component={DashboardHome} options={{ title: t("nav.dashboard", "لوحة التحكم") }} />
+        <Tab.Screen name="Dashboard" component={withTabSwipe(DashboardHome)} options={{ title: t("nav.dashboard", "Dashboard") }} />
       ) : null}
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={withTabSwipe(ProfileScreen)}
         options={{
-          title: t("nav.profile", "الحساب"),
+          title: t("nav.profile", "Profile"),
           tabBarBadge: totalQuantity > 0 ? totalQuantity : undefined,
         }}
       />
