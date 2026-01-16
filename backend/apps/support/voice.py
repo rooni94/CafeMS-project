@@ -155,10 +155,53 @@ def _decode_to_pcm(raw_audio: bytes, sampling_rate: int = 16000) -> np.ndarray:
     return pcm
 
 
+def _collapse_repeated_phrases(text: str, max_span: int = 6, min_repeats: int = 3) -> str:
+    """
+    Collapse pathological repetitions such as "السلام عليكم السلام عليكم ..." that Whisper can emit
+    when the input is short/echoey. Looks for repeated sequences up to `max_span` tokens that repeat
+    at least `min_repeats` times consecutively and keeps a single occurrence.
+    """
+    tokens = text.split()
+    result: list[str] = []
+    i = 0
+    n = len(tokens)
+
+    while i < n:
+        collapsed = False
+        max_window = min(max_span, n - i)
+        for span in range(max_window, 0, -1):
+            phrase = tokens[i : i + span]
+            reps = 1
+            j = i + span
+            while j + span <= n and tokens[j : j + span] == phrase:
+                reps += 1
+                j += span
+            if reps >= min_repeats:
+                result.extend(phrase)
+                i += span * reps
+                collapsed = True
+                break
+        if not collapsed:
+            result.append(tokens[i])
+            i += 1
+    return " ".join(result)
+
+
 def _normalize_transcript(text: str) -> str:
-    cleaned = re.sub(r"[؟?!.]+$", "", text.strip())
+    cleaned = re.sub(r"[??!.]+$", "", text.strip())
     cleaned = re.sub(r"\s+", " ", cleaned)
-    return cleaned.strip()
+    cleaned = cleaned.strip()
+
+    collapsed = _collapse_repeated_phrases(cleaned)
+    words = collapsed.split()
+
+    # Hard cap to avoid runaway repetitions from STT.
+    MAX_WORDS = 120
+    if len(words) > MAX_WORDS:
+        logger.warning("Transcript trimmed to %s words (from %s)", MAX_WORDS, len(words))
+        collapsed = " ".join(words[:MAX_WORDS])
+
+    return collapsed.strip()
 
 
 def _transcribe_with_whisper(raw_audio: bytes) -> str:
@@ -175,6 +218,7 @@ def _transcribe_with_whisper(raw_audio: bytes) -> str:
         without_timestamps=True,
         vad_filter=True,
         vad_parameters={"min_silence_duration_ms": 250},
+        condition_on_previous_text=False,
     )
 
     texts = [seg.text.strip() for seg in segments if seg.text]
@@ -268,3 +312,6 @@ def text_to_speech(text: str) -> Tuple[bytes, str]:
 
 def encode_audio_base64(audio_bytes: bytes) -> str:
     return base64.b64encode(audio_bytes).decode("ascii")
+
+
+
