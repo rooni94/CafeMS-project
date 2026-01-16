@@ -1,13 +1,14 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, useEffect } from "react";
-import { I18nManager } from "react-native";
+import { DevSettings } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import * as Updates from "expo-updates";
 import { copy as copyAr } from "../config/copy";
 import { copyEn } from "../config/copy.en";
 import { strings } from "./strings";
+import { applyLayoutDirection, normalizeLocale, LayoutLocale } from "./layoutDirection";
 
-export type Locale = "ar" | "en";
+export type Locale = LayoutLocale;
 
 type Copy = typeof copyAr;
 
@@ -23,11 +24,12 @@ const STORAGE_KEY = "cafe_language";
 
 const LanguageContext = createContext<I18nContextValue | undefined>(undefined);
 
-const resolveLocale = (value?: string | null): Locale => (value === "en" ? "en" : "ar");
+const resolveLocale = (value?: string | null): Locale => normalizeLocale(value);
 
 const getSystemLocale = (): Locale => {
-  const code = Localization.getLocales?.()[0]?.languageCode;
-  return code === "en" ? "en" : "ar";
+  const locales = Localization.getLocales?.();
+  const languageCode = locales?.[0]?.languageCode;
+  return resolveLocale(languageCode);
 };
 
 const getNestedValue = (source: unknown, key: string): string | undefined => {
@@ -41,17 +43,24 @@ const getNestedValue = (source: unknown, key: string): string | undefined => {
 };
 
 const ensureRTL = async (nextLocale: Locale) => {
-  const shouldRTL = nextLocale === "ar";
-  if (I18nManager.isRTL === shouldRTL) return;
+  const { shouldReload } = applyLayoutDirection(nextLocale, { log: __DEV__ });
 
-  I18nManager.allowRTL(shouldRTL);
-  I18nManager.forceRTL(shouldRTL);
-  I18nManager.swapLeftAndRightInRTL(shouldRTL);
+  if (!shouldReload) return;
+
+  // Avoid reload loops in Expo Go/dev; layout direction is already forced in JS.
+  if (__DEV__) {
+    console.log("[rtl] skip reload in dev/Expo Go");
+    return;
+  }
 
   try {
-    await Updates.reloadAsync();
+    if (Updates?.reloadAsync) {
+      await Updates.reloadAsync();
+    } else if (DevSettings.reload) {
+      DevSettings.reload();
+    }
   } catch (error) {
-    console.warn("i18n reload failed", error);
+    console.warn("rtl reload failed", error);
   }
 };
 

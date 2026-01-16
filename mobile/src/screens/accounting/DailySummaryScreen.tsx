@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Button } from "../../components/ui";
 import { accountingApi } from "../../services/accounting";
@@ -23,20 +23,20 @@ const DailySummaryScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("accounting.dailySummaryTitle", "جرد نهاية اليوم")}</Text>
+      <Text style={styles.title}>{t("accounting.dailySummaryTitle", "Ø¬Ø±Ø¯ Ù†Ù‡Ø§ÙŠØ© Ø§Ù„ÙŠÙˆÙ…")}</Text>
       <View style={styles.card}>
-        <Text style={styles.label}>{t("accounting.incomingLabel", "وارد")}</Text>
+        <Text style={styles.label}>{t("accounting.incomingLabel", "ÙˆØ§Ø±Ø¯")}</Text>
         <Text style={styles.value}>{data.incoming?.toFixed?.(2)}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.label}>{t("accounting.outgoingLabel", "صادر")}</Text>
+        <Text style={styles.label}>{t("accounting.outgoingLabel", "ØµØ§Ø¯Ø±")}</Text>
         <Text style={[styles.value, { color: "#b91c1c" }]}>{data.outgoing?.toFixed?.(2)}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.label}>{t("accounting.netLabel", "صافي")}</Text>
+        <Text style={styles.label}>{t("accounting.netLabel", "ØµØ§ÙÙŠ")}</Text>
         <Text style={styles.value}>{data.net?.toFixed?.(2)}</Text>
       </View>
-      <Button label={t("common.refresh", "تحديث")} onPress={load} />
+      <Button title={t("common.refresh", "ØªØ­Ø¯ÙŠØ«")} onPress={load} />
     </View>
   );
 };

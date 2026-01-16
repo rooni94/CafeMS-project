@@ -172,7 +172,7 @@ const DashboardOrders: React.FC = () => {
   const theme = useTheme();
   const { t, isRTL } = useI18n();
 
-  const statusOptions = useMemo(
+  const statusOptions = useMemo<{ value: OrderStatusValue | null; label: string }[]>(
     () => [
       { value: null, label: t("dashboard.ordersStatusAll", "الكل") },
       { value: "pending", label: t("dashboard.ordersStatusPending", "قيد المراجعة") },

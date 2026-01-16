@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { accountingApi } from "../../services/accounting";
 import { Button } from "../../components/ui";
@@ -19,24 +19,24 @@ const FinancialOverviewScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("accounting.financialOverviewTitle", "مؤشرات مالية")}</Text>
+      <Text style={styles.title}>{t("accounting.financialOverviewTitle", "Ù…Ø¤Ø´Ø±Ø§Øª Ù…Ø§Ù„ÙŠØ©")}</Text>
       <View style={styles.grid}>
         <View style={styles.card}>
-          <Text style={styles.label}>{t("accounting.revenueToday", "إيرادات اليوم")}</Text>
+          <Text style={styles.label}>{t("accounting.revenueToday", "Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ø§Ù„ÙŠÙˆÙ…")}</Text>
           <Text style={styles.value}>{(kpis.revenue_today ?? 0).toFixed?.(2)}</Text>
         </View>
         <View style={styles.card}>
-          <Text style={styles.label}>{t("accounting.revenueMonth", "إيرادات الشهر")}</Text>
+          <Text style={styles.label}>{t("accounting.revenueMonth", "Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ø§Ù„Ø´Ù‡Ø±")}</Text>
           <Text style={styles.value}>{(kpis.revenue_month ?? 0).toFixed?.(2)}</Text>
         </View>
         <View style={styles.card}>
-          <Text style={styles.label}>{t("accounting.expensesMonth", "مصروفات الشهر")}</Text>
+          <Text style={styles.label}>{t("accounting.expensesMonth", "Ù…ØµØ±ÙˆÙØ§Øª Ø§Ù„Ø´Ù‡Ø±")}</Text>
           <Text style={[styles.value, { color: "#b91c1c" }]}>
             {(kpis.expenses_month ?? 0).toFixed?.(2)}
           </Text>
         </View>
       </View>
-      <Button label={t("common.refresh", "تحديث")} onPress={load} />
+      <Button title={t("common.refresh", "ØªØ­Ø¯ÙŠØ«")} onPress={load} />
     </View>
   );
 };

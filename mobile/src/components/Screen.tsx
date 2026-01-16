@@ -14,11 +14,9 @@ type ScreenProps = {
 const Screen: React.FC<ScreenProps> = ({ children, scrollable = true, style, contentContainerStyle }) => {
   const theme = useTheme();
   const { isRTL } = useI18n();
-  const direction = isRTL ? "rtl" : "ltr";
-  const baseStyle = [
-    { flex: 1, backgroundColor: theme.palette.background, direction, writingDirection: direction },
-    style,
-  ];
+  const direction: "rtl" | "ltr" = isRTL ? "rtl" : "ltr";
+  const writingDirectionStyle = { writingDirection: direction } as any;
+  const baseStyle = [{ flex: 1, backgroundColor: theme.palette.background, direction, ...writingDirectionStyle }, style];
   // نضمن الاتساق في الهوامش داخل الـScrollView / SafeAreaView
   const containerDefaults = { paddingHorizontal: 0, paddingVertical: 0, paddingBottom: 0, gap: 0 };
 
@@ -26,7 +24,7 @@ const Screen: React.FC<ScreenProps> = ({ children, scrollable = true, style, con
     return (
       <SafeAreaView style={baseStyle}>
         <ScrollView
-          contentContainerStyle={[{ ...containerDefaults, direction, writingDirection: direction }, contentContainerStyle]}
+          contentContainerStyle={[{ ...containerDefaults, direction, ...writingDirectionStyle }, contentContainerStyle]}
           style={{ flex: 1 }}
         >
           {children}
@@ -36,7 +34,7 @@ const Screen: React.FC<ScreenProps> = ({ children, scrollable = true, style, con
   }
 
   return (
-    <SafeAreaView style={[{ flex: 1, ...containerDefaults, direction, writingDirection: direction }, ...baseStyle]}>
+    <SafeAreaView style={[{ flex: 1, ...containerDefaults, direction, ...writingDirectionStyle }, ...baseStyle]}>
       {children}
     </SafeAreaView>
   );

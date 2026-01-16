@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+﻿import React, { useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Input } from "../../components/ui";
@@ -29,10 +29,10 @@ const DashboardTables: React.FC = () => {
   const { user, permissions } = useAuth();
 
   const statusLabel = (s: TableRow["status"]) => {
-    if (s === "available") return t("dashboard.tablesStatusAvailable", "متاح");
-    if (s === "occupied") return t("dashboard.tablesStatusOccupied", "مشغول");
-    if (s === "reserved") return t("dashboard.tablesStatusReserved", "محجوز");
-    return t("dashboard.tablesStatusMaintenance", "صيانة");
+    if (s === "available") return t("dashboard.tablesStatusAvailable", "Ù…ØªØ§Ø­");
+    if (s === "occupied") return t("dashboard.tablesStatusOccupied", "Ù…Ø´ØºÙˆÙ„");
+    if (s === "reserved") return t("dashboard.tablesStatusReserved", "Ù…Ø­Ø¬ÙˆØ²");
+    return t("dashboard.tablesStatusMaintenance", "ØµÙŠØ§Ù†Ø©");
   };
 
   const allowed = has(user, permissions, "can_manage_tables");
@@ -57,8 +57,8 @@ const DashboardTables: React.FC = () => {
   if (!allowed) {
     return (
       <DashboardAccessDenied
-        title={t("dashboard.tablesDeniedTitle", "الطاولات")}
-        subtitle={t("dashboard.tablesDeniedSubtitle", "إدارة الطاولات وحالاتها.")}
+        title={t("dashboard.tablesDeniedTitle", "Ø§Ù„Ø·Ø§ÙˆÙ„Ø§Øª")}
+        subtitle={t("dashboard.tablesDeniedSubtitle", "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø·Ø§ÙˆÙ„Ø§Øª ÙˆØ­Ø§Ù„Ø§ØªÙ‡Ø§.")}
       />
     );
   }
@@ -74,7 +74,7 @@ const DashboardTables: React.FC = () => {
 
   const saveTable = async () => {
     if (!label.trim()) {
-      Alert.alert(t("dashboard.tablesMissingTitle", "بيانات ناقصة"), t("dashboard.tablesMissingBody", "أدخل اسم/وصف الطاولة."));
+      Alert.alert(t("dashboard.tablesMissingTitle", "Ø¨ÙŠØ§Ù†Ø§Øª Ù†Ø§Ù‚ØµØ©"), t("dashboard.tablesMissingBody", "Ø£Ø¯Ø®Ù„ Ø§Ø³Ù…/ÙˆØµÙ Ø§Ù„Ø·Ø§ÙˆÙ„Ø©."));
       return;
     }
     setSaving(true);
@@ -95,7 +95,7 @@ const DashboardTables: React.FC = () => {
       qc.invalidateQueries({ queryKey: ["dashboard", "tables"] });
       resetForm();
     } catch {
-      Alert.alert(t("dashboard.tablesSaveErrorTitle", "تعذر الحفظ"), t("dashboard.tablesSaveErrorBody", "حدث خطأ أثناء حفظ الطاولة."));
+      Alert.alert(t("dashboard.tablesSaveErrorTitle", "ØªØ¹Ø°Ø± Ø§Ù„Ø­ÙØ¸"), t("dashboard.tablesSaveErrorBody", "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø­ÙØ¸ Ø§Ù„Ø·Ø§ÙˆÙ„Ø©."));
     } finally {
       setSaving(false);
     }
@@ -106,24 +106,24 @@ const DashboardTables: React.FC = () => {
       await api.patch(`orders/pos/tables/${tableId}/`, { status: value });
       qc.invalidateQueries({ queryKey: ["dashboard", "tables"] });
     } catch {
-      Alert.alert(t("dashboard.tablesUpdateErrorTitle", "تعذر التحديث"), t("dashboard.tablesUpdateErrorBody", "حدث خطأ أثناء تحديث الحالة."));
+      Alert.alert(t("dashboard.tablesUpdateErrorTitle", "ØªØ¹Ø°Ø± Ø§Ù„ØªØ­Ø¯ÙŠØ«"), t("dashboard.tablesUpdateErrorBody", "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø§Ù„Ø©."));
     }
   };
 
-  const startEdit = (t: TableRow) => {
-    setEditingId(t.id);
-    setLabel(t.label);
-    setNumber(t.number != null ? String(t.number) : "");
-    setCapacity(t.capacity != null ? String(t.capacity) : "2");
-    setStatus(t.status);
-    setNotes(t.notes || "");
+  const startEdit = (table: TableRow) => {
+    setEditingId(table.id);
+    setLabel(table.label);
+    setNumber(table.number != null ? String(table.number) : "");
+    setCapacity(table.capacity != null ? String(table.capacity) : "2");
+    setStatus(table.status);
+    setNotes(table.notes || "");
   };
 
   const deleteTable = async (id: number) => {
-    Alert.alert(t("dashboard.tablesDeleteTitle", "حذف الطاولة"), t("dashboard.tablesDeleteConfirm", "هل أنت متأكد؟"), [
-      { text: t("common.cancel", "إلغاء"), style: "cancel" },
+    Alert.alert(t("dashboard.tablesDeleteTitle", "Ø­Ø°Ù Ø§Ù„Ø·Ø§ÙˆÙ„Ø©"), t("dashboard.tablesDeleteConfirm", "Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ØŸ"), [
+      { text: t("common.cancel", "Ø¥Ù„ØºØ§Ø¡"), style: "cancel" },
       {
-        text: t("common.delete", "حذف"),
+        text: t("common.delete", "Ø­Ø°Ù"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -131,7 +131,7 @@ const DashboardTables: React.FC = () => {
             qc.invalidateQueries({ queryKey: ["dashboard", "tables"] });
             if (editingId === id) resetForm();
           } catch {
-            Alert.alert(t("dashboard.tablesDeleteErrorTitle", "تعذر الحذف"), t("dashboard.tablesDeleteErrorBody", "حدث خطأ أثناء حذف الطاولة."));
+            Alert.alert(t("dashboard.tablesDeleteErrorTitle", "ØªØ¹Ø°Ø± Ø§Ù„Ø­Ø°Ù"), t("dashboard.tablesDeleteErrorBody", "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø­Ø°Ù Ø§Ù„Ø·Ø§ÙˆÙ„Ø©."));
           }
         },
       },
@@ -139,64 +139,64 @@ const DashboardTables: React.FC = () => {
   };
 
   return (
-    <DashboardShell title={t("dashboard.tablesTitle", "الطاولات")} subtitle={t("dashboard.tablesSubtitle", "إدارة طاولات الصالة وحالاتها.")}>
+    <DashboardShell title={t("dashboard.tablesTitle", "Ø§Ù„Ø·Ø§ÙˆÙ„Ø§Øª")} subtitle={t("dashboard.tablesSubtitle", "Ø¥Ø¯Ø§Ø±Ø© Ø·Ø§ÙˆÙ„Ø§Øª Ø§Ù„ØµØ§Ù„Ø© ÙˆØ­Ø§Ù„Ø§ØªÙ‡Ø§.")}>
       <DashboardSection
-        title={editingId ? t("dashboard.tablesEditTitle", "تعديل طاولة") : t("dashboard.tablesAddTitle", "إضافة طاولة")}
-        subtitle={t("dashboard.tablesFormSubtitle", "املأ البيانات ثم احفظ.")}
+        title={editingId ? t("dashboard.tablesEditTitle", "ØªØ¹Ø¯ÙŠÙ„ Ø·Ø§ÙˆÙ„Ø©") : t("dashboard.tablesAddTitle", "Ø¥Ø¶Ø§ÙØ© Ø·Ø§ÙˆÙ„Ø©")}
+        subtitle={t("dashboard.tablesFormSubtitle", "Ø§Ù…Ù„Ø£ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ø«Ù… Ø§Ø­ÙØ¸.")}
       >
         <Input
-          label={t("dashboard.tablesLabelLabel", "اسم/وصف الطاولة")}
+          label={t("dashboard.tablesLabelLabel", "Ø§Ø³Ù…/ÙˆØµÙ Ø§Ù„Ø·Ø§ÙˆÙ„Ø©")}
           value={label}
           onChangeText={setLabel}
-          placeholder={t("dashboard.tablesLabelPlaceholder", "مثال: طاولة نافذة")}
+          placeholder={t("dashboard.tablesLabelPlaceholder", "Ù…Ø«Ø§Ù„: Ø·Ø§ÙˆÙ„Ø© Ù†Ø§ÙØ°Ø©")}
         />
         <Input
-          label={t("dashboard.tablesNumberLabel", "رقم الطاولة (اختياري)")}
+          label={t("dashboard.tablesNumberLabel", "Ø±Ù‚Ù… Ø§Ù„Ø·Ø§ÙˆÙ„Ø© (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)")}
           value={number}
           onChangeText={setNumber}
           keyboardType="number-pad"
         />
-        <Input label={t("dashboard.tablesCapacityLabel", "السعة")} value={capacity} onChangeText={setCapacity} keyboardType="number-pad" />
+        <Input label={t("dashboard.tablesCapacityLabel", "Ø§Ù„Ø³Ø¹Ø©")} value={capacity} onChangeText={setCapacity} keyboardType="number-pad" />
 
-        <Text style={[styles.label, { color: theme.palette.muted }]}>{t("dashboard.tablesStatusLabel", "الحالة")}</Text>
+        <Text style={[styles.label, { color: theme.palette.muted }]}>{t("dashboard.tablesStatusLabel", "Ø§Ù„Ø­Ø§Ù„Ø©")}</Text>
         <View style={styles.statusRow}>
           {(["available", "occupied", "reserved", "maintenance"] as const).map((s) => (
             <Button key={s} title={statusLabel(s)} variant={status === s ? "primary" : "ghost"} onPress={() => setStatus(s)} />
           ))}
         </View>
 
-        <Input label={t("dashboard.tablesNotesLabel", "ملاحظات (اختياري)")} value={notes} onChangeText={setNotes} multiline numberOfLines={3} />
-        <Button title={saving ? t("common.saving", "جارٍ الحفظ...") : t("common.save", "حفظ")} onPress={saveTable} disabled={saving} />
-        {editingId ? <Button title={t("dashboard.tablesCancelEdit", "إلغاء التعديل")} variant="ghost" onPress={resetForm} /> : null}
+        <Input label={t("dashboard.tablesNotesLabel", "Ù…Ù„Ø§Ø­Ø¸Ø§Øª (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)")} value={notes} onChangeText={setNotes} multiline numberOfLines={3} />
+        <Button title={saving ? t("common.saving", "Ø¬Ø§Ø±Ù Ø§Ù„Ø­ÙØ¸...") : t("common.save", "Ø­ÙØ¸")} onPress={saveTable} disabled={saving} />
+        {editingId ? <Button title={t("dashboard.tablesCancelEdit", "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„")} variant="ghost" onPress={resetForm} /> : null}
       </DashboardSection>
 
       <DashboardSection
-        title={t("dashboard.tablesListTitle", "قائمة الطاولات")}
+        title={t("dashboard.tablesListTitle", "Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø·Ø§ÙˆÙ„Ø§Øª")}
         subtitle={
           isLoading
-            ? t("dashboard.tablesLoading", "جاري التحميل...")
-            : t("dashboard.tablesListSubtitle", "اضغط للتعديل، أو غيّر الحالة بسرعة.")
+            ? t("dashboard.tablesLoading", "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªØ­Ù…ÙŠÙ„...")
+            : t("dashboard.tablesListSubtitle", "Ø§Ø¶ØºØ· Ù„Ù„ØªØ¹Ø¯ÙŠÙ„ØŒ Ø£Ùˆ ØºÙŠÙ‘Ø± Ø§Ù„Ø­Ø§Ù„Ø© Ø¨Ø³Ø±Ø¹Ø©.")
         }
       >
         {tables.length === 0 ? (
-          <Text style={[styles.empty, { color: theme.palette.muted }]}>{t("dashboard.tablesEmpty", "لا توجد طاولات.")}</Text>
+          <Text style={[styles.empty, { color: theme.palette.muted }]}>{t("dashboard.tablesEmpty", "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø·Ø§ÙˆÙ„Ø§Øª.")}</Text>
         ) : (
           <View style={{ gap: 10 }}>
-            {tables.slice(0, 50).map((t) => (
+            {tables.slice(0, 50).map((table) => (
               <DashboardListItem
-                key={t.id}
-                title={t.label}
-                subtitle={`#${t.id} • ${t("dashboard.tablesNumberShort", "رقم")}: ${t.number ?? "-"} • ${t("dashboard.tablesCapacityShort", "سعة")}: ${
-                  t.capacity ?? "-"
-                } • ${t("dashboard.tablesStatusShort", "الحالة")}: ${statusLabel(t.status)}`}
+                key={table.id}
+                title={table.label}
+                subtitle={`#${table.id} â€¢ ${t("dashboard.tablesNumberShort", "Ø±Ù‚Ù…")}: ${table.number ?? "-"} â€¢ ${t("dashboard.tablesCapacityShort", "Ø³Ø¹Ø©")}: ${
+                  table.capacity ?? "-"
+                } â€¢ ${t("dashboard.tablesStatusShort", "Ø§Ù„Ø­Ø§Ù„Ø©")}: ${statusLabel(table.status)}`}
                 icon="grid-outline"
-                onPress={() => startEdit(t)}
+                onPress={() => startEdit(table)}
                 right={
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
                     {(["available", "occupied", "reserved", "maintenance"] as const).map((s) => (
-                      <Button key={s} title={statusLabel(s)} variant={t.status === s ? "primary" : "secondary"} onPress={() => updateStatus(t.id, s)} />
+                      <Button key={s} title={statusLabel(s)} variant={table.status === s ? "primary" : "secondary"} onPress={() => updateStatus(table.id, s)} />
                     ))}
-                    <Button title={t("common.delete", "حذف")} variant="ghost" onPress={() => deleteTable(t.id)} />
+                    <Button title={t("common.delete", "Ø­Ø°Ù")} variant="ghost" onPress={() => deleteTable(table.id)} />
                   </View>
                 }
               />
@@ -227,3 +227,4 @@ const createStyles = (_theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   });
 
 export default DashboardTables;
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, StyleSheet, FlatList } from "react-native";
 import { Button } from "../../components/ui";
 import { accountingApi } from "../../services/accounting";
@@ -18,10 +18,10 @@ const InventoryCheckScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("accounting.inventoryCheckTitle", "جرد سريع")}</Text>
+      <Text style={styles.title}>{t("accounting.inventoryCheckTitle", "Ø¬Ø±Ø¯ Ø³Ø±ÙŠØ¹")}</Text>
       <TextInput
         style={styles.input}
-        placeholder={t("accounting.inventorySearchPlaceholder", "بحث بالاسم أو الباركود")}
+        placeholder={t("accounting.inventorySearchPlaceholder", "Ø¨Ø­Ø« Ø¨Ø§Ù„Ø§Ø³Ù… Ø£Ùˆ Ø§Ù„Ø¨Ø§Ø±ÙƒÙˆØ¯")}
         value={query}
         onChangeText={setQuery}
       />
@@ -38,7 +38,7 @@ const InventoryCheckScreen: React.FC = () => {
           </View>
         )}
       />
-      <Button label={t("common.refresh", "تحديث")} onPress={() => accountingApi.listInventory().then(setItems)} />
+      <Button title={t("common.refresh", "ØªØ­Ø¯ÙŠØ«")} onPress={() => accountingApi.listInventory().then(setItems)} />
     </View>
   );
 };

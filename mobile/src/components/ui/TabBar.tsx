@@ -136,8 +136,8 @@ const styles = StyleSheet.create({
   outer: {
     paddingTop: 6,
     marginTop: -46,
-    left: 0,
-    right: 0,
+    start: 0,
+    end: 0,
     bottom: 0,
     marginBottom:-33,
     paddingHorizontal: 0,
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   badge: {
     position: "absolute",
     top: -6,
-    right: -8,
+    end: -8,
     minWidth: 18,
     height: 18,
     paddingHorizontal: 5,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   },
   labelActive: {
     fontSize: 12,
-    marginRight: 3,
+    marginEnd: 3,
   },
   labelInactive: {
     fontSize: 11,

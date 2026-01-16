@@ -4,10 +4,9 @@ import { ENV } from "../config/env";
 export const api = axios.create({
   baseURL: ENV.apiUrl,
   timeout: 65000,
-  headers: {
-    Accept: "application/json",
-  },
 });
+
+api.defaults.headers.common.Accept = "application/json";
 
 api.interceptors.request.use((config) => {
   const isFormData = typeof FormData !== "undefined" && config.data instanceof FormData;
@@ -18,11 +17,10 @@ api.interceptors.request.use((config) => {
     }
     config.transformRequest = [(data) => data];
   } else {
-    config.headers = {
-      ...(config.headers || {}),
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    };
+    const headers = axios.AxiosHeaders.from(config.headers);
+    headers.set("Content-Type", "application/json");
+    headers.set("Accept", "application/json");
+    config.headers = headers;
   }
   return config;
 });

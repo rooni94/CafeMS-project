@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { Button } from "../../components/ui";
@@ -28,36 +28,36 @@ const ExpenseCaptureScreen: React.FC = () => {
     };
     try {
       await accountingApi.recordExpense(payload);
-      setMessage(t("accounting.expenseSaveSuccess", "تم حفظ المصروف."));
+      setMessage(t("accounting.expenseSaveSuccess", "ØªÙ… Ø­ÙØ¸ Ø§Ù„Ù…ØµØ±ÙˆÙ."));
     } catch {
-      setMessage(t("accounting.expenseSaveError", "تعذر حفظ المصروف."));
+      setMessage(t("accounting.expenseSaveError", "ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø§Ù„Ù…ØµØ±ÙˆÙ."));
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t("accounting.expenseCaptureTitle", "التقاط إيصال")}</Text>
+      <Text style={styles.title}>{t("accounting.expenseCaptureTitle", "Ø§Ù„ØªÙ‚Ø§Ø· Ø¥ÙŠØµØ§Ù„")}</Text>
       <TextInput
         style={styles.input}
-        placeholder={t("accounting.expenseDescriptionPlaceholder", "وصف المصروف")}
+        placeholder={t("accounting.expenseDescriptionPlaceholder", "ÙˆØµÙ Ø§Ù„Ù…ØµØ±ÙˆÙ")}
         value={title}
         onChangeText={setTitle}
       />
       <TextInput
         style={styles.input}
-        placeholder={t("accounting.amountPlaceholder", "المبلغ")}
+        placeholder={t("accounting.amountPlaceholder", "Ø§Ù„Ù…Ø¨Ù„Øº")}
         keyboardType="numeric"
         value={amount}
         onChangeText={setAmount}
       />
-      <Button label={t("accounting.captureReceiptButton", "التقاط إيصال")} onPress={pickImage} />
+      <Button title={t("accounting.captureReceiptButton", "Ø§Ù„ØªÙ‚Ø§Ø· Ø¥ÙŠØµØ§Ù„")} onPress={pickImage} />
       {attachment && (
         <Text style={styles.note}>
-          {t("accounting.attachmentAdded", "تم إرفاق صورة")}: {attachment.fileName || "receipt"}
+          {t("accounting.attachmentAdded", "ØªÙ… Ø¥Ø±ÙØ§Ù‚ ØµÙˆØ±Ø©")}: {attachment.fileName || "receipt"}
         </Text>
       )}
       {message && <Text style={styles.message}>{message}</Text>}
-      <Button label={t("accounting.saveExpenseButton", "حفظ المصروف")} onPress={submit} />
+      <Button title={t("accounting.saveExpenseButton", "Ø­ÙØ¸ Ø§Ù„Ù…ØµØ±ÙˆÙ")} onPress={submit} />
     </View>
   );
 };

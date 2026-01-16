@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   symbol: {
-    marginLeft: 4,
+    marginStart: 4,
   },
 });
 

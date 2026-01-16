@@ -1,5 +1,7 @@
 import "react-native-gesture-handler";
 import "react-native-reanimated";
+import "./src/i18n/rtlDefaults";
+import "./src/i18n/rtlStyles";
 import React from "react";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,7 +19,7 @@ const queryClient = new QueryClient();
 
 const AppShell = () => {
   const { isRTL } = useI18n();
-  const direction = isRTL ? "rtl" : "ltr";
+  const direction: "rtl" | "ltr" = isRTL ? "rtl" : "ltr";
 
   return (
     <SafeAreaProvider>
@@ -27,7 +29,9 @@ const AppShell = () => {
             <AuthProvider>
               <CartProvider>
                 <StatusBar style="dark" />
-                <GestureHandlerRootView style={{ flex: 1, direction, writingDirection: direction }}>
+                <GestureHandlerRootView
+                  style={{ flex: 1, direction, writingDirection: direction } as any}
+                >
                   <AppNavigator />
                   <SupportChatFloating />
                 </GestureHandlerRootView>

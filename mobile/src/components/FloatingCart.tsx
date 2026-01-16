@@ -25,7 +25,7 @@ const FloatingCart: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    left: 20,
+    start: 20,
     top: 50,
     width: 52,
     height: 52,
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
   badge: {
     position: "absolute",
     bottom: 2,
-    right: 2,
+    end: 2,
     minWidth: 20,
     height: 20,
     borderRadius: 10,

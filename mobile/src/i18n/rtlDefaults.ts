@@ -1,9 +1,6 @@
-import { registerRootComponent } from "expo";
 import * as Localization from "expo-localization";
-import App from "./App";
-import { applyLayoutDirection, normalizeLocale } from "./src/i18n/layoutDirection";
+import { applyLayoutDirection, normalizeLocale } from "./layoutDirection";
 
+// Apply an early direction so StyleSheet preprocessors and defaults are aligned before first render.
 const initialLocale = normalizeLocale(Localization.getLocales?.()[0]?.languageCode);
 applyLayoutDirection(initialLocale, { log: __DEV__ });
-
-registerRootComponent(App);

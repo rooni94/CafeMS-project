@@ -300,7 +300,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   cartCount: {
     position: "absolute",
     top: 7,
-    right: 9,
+    end: 9,
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -440,11 +440,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     opacity: 0.96,
   },
   categoryImage: {
-    width: "100%",
-    height: "100%",
-    position: "absolute",
-    top: 0,
-    left: 0,
+    ...StyleSheet.absoluteFillObject,
   },
   categoryOverlay: {
     ...StyleSheet.absoluteFillObject,
