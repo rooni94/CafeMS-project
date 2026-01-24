@@ -3,6 +3,7 @@ import gc
 import logging
 import re
 import subprocess
+import unicodedata
 from typing import Tuple
 
 import numpy as np
@@ -155,7 +156,7 @@ def _decode_to_pcm(raw_audio: bytes, sampling_rate: int = 16000) -> np.ndarray:
     return pcm
 
 
-def _collapse_repeated_phrases(text: str, max_span: int = 6, min_repeats: int = 3) -> str:
+def _collapse_repeated_phrases(text: str, max_span: int = 8, min_repeats: int = 2) -> str:
     """
     Collapse pathological repetitions such as "السلام عليكم السلام عليكم ..." that Whisper can emit
     when the input is short/echoey. Looks for repeated sequences up to `max_span` tokens that repeat
@@ -167,39 +168,89 @@ def _collapse_repeated_phrases(text: str, max_span: int = 6, min_repeats: int = 
     n = len(tokens)
 
     while i < n:
-        collapsed = False
         max_window = min(max_span, n - i)
-        for span in range(max_window, 0, -1):
+        best_span = None
+        best_reps = 1
+        best_phrase: list[str] | None = None
+
+        # نجرب من الأقصر للأطول لاختيار أصغر عبارة تتكرر أكثر عدد ممكن
+        for span in range(1, max_window + 1):
+            if span == 1 and n < 6:
+                # نترك التكرارات القصيرة جداً (مثل "لا لا") في الجمل الصغيرة
+                continue
+
             phrase = tokens[i : i + span]
             reps = 1
             j = i + span
             while j + span <= n and tokens[j : j + span] == phrase:
                 reps += 1
                 j += span
-            if reps >= min_repeats:
-                result.extend(phrase)
-                i += span * reps
-                collapsed = True
-                break
-        if not collapsed:
-            result.append(tokens[i])
-            i += 1
+
+            if reps >= min_repeats and (reps > best_reps or (reps == best_reps and (best_span is None or span < best_span))):
+                best_span = span
+                best_reps = reps
+                best_phrase = phrase
+
+        if best_span and best_phrase:
+            result.extend(best_phrase)
+            i += best_span * best_reps
+            continue
+
+        # لا توجد تكرارات معتبرة؛ احتفظ بالكلمة الحالية
+        result.append(tokens[i])
+        i += 1
     return " ".join(result)
 
 
 def _normalize_transcript(text: str) -> str:
-    cleaned = re.sub(r"[??!.]+$", "", text.strip())
+    # إزالة محارف التحكم والمسافات الصفرية التي قد يضيفها الـ STT أو المايك
+    stripped = re.sub(r"[\u200b-\u200f\u2028-\u202f\u2060-\u206f]+", "", text or "")
+    stripped = unicodedata.normalize("NFKC", stripped)
+
+    # تنظيف علامات الترقيم المكررة في النهاية وتوحيد المسافات
+    cleaned = re.sub(r"[?.؟!…]+$", "", stripped.strip())
     cleaned = re.sub(r"\s+", " ", cleaned)
     cleaned = cleaned.strip()
 
     collapsed = _collapse_repeated_phrases(cleaned)
     words = collapsed.split()
 
+    # لو كان النص كله عبارة عن تكرار لنفس الشريحة (n-gram) كرر نفسه بشكل كامل، نُبقي نسخة واحدة
+    if len(words) >= 4:
+        for span in range(1, (len(words) // 2) + 1):
+            if len(words) % span != 0:
+                continue
+            window = words[:span]
+            if window * (len(words) // span) == words:
+                collapsed = " ".join(window)
+                words = window
+                break
+
+        # نفس الفكرة لكن بعد إزالة علامات الترقيم من آخر كل كلمة (يعالج التكرارات مع/بدون فاصلة)
+        tokens_cmp = [re.sub(r"[،,.؟?!]+$", "", w) for w in words]
+        for span in range(1, (len(tokens_cmp) // 2) + 1):
+            if len(tokens_cmp) % span != 0:
+                continue
+            window_cmp = tokens_cmp[:span]
+            if window_cmp * (len(tokens_cmp) // span) == tokens_cmp:
+                cleaned_window = [re.sub(r"[،,.؟?!]+$", "", w) for w in words[:span]]
+                collapsed = " ".join(cleaned_window)
+                words = cleaned_window
+                break
+
     # Hard cap to avoid runaway repetitions from STT.
     MAX_WORDS = 120
     if len(words) > MAX_WORDS:
         logger.warning("Transcript trimmed to %s words (from %s)", MAX_WORDS, len(words))
         collapsed = " ".join(words[:MAX_WORDS])
+
+    # لو بقيت نسبة التكرار عالية (مثلاً 80% من الكلمات مكررة)، نحاول أخذ أول جملة فقط
+    if len(words) > 8:
+        uniq = set(words)
+        if len(uniq) <= max(2, len(words) // 4):
+            # احتفظ بالجزء الأول فقط (حتى 20 كلمة) لتجنب التكرار اللانهائي
+            keep = min(20, max(4, len(words) // 2))
+            collapsed = " ".join(words[:keep])
 
     return collapsed.strip()
 
@@ -208,21 +259,27 @@ def _transcribe_with_whisper(raw_audio: bytes) -> str:
     pcm = _decode_to_pcm(raw_audio, sampling_rate=16000)
     model = _get_whisper_model()
 
-    # إعدادات سريعة: beam_size=1, best_of=1, temperature=0, مع VAD
-    segments, _ = model.transcribe(
-        pcm,
-        language="ar",
-        beam_size=1,
-        best_of=1,
-        temperature=0.0,
-        without_timestamps=True,
-        vad_filter=True,
-        vad_parameters={"min_silence_duration_ms": 250},
-        condition_on_previous_text=False,
-    )
+    def _run_transcribe(vad_enabled: bool):
+        segments, _ = model.transcribe(
+            pcm,
+            language="ar",
+            beam_size=1,
+            best_of=1,
+            temperature=0.0,
+            without_timestamps=True,
+            vad_filter=vad_enabled,
+            vad_parameters={"min_silence_duration_ms": 250},
+            condition_on_previous_text=False,
+        )
+        texts = [seg.text.strip() for seg in segments if seg.text]
+        return _normalize_transcript(" ".join(texts))
 
-    texts = [seg.text.strip() for seg in segments if seg.text]
-    text = _normalize_transcript(" ".join(texts))
+    # تجربة أولى مع VAD، ولو أعطت نصاً فارغاً نجرب بدون VAD كحل أخير
+    text = _run_transcribe(True)
+    if not text:
+        logger.info("Whisper VAD produced empty transcript, retrying without VAD.")
+        text = _run_transcribe(False)
+
     if not text:
         raise VoiceProcessingError("Empty transcript.")
     return text
