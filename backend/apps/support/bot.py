@@ -10,7 +10,7 @@ from django.db import transaction
 from apps.orders.models import Order, OrderItem
 from apps.products.models import Product
 from apps.support.models import Conversation
-from .dialogue import DialogueResult, detect_intent, handle_no_ctx, handle_yes_like
+from .dialogue import DialogueResult, detect_intent, handle_no_ctx, handle_yes_like, SMALL_TALK, COMPLAINTS
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -303,21 +303,79 @@ def generate_bot_reply(user: Optional[User], content: str, conversation: Optiona
     text = _normalize(original)
     lower = text.lower()
 
-    # ردود تحية مخصصة
-    if any(k in text for k in ["السلام عليكم", "سلام", "سلام عليكم"]):
-        return _mark_reply("وعليكم السلام ورحمة الله، هلا والله! وش تحب أساعدك فيه؟ تبغى تطلب ولا عندك استفسار؟", "ASK_PRODUCT", data={})
-    if "صباح الخير" in text:
-        return _mark_reply("صباح النور والسرور 🌅 هلا والله! وش حاب تطلب أو تستفسر عنه؟", "ASK_PRODUCT", data={})
-    if "مساء الخير" in text:
-        return _mark_reply("مساء النور 🌙 هلا والله! وش ودّك أساعدك فيه؟", "ASK_PRODUCT", data={})
-
     conv = _get_user_conversation(user, conversation)
     ctx = _last_bot_ctx(conv)
+    ctx_stage = ctx.get("stage") if ctx else None
+    ctx_data = ctx.get("data", {}) if ctx else {}
+
+    # ردود تحية مخصصة (مع الحفاظ على السياق إن وجد)
+    if any(k in text for k in ["السلام عليكم", "سلام", "سلام عليكم"]):
+        reply = "وعليكم السلام ورحمة الله، هلا والله! وش تحب أساعدك فيه؟ تبغى تطلب ولا عندك استفسار؟"
+        if ctx_stage:
+            return _mark_reply(reply, ctx_stage, **(ctx_data or {}))
+        return _mark_reply(reply, "ASK_PRODUCT", data={})
+    if "صباح الخير" in text:
+        reply = "صباح النور والسرور 🌅 هلا والله! وش حاب تطلب أو تستفسر عنه؟"
+        if ctx_stage:
+            return _mark_reply(reply, ctx_stage, **(ctx_data or {}))
+        return _mark_reply(reply, "ASK_PRODUCT", data={})
+    if "مساء الخير" in text:
+        reply = "مساء النور 🌙 هلا والله! وش ودّك أساعدك فيه؟"
+        if ctx_stage:
+            return _mark_reply(reply, ctx_stage, **(ctx_data or {}))
+        return _mark_reply(reply, "ASK_PRODUCT", data={})
+
+    # معالجة نوايا عالية الأولوية حتى لو كان هناك سياق
+    if ctx_stage:
+        intent = detect_intent(text)
+
+        if intent in (
+            "greeting",
+            "smalltalk_howareyou",
+            "smalltalk_joke",
+            "smalltalk_weather",
+            "smalltalk_time",
+            "smalltalk_meaning",
+            "smalltalk_personal",
+        ):
+            reply = SMALL_TALK.get(intent, SMALL_TALK["greeting"])
+            return _mark_reply(reply, ctx_stage, **(ctx_data or {}))
+
+        if intent == "thanks":
+            return _mark_reply(
+                "العفو يا بعدي 🌟 إذا تبغى نكمل الطلب علّمني وش تختار.",
+                ctx_stage,
+                **(ctx_data or {}),
+            )
+
+        if intent == "goodbye":
+            return "في أمان الله 👋 متى ما احتجت شي أنا حاضر."
+
+        if intent == "cancel_order" or any(k in lower for k in ["الغاء", "الغي", "الغيه", "كنسل", "ألغ", "الغاء الطلب", "ابغى الغي"]):
+            return _mark_reply(
+                "تم 👍 عطنا رقم الطلب عشان ألغيه لك. وإذا ما عندك رقم، قلّي الاسم ووقت الطلب.",
+                "ASK_EDIT_ID",
+            )
+
+        if intent == "track_order":
+            return _mark_reply(
+                "أكيد 👍 عطني رقم الطلب أو رقم جوالك اللي طلبت فيه وبشيّك لك.",
+                "ASK_EDIT_ID",
+            )
+
+        if intent == "complaint_delay":
+            return _mark_reply(COMPLAINTS["delay"], "COMPLAINT", issue="delay")
+        if intent == "complaint_wrong":
+            return _mark_reply(COMPLAINTS["wrong"], "COMPLAINT", issue="wrong")
+        if intent == "complaint_cold":
+            return _mark_reply(COMPLAINTS["cold"], "COMPLAINT", issue="cold")
+        if intent == "complaint_quality":
+            return _mark_reply(COMPLAINTS["quality"], "COMPLAINT", issue="quality")
 
     # سياق سابق
     if ctx:
-        stage = ctx.get("stage")
-        data = ctx.get("data", {})
+        stage = ctx_stage
+        data = ctx_data
 
         if stage == "ASK_PRODUCT":
             product = _best_product(text)

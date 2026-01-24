@@ -1,7 +1,9 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView, ViewStyle, StyleProp } from "react-native";
+import { useRoute } from "@react-navigation/native";
 import Screen from "../../../components/Screen";
 import { Card } from "../../../components/ui";
+import { ButtonDensityProvider } from "../../../components/ui/Button";
 import { useTheme } from "../../../theme";
 import { useI18n } from "../../../i18n";
 
@@ -17,21 +19,26 @@ const DashboardShell: React.FC<Props> = ({ title, subtitle, children, headerRigh
   const theme = useTheme();
   const { isRTL } = useI18n();
   const styles = React.useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
+  const route = useRoute();
+  const routeName = typeof route?.name === "string" ? route.name : "";
+  const compactButtons = routeName.startsWith("Dashboard") || routeName === "HRDashboard";
 
   return (
     <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={[styles.container, contentContainerStyle]}>
-        <Card style={styles.headerCard}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerText}>
-              <Text style={styles.title}>{title}</Text>
-              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      <ButtonDensityProvider value={compactButtons ? "compact" : "default"}>
+        <ScrollView contentContainerStyle={[styles.container, contentContainerStyle]}>
+          <Card style={styles.headerCard}>
+            <View style={styles.headerRow}>
+              <View style={styles.headerText}>
+                <Text style={styles.title}>{title}</Text>
+                {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+              </View>
+              {headerRight ? <View style={styles.headerRight}>{headerRight}</View> : null}
             </View>
-            {headerRight ? <View style={styles.headerRight}>{headerRight}</View> : null}
-          </View>
-        </Card>
-        {children}
-      </ScrollView>
+          </Card>
+          {children}
+        </ScrollView>
+      </ButtonDensityProvider>
     </Screen>
   );
 };

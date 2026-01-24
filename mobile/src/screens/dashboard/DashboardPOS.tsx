@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -100,6 +100,8 @@ const statusMeta = (
 
 const DashboardPOS: React.FC = () => {
   const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 980;
   const { t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
@@ -175,6 +177,9 @@ const DashboardPOS: React.FC = () => {
       return res.data || {};
     },
   });
+
+  const categoryLookup = useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories]);
+  const cartLookup = useMemo(() => new Map(cart.map((it) => [it.product_id, it.quantity])), [cart]);
 
   const filteredProducts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -322,8 +327,25 @@ const DashboardPOS: React.FC = () => {
     >
       <View style={styles.sectionsGrid}>
         <DashboardSection
+          title={t("dashboard.overviewTitle", "نظرة سريعة")}
+          subtitle={t("dashboard.overviewSubtitle", "أرقام مختصرة لمتابعة الحالة الحالية.")}
+          style={styles.sectionFull}
+        >
+          <View style={styles.statsRow}>
+            <StatBadge label={t("dashboard.posResultsLabel", "النتائج")} value={products.length} color={theme.status.info} />
+            <StatBadge label={t("dashboard.posCartCountLabel", "في السلة")} value={cartCount} color={theme.palette.accentSoft} />
+            <StatBadge label={t("dashboard.posGrandTotalLabel", "الإجمالي")} value={grandTotal.toFixed(2)} color={theme.palette.accent} />
+            <StatBadge
+              label={t("dashboard.posAlertsLabel", "تنبيهات")}
+              value={inventory?.total_low_stock ?? inventory?.low_stock?.length ?? 0}
+              color={theme.palette.danger}
+            />
+          </View>
+        </DashboardSection>
+        <DashboardSection
           title={t("dashboard.posOrderSettingsTitle", "إعدادات الطلب")}
           subtitle={t("dashboard.posOrderSettingsSubtitle", "حدد نوع الطلب والطاولة إن لزم.")}
+          style={isWide ? styles.sectionHalf : styles.sectionFull}
         >
           <View style={styles.chipsRow}>
             <Button
@@ -401,6 +423,7 @@ const DashboardPOS: React.FC = () => {
         <DashboardSection
           title={t("dashboard.posProductsTitle", "المنتجات")}
           subtitle={t("dashboard.posProductsSubtitle", "اختر من القائمة لإضافته للسلة.")}
+          style={styles.sectionFull}
         >
           <View style={styles.statsRow}>
             <StatBadge label={t("dashboard.posResultsLabel", "النتائج")} value={filteredProducts.length} color={theme.palette.success} />
@@ -437,25 +460,46 @@ const DashboardPOS: React.FC = () => {
                 {filteredProducts.slice(0, visibleProducts).map((p) => {
                   const stockNumber = parseNumber(p.stock);
                   const hasStock = p.stock == null ? null : stockNumber > 0;
+                  const categoryName =
+                    typeof p.category === "object"
+                      ? p.category?.name
+                      : p.category
+                        ? categoryLookup.get(Number(p.category))
+                        : undefined;
+                  const inCartQty = cartLookup.get(p.id);
                   return (
                     <Pressable
                       key={p.id}
                       style={[styles.productCard, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}
                       onPress={() => addToCart(p)}
                     >
-                      <View style={{ flex: 1, alignItems: "flex-end", gap: 6 }}>
+                      <View style={styles.productInfo}>
                         <Text style={[styles.itemTitle, { color: theme.palette.text }]} numberOfLines={2}>
                           {p.name}
                         </Text>
-                        <CurrencyAmount value={parseNumber(p.price)} color={theme.palette.text} symbolSize={12} textStyle={styles.priceText} />
-                        {hasStock == null ? null : (
-                          <Text style={[styles.stockText, { color: hasStock ? theme.palette.muted : theme.palette.danger }]} numberOfLines={1}>
-                            {`${t("dashboard.posStockLabel", "المخزون")}: ${stockNumber}`}
+                        {categoryName ? (
+                          <Text style={[styles.itemSub, { color: theme.palette.muted }]} numberOfLines={1}>
+                            {categoryName}
                           </Text>
-                        )}
+                        ) : null}
+                        <View style={styles.productMeta}>
+                          <CurrencyAmount value={parseNumber(p.price)} color={theme.palette.text} symbolSize={12} textStyle={styles.priceText} />
+                          {hasStock == null ? null : (
+                            <Text style={[styles.stockText, { color: hasStock ? theme.palette.muted : theme.palette.danger }]} numberOfLines={1}>
+                              {`${t("dashboard.posStockLabel", "المخزون")}: ${stockNumber}`}
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                      <View style={[styles.plus, { backgroundColor: theme.palette.accent }]}>
-                        <Ionicons name="add" size={18} color="#fff" />
+                      <View style={styles.productActions}>
+                        {inCartQty ? (
+                          <View style={[styles.inCartPill, { backgroundColor: `${theme.palette.accent}22`, borderColor: `${theme.palette.accent}55` }]}>
+                            <Text style={[styles.inCartText, { color: theme.palette.accent }]}>{inCartQty}</Text>
+                          </View>
+                        ) : null}
+                        <View style={[styles.plus, { backgroundColor: theme.palette.accent }]}>
+                          <Ionicons name="add" size={18} color="#fff" />
+                        </View>
                       </View>
                     </Pressable>
                   );
@@ -471,6 +515,7 @@ const DashboardPOS: React.FC = () => {
         <DashboardSection
           title={t("dashboard.posCartTitle", "السلة")}
           subtitle={t("dashboard.posCartSubtitle", "راجع المحتوى وعدّل الكميات.")}
+          style={isWide ? styles.sectionHalf : styles.sectionFull}
         >
           {cart.length === 0 ? (
             <Text style={[styles.empty, { color: theme.palette.muted }]}>
@@ -509,6 +554,7 @@ const DashboardPOS: React.FC = () => {
         <DashboardSection
           title={t("dashboard.posPaymentTitle", "الدفع")}
           subtitle={t("dashboard.posPaymentSubtitle", "حدد الخصم وطريقة الدفع ثم أكد الطلب.")}
+          style={isWide ? styles.sectionHalf : styles.sectionFull}
         >
           <View style={styles.statsRow}>
             <StatBadge label={t("dashboard.posCartCountLabel", "في السلة")} value={cartCount} color={theme.status.info} />
@@ -702,6 +748,7 @@ const DashboardPOS: React.FC = () => {
         <DashboardSection
           title={t("dashboard.posInventoryAlertsTitle", "تنبيهات المخزون")}
           subtitle={t("dashboard.posInventoryAlertsSubtitle", "عناصر قليلة الكمية.")}
+          style={isWide ? styles.sectionHalf : styles.sectionFull}
         >
           {inventory?.low_stock?.length ? (
             <View style={styles.list}>
@@ -734,6 +781,7 @@ const DashboardPOS: React.FC = () => {
         <DashboardSection
           title={t("dashboard.posLoyaltyTitle", "نقاط الولاء")}
           subtitle={t("dashboard.posLoyaltySubtitle", "تعديل نقاط العميل برقم العضوية.")}
+          style={isWide ? styles.sectionHalf : styles.sectionFull}
         >
           <Input
             label={t("dashboard.posMembershipIdLabel", "رقم العضوية")}
@@ -768,7 +816,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       justifyContent: "space-between",
       gap: 12,
     },
-    half: {
+    sectionFull: {
+      width: "100%",
+    },
+    sectionHalf: {
       width: "49%",
     },
     chipsRow: {
@@ -801,9 +852,24 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       padding: 10,
       flexDirection: "row",
       gap: 10,
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "space-between",
       minHeight: 72,
+    },
+    productInfo: {
+      flex: 1,
+      alignItems: isRTL ? "flex-end" : "flex-start",
+      gap: 4,
+    },
+    productMeta: {
+      flexDirection: isRTL ? "row-reverse" : "row",
+      alignItems: "center",
+      gap: 8,
+      flexWrap: "wrap",
+    },
+    productActions: {
+      alignItems: "center",
+      gap: 6,
     },
     plus: {
       width: 36,
@@ -811,6 +877,19 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       borderRadius: 18,
       alignItems: "center",
       justifyContent: "center",
+    },
+    inCartPill: {
+      borderRadius: 999,
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      minWidth: 36,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    inCartText: {
+      fontSize: 12,
+      fontWeight: "900",
     },
     label: {
       textAlign: isRTL ? "right" : "left",

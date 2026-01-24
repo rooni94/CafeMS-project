@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Image, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import { Button, Input } from "../../components/ui";
+import { Button, Input, Select } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
 import { useTheme } from "../../theme";
@@ -10,6 +10,7 @@ import DashboardShell from "./components/DashboardShell";
 import DashboardAccessDenied from "./components/DashboardAccessDenied";
 import DashboardSection from "./components/DashboardSection";
 import DashboardListItem from "./components/DashboardListItem";
+import StatBadge from "./components/StatBadge";
 import { hasAny } from "./components/permissions";
 import { useI18n } from "../../i18n";
 
@@ -32,6 +33,8 @@ const DashboardCategories: React.FC = () => {
   const theme = useTheme();
   const { isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
+  const { width } = useWindowDimensions();
+  const isWide = width >= 860;
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
 
@@ -44,6 +47,8 @@ const DashboardCategories: React.FC = () => {
   const [parentId, setParentId] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [searchCategories, setSearchCategories] = useState("");
+  const [searchSubcategories, setSearchSubcategories] = useState("");
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ["dashboard", "categories"],
@@ -63,8 +68,28 @@ const DashboardCategories: React.FC = () => {
     },
   });
 
+  const filteredCategories = useMemo(() => {
+    const q = searchCategories.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter((c) => c.name.toLowerCase().includes(q) || (c.description || "").toLowerCase().includes(q));
+  }, [categories, searchCategories]);
+
+  const filteredSubcategories = useMemo(() => {
+    const q = searchSubcategories.trim().toLowerCase();
+    if (!q) return subcategories;
+    return subcategories.filter((s) => s.name.toLowerCase().includes(q) || (s.description || "").toLowerCase().includes(q));
+  }, [subcategories, searchSubcategories]);
+
+  const categoryOptions = useMemo(
+    () =>
+      [{ value: "", label: "اختر الفئة الرئيسية" }].concat(
+        categories.map((c) => ({ value: String(c.id), label: c.name })),
+      ),
+    [categories],
+  );
+
   if (!allowed) {
-    return <DashboardAccessDenied title="الأقسام" subtitle="إدارة الأقسام والأقسام الفرعية." />;
+    return <DashboardAccessDenied title="التصنيفات" subtitle="إدارة الفئات والتصنيفات الفرعية." />;
   }
 
   const pickImage = async () => {
@@ -90,7 +115,7 @@ const DashboardCategories: React.FC = () => {
       return;
     }
     if (mode === "subcategory" && !parentId.trim()) {
-      Alert.alert("بيانات ناقصة", "أدخل رقم الفئة الرئيسية للتصنيف الفرعي.");
+      Alert.alert("بيانات ناقصة", "أدخل الفئة الرئيسية للتصنيف الفرعي.");
       return;
     }
 
@@ -167,39 +192,79 @@ const DashboardCategories: React.FC = () => {
     ]);
   };
 
+  const fieldSize = isWide ? styles.fieldHalf : styles.fieldFull;
+
   return (
     <DashboardShell title="التصنيفات" subtitle="إدارة الفئات والتصنيفات الفرعية.">
-      <DashboardSection title={editingId ? "تعديل" : "إضافة"} subtitle="اختر نوع التصنيف ثم أدخل البيانات.">
-        <View style={styles.modeRow}>
-          <Button title="فئة" variant={mode === "category" ? "primary" : "ghost"} onPress={() => setMode("category")} />
-          <Button title="تصنيف فرعي" variant={mode === "subcategory" ? "primary" : "ghost"} onPress={() => setMode("subcategory")} />
+      <DashboardSection title="ملخص سريع" subtitle="نظرة سريعة على التصنيفات الحالية.">
+        <View style={styles.statsRow}>
+          <StatBadge label="الفئات" value={categories.length} color={theme.palette.accentSoft} />
+          <StatBadge label="التصنيفات الفرعية" value={subcategories.length} color={theme.status.info} />
         </View>
-
-        <Input label={mode === "category" ? "اسم الفئة" : "اسم التصنيف الفرعي"} value={name} onChangeText={setName} />
-        <Input label="وصف (اختياري)" value={description} onChangeText={setDescription} multiline numberOfLines={3} />
-        {mode === "subcategory" ? (
-          <Input
-            label="رقم الفئة الرئيسية"
-            value={parentId}
-            onChangeText={setParentId}
-            keyboardType="number-pad"
-            hint="يمكنك معرفة الرقم من قائمة الفئات بالأسفل."
-          />
-        ) : null}
-
-        <Button title={imageUri ? "تغيير الصورة" : "اختيار صورة"} variant="secondary" onPress={pickImage} />
-        {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
-
-        <Button title={saving ? "جارٍ الحفظ..." : "حفظ"} onPress={save} disabled={saving} />
-        {editingId ? <Button title="إلغاء التعديل" variant="ghost" onPress={resetForm} /> : null}
       </DashboardSection>
 
-      <DashboardSection title="الفئات" subtitle={categoriesLoading ? "جاري التحميل..." : "اضغط للتعديل."}>
-        {categories.length === 0 ? (
+      <DashboardSection title={editingId ? "تعديل" : "إضافة"} subtitle="اختر نوع التصنيف ثم أدخل البيانات.">
+        <View style={styles.modeRow}>
+          <Button title="فئة" size="sm" variant={mode === "category" ? "primary" : "ghost"} onPress={() => setMode("category")} />
+          <Button
+            title="تصنيف فرعي"
+            size="sm"
+            variant={mode === "subcategory" ? "primary" : "ghost"}
+            onPress={() => setMode("subcategory")}
+          />
+        </View>
+
+        <View style={styles.formGrid}>
+          <View style={[styles.field, fieldSize]}>
+            <Input label={mode === "category" ? "اسم الفئة" : "اسم التصنيف الفرعي"} value={name} onChangeText={setName} />
+          </View>
+          <View style={[styles.field, fieldSize]}>
+            <Input label="وصف (اختياري)" value={description} onChangeText={setDescription} multiline numberOfLines={3} />
+          </View>
+          {mode === "subcategory" ? (
+            <View style={[styles.field, styles.fieldFull]}>
+              {categories.length ? (
+                <Select
+                  label="الفئة الرئيسية"
+                  value={parentId}
+                  onChange={setParentId}
+                  options={categoryOptions}
+                  placeholder="اختر الفئة الرئيسية"
+                />
+              ) : (
+                <Input
+                  label="رقم الفئة الرئيسية"
+                  value={parentId}
+                  onChangeText={setParentId}
+                  keyboardType="number-pad"
+                  hint="يمكنك معرفة الرقم من قائمة الفئات بالأسفل."
+                />
+              )}
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.imageRow}>
+          <Button title={imageUri ? "تغيير الصورة" : "اختيار صورة"} variant="secondary" onPress={pickImage} />
+          {imageUri ? <Image source={{ uri: imageUri }} style={styles.preview} /> : null}
+        </View>
+
+        <View style={styles.actionsRow}>
+          <Button title={saving ? "جارٍ الحفظ..." : "حفظ"} onPress={save} disabled={saving} />
+          {editingId ? <Button title="إلغاء التعديل" variant="ghost" onPress={resetForm} /> : null}
+        </View>
+      </DashboardSection>
+
+      <DashboardSection title="قائمة الفئات" subtitle={categoriesLoading ? "جارٍ التحميل..." : "اضغط للتعديل."}>
+        <Input label="بحث" value={searchCategories} onChangeText={setSearchCategories} placeholder="اكتب اسم الفئة..." />
+        <View style={styles.statsRow}>
+          <StatBadge label="النتائج" value={filteredCategories.length} color={theme.palette.accentSoft} />
+        </View>
+        {filteredCategories.length === 0 ? (
           <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد فئات.</Text>
         ) : (
           <View style={{ gap: 10 }}>
-            {categories.map((cat) => (
+            {filteredCategories.map((cat) => (
               <DashboardListItem
                 key={cat.id}
                 title={cat.name}
@@ -207,7 +272,7 @@ const DashboardCategories: React.FC = () => {
                 icon="albums-outline"
                 onPress={() => startEdit(cat, "category")}
                 right={
-                  <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                  <View style={styles.inlineActions}>
                     {cat.image ? <Image source={{ uri: cat.image }} style={styles.thumb} /> : null}
                     <Button title="تعديل" variant="secondary" onPress={() => startEdit(cat, "category")} />
                     <Button title="حذف" variant="ghost" onPress={() => deleteItem(cat.id, "category")} />
@@ -219,20 +284,26 @@ const DashboardCategories: React.FC = () => {
         )}
       </DashboardSection>
 
-      <DashboardSection title="التصنيفات الفرعية" subtitle={subLoading ? "جاري التحميل..." : "اضغط للتعديل."}>
-        {subcategories.length === 0 ? (
+      <DashboardSection title="التصنيفات الفرعية" subtitle={subLoading ? "جارٍ التحميل..." : "اضغط للتعديل."}>
+        <Input label="بحث" value={searchSubcategories} onChangeText={setSearchSubcategories} placeholder="اكتب اسم التصنيف الفرعي..." />
+        <View style={styles.statsRow}>
+          <StatBadge label="النتائج" value={filteredSubcategories.length} color={theme.status.info} />
+        </View>
+        {filteredSubcategories.length === 0 ? (
           <Text style={[styles.empty, { color: theme.palette.muted }]}>لا توجد تصنيفات فرعية.</Text>
         ) : (
           <View style={{ gap: 10 }}>
-            {subcategories.map((s) => (
+            {filteredSubcategories.map((s) => (
               <DashboardListItem
                 key={s.id}
                 title={s.name}
-                subtitle={`ID: ${s.id} • الفئة: ${typeof s.category === "object" ? s.category?.name : s.category ?? "-"}${s.description ? ` • ${s.description}` : ""}`}
+                subtitle={`ID: ${s.id} • الفئة: ${typeof s.category === "object" ? s.category?.name : s.category ?? "-"}${
+                  s.description ? ` • ${s.description}` : ""
+                }`}
                 icon="layers-outline"
                 onPress={() => startEdit(s, "subcategory")}
                 right={
-                  <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                  <View style={styles.inlineActions}>
                     {s.image ? <Image source={{ uri: s.image }} style={styles.thumb} /> : null}
                     <Button title="تعديل" variant="secondary" onPress={() => startEdit(s, "subcategory")} />
                     <Button title="حذف" variant="ghost" onPress={() => deleteItem(s.id, "subcategory")} />
@@ -249,10 +320,33 @@ const DashboardCategories: React.FC = () => {
 
 const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
+    statsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+    },
     modeRow: {
       flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
+    },
+    formGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+    },
+    field: {
+      flexGrow: 1,
+      minWidth: 160,
+    },
+    fieldHalf: {
+      width: "48%",
+    },
+    fieldFull: {
+      width: "100%",
+    },
+    imageRow: {
+      gap: 10,
     },
     preview: {
       width: "100%",
@@ -269,6 +363,18 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       borderWidth: 1,
       borderColor: theme.palette.border,
       backgroundColor: theme.palette.surfaceAlt,
+    },
+    actionsRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      justifyContent: "space-between",
+      alignItems: "center",
+    },
+    inlineActions: {
+      flexDirection: "row",
+      gap: 8,
+      alignItems: "center",
     },
     empty: {
       textAlign: isRTL ? "right" : "left",

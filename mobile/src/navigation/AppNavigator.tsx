@@ -20,8 +20,6 @@ import AboutScreen from "../screens/info/AboutScreen";
 import RewardsScreen from "../screens/info/RewardsScreen";
 import TermsScreen from "../screens/info/TermsScreen";
 import PrivacyScreen from "../screens/info/PrivacyScreen";
-import StoryScreen from "../screens/info/StoryScreen";
-import ProductsScreen from "../screens/menu/ProductsScreen";
 import ProductDetailsScreen from "../screens/menu/ProductDetailsScreen";
 import MyHRScreen from "../screens/hr/MyHRScreen";
 
@@ -32,10 +30,8 @@ import DashboardMessages from "../screens/dashboard/DashboardMessages";
 import DashboardUsers from "../screens/dashboard/DashboardUsers";
 import DashboardSettings from "../screens/dashboard/DashboardSettings";
 import DashboardReports from "../screens/dashboard/DashboardReports";
-import DashboardActivity from "../screens/dashboard/DashboardActivity";
 import DashboardProducts from "../screens/dashboard/DashboardProducts";
 import DashboardCategories from "../screens/dashboard/DashboardCategories";
-import DashboardSubcategories from "../screens/dashboard/DashboardSubcategories";
 import DashboardSupport from "../screens/dashboard/DashboardSupport";
 import DashboardSupportChat from "../screens/dashboard/DashboardSupportChat";
 import DashboardLogs from "../screens/dashboard/DashboardLogs";
@@ -46,12 +42,6 @@ import DashboardTables from "../screens/dashboard/DashboardTables";
 import DashboardPOS from "../screens/dashboard/DashboardPOS";
 import DashboardLoyalty from "../screens/dashboard/DashboardLoyalty";
 import HRDashboard from "../screens/dashboard/HRDashboard";
-import QuickInvoiceScreen from "../screens/accounting/QuickInvoiceScreen";
-import ExpenseCaptureScreen from "../screens/accounting/ExpenseCaptureScreen";
-import InventoryCheckScreen from "../screens/accounting/InventoryCheckScreen";
-import PaymentCollectionScreen from "../screens/accounting/PaymentCollectionScreen";
-import DailySummaryScreen from "../screens/accounting/DailySummaryScreen";
-import FinancialOverviewScreen from "../screens/accounting/FinancialOverviewScreen";
 
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
@@ -84,8 +74,6 @@ export type AppStackParamList = {
   ResetPassword: undefined;
   Contact: undefined;
   About: undefined;
-  Story: undefined;
-  Products: undefined;
   ProductDetails: { productId: number };
   Rewards: undefined;
   Terms: undefined;
@@ -100,10 +88,8 @@ export type AppStackParamList = {
   DashboardUsers: undefined;
   DashboardSettings: undefined;
   DashboardReports: undefined;
-  DashboardActivity: undefined;
   DashboardProducts: undefined;
   DashboardCategories: undefined;
-  DashboardSubcategories: undefined;
   DashboardTables: undefined;
   DashboardPOS: undefined;
   DashboardLoyalty: undefined;
@@ -114,12 +100,6 @@ export type AppStackParamList = {
   DashboardHRDocuments: undefined;
   DashboardHRRequests: undefined;
   HRDashboard: undefined;
-  QuickInvoice: undefined;
-  ExpenseCapture: undefined;
-  InventoryCheck: undefined;
-  PaymentCollection: undefined;
-  DailySummary: undefined;
-  FinancialOverview: undefined;
 };
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -243,14 +223,6 @@ const AppNavigator = () => {
           options={{ title: t("nav.resetPassword", "إعادة تعيين كلمة المرور") }}
         />
         <Stack.Screen name="Contact" component={ContactScreen} options={{ title: t("nav.contact", "تواصل معنا") }} />
-        <Stack.Screen name="About" component={AboutScreen} options={{ title: t("nav.about", "من نحن") }} />
-        <Stack.Screen name="Story" component={StoryScreen} options={{ title: t("nav.story", "قصتنا") }} />
-        <Stack.Screen name="Products" component={ProductsScreen} options={{ title: t("nav.products", "المنتجات") }} />
-        <Stack.Screen
-          name="ProductDetails"
-          component={ProductDetailsScreen}
-          options={{ title: t("nav.productDetails", "تفاصيل المنتج") }}
-        />
         <Stack.Screen name="Rewards" component={RewardsScreen} options={{ title: t("nav.rewards", "المكافآت") }} />
         <Stack.Screen name="Terms" component={TermsScreen} options={{ title: t("nav.terms", "الشروط والأحكام") }} />
         <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: t("nav.privacy", "سياسة الخصوصية") }} />
@@ -289,11 +261,6 @@ const AppNavigator = () => {
           options={{ title: t("nav.dashboardReports", "التقارير") }}
         />
         <Stack.Screen
-          name="DashboardActivity"
-          component={DashboardActivity}
-          options={{ title: t("nav.dashboardActivity", "سجل الطلبات") }}
-        />
-        <Stack.Screen
           name="DashboardProducts"
           component={DashboardProducts}
           options={{ title: t("nav.dashboardProducts", "المنتجات") }}
@@ -302,11 +269,6 @@ const AppNavigator = () => {
           name="DashboardCategories"
           component={DashboardCategories}
           options={{ title: t("nav.dashboardCategories", "التصنيفات") }}
-        />
-        <Stack.Screen
-          name="DashboardSubcategories"
-          component={DashboardSubcategories}
-          options={{ title: t("nav.dashboardSubcategories", "التصنيفات الفرعية") }}
         />
         <Stack.Screen
           name="DashboardTables"
@@ -353,36 +315,6 @@ const AppNavigator = () => {
           name="HRDashboard"
           component={HRDashboard}
           options={{ title: t("nav.hrDashboard", "لوحة الموارد البشرية") }}
-        />
-        <Stack.Screen
-          name="QuickInvoice"
-          component={QuickInvoiceScreen}
-          options={{ title: t("nav.quickInvoice", "فاتورة سريعة") }}
-        />
-        <Stack.Screen
-          name="ExpenseCapture"
-          component={ExpenseCaptureScreen}
-          options={{ title: t("nav.expenseCapture", "التقاط مصروف") }}
-        />
-        <Stack.Screen
-          name="InventoryCheck"
-          component={InventoryCheckScreen}
-          options={{ title: t("nav.inventoryCheck", "جرد المخزون") }}
-        />
-        <Stack.Screen
-          name="PaymentCollection"
-          component={PaymentCollectionScreen}
-          options={{ title: t("nav.paymentCollection", "تحصيل دفعة") }}
-        />
-        <Stack.Screen
-          name="DailySummary"
-          component={DailySummaryScreen}
-          options={{ title: t("nav.dailySummary", "إقفال اليوم") }}
-        />
-        <Stack.Screen
-          name="FinancialOverview"
-          component={FinancialOverviewScreen}
-          options={{ title: t("nav.financialOverview", "مؤشرات مالية") }}
         />
       </Stack.Navigator>
     </NavigationContainer>

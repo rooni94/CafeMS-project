@@ -969,9 +969,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
 
     chipContent: {
 
-      paddingVertical: 8,
+      paddingVertical: 6,
 
-      paddingHorizontal: 10,
+      paddingHorizontal: 8,
 
     },
 
