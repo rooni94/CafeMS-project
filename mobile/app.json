@@ -3,8 +3,8 @@
     "name": "CafeMS Demo",
     "slug": "mobile",
     "scheme": "mobile",
-    "version": "1.1.4",
-    "orientation": "portrait",
+    "version": "1.1.5",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -14,7 +14,7 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "buildNumber": "7",
+      "buildNumber": "8",
       "supportsTablet": true,
       "bundleIdentifier": "com.example.cafems",
       "associatedDomains": ["webcredentials:example.invalid"],

@@ -280,9 +280,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       borderWidth: 1,
       borderColor: theme.palette.border,
       color: theme.palette.text,
+      textAlign: isRTL ? "right" : "left",
+      writingDirection: isRTL ? "rtl" : "ltr",
     },
     categoryRow: {
-      flexDirection: "row",
+      flexDirection: isRTL ? "row-reverse" : "row",
       gap: 12,
       paddingHorizontal: 2,
     },

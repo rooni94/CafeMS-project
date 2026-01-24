@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, Modal, TextInput, ScrollView, Activi
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Audio } from "expo-av";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 
 import { useAuth } from "../../context/AuthContext";
 import { api } from "../../services/api";
@@ -137,6 +137,32 @@ const SupportChatFloating: React.FC = () => {
     }, delay);
   };
 
+  const ensurePlaybackMode = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+      });
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const ensureRecordingMode = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+      });
+    } catch {
+      /* ignore */
+    }
+  };
+
   const stopBotAudio = async () => {
     isPlayingRef.current = false;
     if (soundRef.current) {
@@ -170,6 +196,7 @@ const SupportChatFloating: React.FC = () => {
     }
 
     try {
+      await ensurePlaybackMode();
       await stopBotAudio();
 
       const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
@@ -208,6 +235,24 @@ const SupportChatFloating: React.FC = () => {
         if (recordingFlagRef.current || sendingAudioRef.current) return;
         rearmRecordingIfIdle(450);
       }, 1500);
+
+      // فحص صحة التشغيل: لو ما بدأ التشغيل فعلاً خلال وقت قصير، لا توقف التسجيل إلى الأبد
+      setTimeout(async () => {
+        if (soundRef.current !== sound) return;
+        try {
+          const status = await sound.getStatusAsync();
+          if (status.isLoaded && !status.isPlaying && (status.positionMillis || 0) < 50) {
+            isPlayingRef.current = false;
+            sound.unloadAsync().catch(() => {});
+            soundRef.current = null;
+            if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) {
+              rearmRecordingIfIdle(450);
+            }
+          }
+        } catch {
+          isPlayingRef.current = false;
+        }
+      }, 1800);
     } catch (e) {
       isPlayingRef.current = false;
       soundRef.current = null;
@@ -366,6 +411,9 @@ const SupportChatFloating: React.FC = () => {
     voiceOverlayRef.current = true;
     setVoiceOverlay(true);
 
+    if (isPlayingRef.current && !soundRef.current) {
+      isPlayingRef.current = false;
+    }
     if (!force && (recordingFlagRef.current || sendingAudioRef.current || isPlayingRef.current)) return;
     if (recordingFlagRef.current || activeRecordingRef.current) return;
 
@@ -393,12 +441,7 @@ const SupportChatFloating: React.FC = () => {
         }
       }
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-      });
+      await ensureRecordingMode();
 
       const recordingOptions = {
         ...(Audio as any).RECORDING_OPTIONS_PRESET_HIGH_QUALITY,

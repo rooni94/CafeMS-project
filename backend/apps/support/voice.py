@@ -134,21 +134,82 @@ def _validate_audio(upload) -> None:
             raise VoiceProcessingError(f"Audio file exceeds {max_mb} MB limit.")
 
 
-def _decode_to_pcm(raw_audio: bytes, sampling_rate: int = 16000) -> np.ndarray:
+def _decode_to_pcm(
+    raw_audio: bytes,
+    sampling_rate: int = 16000,
+    content_type: str | None = None,
+    filename: str | None = None,
+) -> np.ndarray:
     """تحويل الصوت الخام إلى PCM mono float32 باستخدام ffmpeg."""
-    try:
-        proc = subprocess.run(
-            ["ffmpeg", "-i", "pipe:0", "-ar", str(sampling_rate), "-ac", "1", "-f", "s16le", "-"],
+
+    def _run_ffmpeg(input_format: str | None = None) -> subprocess.CompletedProcess:
+        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error"]
+        if input_format:
+            cmd += ["-f", input_format]
+        cmd += ["-i", "pipe:0", "-ar", str(sampling_rate), "-ac", "1", "-f", "s16le", "-"]
+        return subprocess.run(
+            cmd,
             input=raw_audio,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=True,
         )
+
+    if not raw_audio:
+        raise VoiceProcessingError("Audio payload is empty.")
+
+    try:
+        proc = _run_ffmpeg()
     except FileNotFoundError:
         raise VoiceProcessingError("ffmpeg is not installed or not in PATH.") from None
     except subprocess.CalledProcessError as exc:
-        logger.error("ffmpeg failed: %s", exc.stderr.decode("utf-8", errors="ignore")[:300])
-        raise VoiceProcessingError("ffmpeg failed to decode audio.") from exc
+        stderr = exc.stderr.decode("utf-8", errors="ignore")[:300]
+        logger.error("ffmpeg failed: %s", stderr)
+
+        # جرّب تنسيقات بديلة بناءً على نوع الملف/الامتداد (مفيد لموبايل)
+        guessed: list[str] = []
+        ct = (content_type or "").lower().strip()
+        name = (filename or "").lower().strip()
+
+        if ct in ("audio/mp4", "video/mp4", "audio/m4a", "audio/x-m4a"):
+            guessed.append("mp4")
+        if ct in ("audio/webm", "video/webm"):
+            guessed.append("webm")
+        if ct in ("audio/ogg", "audio/opus"):
+            guessed.append("ogg")
+        if ct in ("audio/wav", "audio/x-wav"):
+            guessed.append("wav")
+        if ct in ("audio/mpeg", "audio/mp3"):
+            guessed.append("mp3")
+        if ct in ("audio/aac",):
+            guessed.append("aac")
+
+        if name.endswith(".m4a") or name.endswith(".mp4"):
+            guessed.append("mp4")
+        if name.endswith(".webm"):
+            guessed.append("webm")
+        if name.endswith(".ogg") or name.endswith(".opus"):
+            guessed.append("ogg")
+        if name.endswith(".wav"):
+            guessed.append("wav")
+        if name.endswith(".mp3"):
+            guessed.append("mp3")
+        if name.endswith(".aac"):
+            guessed.append("aac")
+
+        # إزالة التكرار مع الحفاظ على الترتيب
+        seen = set()
+        guessed = [g for g in guessed if not (g in seen or seen.add(g))]
+
+        for fmt in guessed:
+            try:
+                logger.info("Retry ffmpeg decode with format=%s (ct=%s, name=%s)", fmt, content_type, filename)
+                proc = _run_ffmpeg(fmt)
+                break
+            except subprocess.CalledProcessError as exc2:
+                logger.error("ffmpeg failed (format=%s): %s", fmt, exc2.stderr.decode("utf-8", errors="ignore")[:200])
+        else:
+            raise VoiceProcessingError("ffmpeg failed to decode audio.") from exc
 
     pcm = np.frombuffer(proc.stdout, dtype=np.int16).astype(np.float32) / 32768.0
     if pcm.size == 0:
@@ -255,8 +316,8 @@ def _normalize_transcript(text: str) -> str:
     return collapsed.strip()
 
 
-def _transcribe_with_whisper(raw_audio: bytes) -> str:
-    pcm = _decode_to_pcm(raw_audio, sampling_rate=16000)
+def _transcribe_with_whisper(raw_audio: bytes, content_type: str | None = None, filename: str | None = None) -> str:
+    pcm = _decode_to_pcm(raw_audio, sampling_rate=16000, content_type=content_type, filename=filename)
     model = _get_whisper_model()
 
     def _run_transcribe(vad_enabled: bool):
@@ -289,7 +350,9 @@ def transcribe_audio(upload) -> str:
     """Offline STT using faster-whisper (Whisper)."""
     _validate_audio(upload)
     raw = upload.read()
-    return _transcribe_with_whisper(raw)
+    content_type = getattr(upload, "content_type", None)
+    filename = getattr(upload, "name", None)
+    return _transcribe_with_whisper(raw, content_type=content_type, filename=filename)
 
 
 def text_to_speech(text: str) -> Tuple[bytes, str]:

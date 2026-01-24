@@ -22,6 +22,44 @@ type ButtonProps = Omit<
 export const ButtonDensityContext = createContext<ButtonDensity>("default");
 export const ButtonDensityProvider = ButtonDensityContext.Provider;
 
+const withAlpha = (value: string | undefined, alpha: number): string => {
+  if (!value) return `rgba(0,0,0,${alpha})`;
+  if (value === "transparent") return "transparent";
+
+  if (value.startsWith("#")) {
+    const hex = value.slice(1);
+    const normalized =
+      hex.length === 3
+        ? hex
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : hex.length >= 6
+        ? hex.slice(0, 6)
+        : "";
+
+    if (normalized.length === 6) {
+      const r = parseInt(normalized.slice(0, 2), 16);
+      const g = parseInt(normalized.slice(2, 4), 16);
+      const b = parseInt(normalized.slice(4, 6), 16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+  }
+
+  const rgbMatch = value.match(/rgba?\(([^)]+)\)/i);
+  if (rgbMatch) {
+    const parts = rgbMatch[1]
+      .split(",")
+      .map((part) => Number(part.trim()))
+      .filter((part) => Number.isFinite(part));
+    if (parts.length >= 3) {
+      return `rgba(${parts[0]},${parts[1]},${parts[2]},${alpha})`;
+    }
+  }
+
+  return value;
+};
+
 const Button: React.FC<ButtonProps> = ({
   title,
   variant = "primary",
@@ -61,12 +99,12 @@ const Button: React.FC<ButtonProps> = ({
 
   const outlineStyle: StyleProp<ViewStyle> =
     isSecondary || isDanger
-      ? { borderColor: `${baseTint}55`, borderWidth: 1 }
+      ? { borderColor: withAlpha(baseTint, 0.35), borderWidth: 1 }
       : undefined;
 
   const surfaceStyle: StyleProp<ViewStyle> =
     isSecondary || isDanger
-      ? { backgroundColor: `${baseTint}12` }
+      ? { backgroundColor: withAlpha(baseTint, 0.08) }
       : isGhost
       ? { backgroundColor: theme.palette.surfaceAlt }
       : undefined;
@@ -91,7 +129,7 @@ const Button: React.FC<ButtonProps> = ({
         finalTextColor ? { color: finalTextColor } : undefined,
         labelStyle,
       ]}
-      rippleColor={`${baseTint}22`}
+      rippleColor={baseTint === "transparent" ? undefined : withAlpha(baseTint, 0.14)}
       uppercase={false}
       {...rest}
     >
@@ -132,7 +170,7 @@ const styles = StyleSheet.create({
   },
   labelBase: {
     textAlign: "center",
-    letterSpacing: 0.1,
+    letterSpacing: 0,
     includeFontPadding: false,
   },
   labelMd: {

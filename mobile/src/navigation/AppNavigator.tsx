@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { PanGestureHandler, State } from "react-native-gesture-handler";
 import { View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 import HomeScreen from "../screens/HomeScreen";
 import MenuScreen from "../screens/menu/MenuScreen";
@@ -108,6 +109,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const TabSwipeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigation = useNavigation<any>();
   const state = useNavigationState((s) => s);
+  const { isRTL } = useI18n();
   const routes = state?.routes || [];
   const index = state?.index ?? 0;
 
@@ -117,10 +119,18 @@ const TabSwipeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) 
     const threshold = 40;
     const swipeDelta = translationX + velocityX * 0.02;
 
-    if (swipeDelta < -threshold && index < routes.length - 1) {
-      navigation.navigate(routes[index + 1].name as any);
-    } else if (swipeDelta > threshold && index > 0) {
-      navigation.navigate(routes[index - 1].name as any);
+    if (swipeDelta > threshold) {
+      if (isRTL) {
+        if (index > 0) navigation.navigate(routes[index - 1].name as any);
+      } else if (index < routes.length - 1) {
+        navigation.navigate(routes[index + 1].name as any);
+      }
+    } else if (swipeDelta < -threshold) {
+      if (isRTL) {
+        if (index < routes.length - 1) navigation.navigate(routes[index + 1].name as any);
+      } else if (index > 0) {
+        navigation.navigate(routes[index - 1].name as any);
+      }
     }
   };
 
@@ -149,6 +159,11 @@ const TabsNavigator = () => {
   const isEmployee = user?.role === "manager" || user?.role === "supervisor" || user?.role === "staff";
   const canViewDashboard = isEmployee;
   const canManageSupport = user?.role === "manager" || !!permissions?.can_manage_support;
+  const menuTabTitle = isEmployee ? t("nav.dashboardPOS", "Cashier (POS)") : t("nav.menu", "Menu");
+  const MenuTabComponent = isEmployee ? DashboardPOS : MenuScreen;
+  const menuTabIcon = ({ color, size }: { color: string; size: number }) => (
+    <Ionicons name={isEmployee ? "cash-outline" : "restaurant-outline"} color={color} size={size} />
+  );
 
   const thirdTab = !isEmployee ? (
     <Tab.Screen name="Orders" component={withTabSwipe(OrderTrackingScreen)} options={{ title: t("nav.orders", "Orders") }} />
@@ -166,7 +181,11 @@ const TabsNavigator = () => {
       }}
     >
       <Tab.Screen name="Home" component={withTabSwipe(HomeScreen)} options={{ title: t("nav.home", "Home") }} />
-      <Tab.Screen name="Menu" component={withTabSwipe(MenuScreen)} options={{ title: t("nav.menu", "Menu") }} />
+      <Tab.Screen
+        name="Menu"
+        component={withTabSwipe(MenuTabComponent)}
+        options={{ title: menuTabTitle, tabBarIcon: menuTabIcon }}
+      />
       {thirdTab}
       {canViewDashboard ? (
         <Tab.Screen name="Dashboard" component={withTabSwipe(DashboardHome)} options={{ title: t("nav.dashboard", "Dashboard") }} />
@@ -201,7 +220,7 @@ const AppNavigator = () => {
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
-          headerTitleAlign: "center",
+          headerTitleAlign: isRTL ? "right" : "center",
           headerBackTitle: t("nav.back", "رجوع"),
           headerTintColor: theme.palette.accent,
         }}

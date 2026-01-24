@@ -4,6 +4,7 @@ import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../../theme";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useI18n } from "../../i18n";
 
 const icons: Record<string, keyof typeof Ionicons.glyphMap> = {
   Home: "grid-outline",
@@ -22,6 +23,7 @@ const TabBar: React.FC<BottomTabBarProps> = ({
 }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { isRTL } = useI18n();
   return (
     <View
       style={[
@@ -34,6 +36,7 @@ const TabBar: React.FC<BottomTabBarProps> = ({
       <View
         style={[
           styles.container,
+          isRTL ? styles.containerRtl : null,
           {
             backgroundColor: theme.palette.surface,
             borderColor: theme.palette.border,
@@ -71,6 +74,13 @@ const TabBar: React.FC<BottomTabBarProps> = ({
           };
 
           const iconName = icons[route.name] || "ellipse-outline";
+          const customIcon = typeof options.tabBarIcon === "function"
+            ? options.tabBarIcon({
+                focused: isFocused,
+                color: isFocused ? "#ffffff" : theme.palette.muted,
+                size: 22,
+              })
+            : null;
 
           return (
             <Pressable
@@ -102,7 +112,7 @@ const TabBar: React.FC<BottomTabBarProps> = ({
                     },
                   ]}
                 >
-                  <Ionicons name={iconName} size={22} color={isFocused ? "#ffffff" : theme.palette.muted} />
+                  {customIcon ?? <Ionicons name={iconName} size={22} color={isFocused ? "#ffffff" : theme.palette.muted} />}
                 </View>
                 {badge != null && badge !== 0 ? (
                   <View style={[styles.badge, { borderColor: theme.palette.surface, backgroundColor: theme.palette.danger }]}>
@@ -155,6 +165,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
+  },
+  containerRtl: {
+    flexDirection: "row-reverse",
   },
   tab: {
     borderRadius: 22,
