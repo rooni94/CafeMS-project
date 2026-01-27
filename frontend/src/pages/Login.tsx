@@ -1,5 +1,5 @@
-// src/pages/Login.tsx
-import React, { useMemo, useState } from "react";
+﻿// src/pages/Login.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 
@@ -15,6 +15,23 @@ const Login: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const storageKey = "cafe_login_saved";
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      if (saved?.username) setUsername(String(saved.username));
+      if (saved?.password) setPassword(String(saved.password));
+      if (saved?.remember) setRememberMe(Boolean(saved.remember));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +39,16 @@ const Login: React.FC = () => {
 
     try {
       await login(username, password);
+      if (typeof window !== "undefined") {
+        if (rememberMe) {
+          window.localStorage.setItem(
+            storageKey,
+            JSON.stringify({ username, password, remember: true })
+          );
+        } else {
+          window.localStorage.removeItem(storageKey);
+        }
+      }
       nav(nextPath);
     } catch (error: any) {
       console.error(error);
@@ -58,15 +85,36 @@ const Login: React.FC = () => {
         </div>
         <div>
           <label className="block text-sm mb-1">كلمة المرور</label>
-          <input
-            type="password"
-            className="w-full border rounded-lg px-3 py-2 text-sm"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="********"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              className="w-full border rounded-lg px-3 py-2 text-sm pr-12"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder="********"
+              autoComplete={rememberMe ? "current-password" : "off"}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute inset-y-0 left-2 flex items-center text-xs text-gray-500 hover:text-gray-700"
+              aria-label={showPassword ? "إخفاء كلمة المرور" : "إظهار كلمة المرور"}
+            >
+              {showPassword ? "إخفاء" : "إظهار"}
+            </button>
+          </div>
         </div>
+
+        <label className="flex items-center gap-2 text-xs text-gray-600">
+          <input
+            type="checkbox"
+            checked={rememberMe}
+            onChange={(e) => setRememberMe(e.target.checked)}
+            className="rounded border-gray-300"
+          />
+          تذكر بيانات تسجيل الدخول
+        </label>
 
         {err && <div className="text-sm text-red-500">{err}</div>}
 
@@ -75,17 +123,16 @@ const Login: React.FC = () => {
           disabled={loading}
           className="w-full py-2 rounded-full bg-amber-500 text-white text-sm hover:bg-amber-600 disabled:opacity-60"
         >
-          {loading ? "جاري تسجيل الدخول..." : "دخول"}
+          {loading ? "جارٍ تسجيل الدخول..." : "دخول"}
         </button>
       </form>
 
       <div className="text-xs text-center text-gray-500 mt-2">
-  نسيت كلمة المرور؟{" "}
-  <Link to="/forgot-password" className="text-amber-600">
-    استعادة كلمة المرور
-  </Link>
-</div>
-
+        نسيت كلمة المرور؟{" "}
+        <Link to="/forgot-password" className="text-amber-600">
+          استعادة كلمة المرور
+        </Link>
+      </div>
 
       <div className="text-xs text-center text-gray-500">
         ليس لديك حساب؟{" "}

@@ -380,12 +380,14 @@ export const Navbar: React.FC = () => {
             >
               الرئيسية
             </Link>
-            <Link
-              to="/order-tracking"
-              className={navLinkClass(location.pathname === "/order-tracking")}
-            >
-              تتبع الطلب
-            </Link>
+            {!showEmployeeNav && (
+              <Link
+                to="/order-tracking"
+                className={navLinkClass(location.pathname === "/order-tracking")}
+              >
+                طلباتي
+              </Link>
+            )}
             {showEmployeeNav ? (
               <>
                 {canUseCashier && (
@@ -517,15 +519,17 @@ export const Navbar: React.FC = () => {
                 >
                   الرئيسية
                 </Link>
-                <Link
-                  to="/order-tracking"
-                  onClick={() => setMobileOpen(false)}
-                  className={navLinkClass(
-                    location.pathname === "/order-tracking"
-                  )}
-                >
-                  تتبع الطلب
-                </Link>
+                {!showEmployeeNav && (
+                  <Link
+                    to="/order-tracking"
+                    onClick={() => setMobileOpen(false)}
+                    className={navLinkClass(
+                      location.pathname === "/order-tracking"
+                    )}
+                  >
+                    طلباتي
+                  </Link>
+                )}
                 {showEmployeeNav ? (
                   <>
                     {canUseCashier && (
