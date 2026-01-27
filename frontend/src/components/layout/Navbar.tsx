@@ -68,23 +68,35 @@ export const Navbar: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [canAccessHR, setCanAccessHR] = useState(false);
   const [canAccessAccounting, setCanAccessAccounting] = useState(false);
+  const [canManageOrders, setCanManageOrders] = useState(false);
+  const [canUseCashier, setCanUseCashier] = useState(false);
+  const [canManageSupport, setCanManageSupport] = useState(false);
 
   const cartCount = totalQuantity;
 
-  const canAccessDashboard =
-    user &&
+  const isEmployeeRole =
+    !!user &&
     (user.role === "manager" ||
       user.role === "staff" ||
       user.role === "supervisor");
 
+  const canAccessDashboard = isEmployeeRole;
+
   const isDashboardActive =
     location.pathname === "/dashboard" ||
     (location.pathname.startsWith("/dashboard/") &&
-      !location.pathname.startsWith("/dashboard/hr"));
+      !location.pathname.startsWith("/dashboard/hr") &&
+      !location.pathname.startsWith("/dashboard/orders") &&
+      !location.pathname.startsWith("/dashboard/cashier") &&
+      !location.pathname.startsWith("/dashboard/support-chat"));
 
   useEffect(() => {
     if (!user) {
       setCanAccessHR(false);
+      setCanAccessAccounting(false);
+      setCanManageOrders(false);
+      setCanUseCashier(false);
+      setCanManageSupport(false);
       return;
     }
 
@@ -94,10 +106,13 @@ export const Navbar: React.FC = () => {
         const data = res.data || {};
         const p = data.permissions || {};
         const role = (user as any)?.role;
+        const isManager = role === "manager";
+        const isSupervisor = role === "supervisor";
+        const isStaff = role === "staff";
         const hrAllowed =
           data.is_superuser ||
           data.is_staff ||
-          role === "manager" ||
+          isManager ||
           !!p.can_view_hr_dashboard ||
           !!p.can_manage_employees ||
           !!p.can_manage_attendance ||
@@ -110,16 +125,28 @@ export const Navbar: React.FC = () => {
 
         const accAllowed =
           data.is_superuser ||
-          role === "manager" ||
+          isManager ||
           !!p.can_view_accounting ||
           !!p.can_manage_accounting ||
           !!p.can_manage_financial_reports;
         setCanAccessAccounting(accAllowed);
+
+        const ordersAllowed = isManager || isSupervisor || isStaff || !!p.can_manage_orders;
+        const cashierAllowed =
+          isManager || isSupervisor || isStaff || !!p.can_access_cashier || !!p.can_manage_orders;
+        const supportAllowed = isManager || !!p.can_manage_support;
+
+        setCanManageOrders(ordersAllowed);
+        setCanUseCashier(cashierAllowed);
+        setCanManageSupport(supportAllowed);
       })
       .catch((err) => {
         console.error("Failed to load HR/accounting permissions in navbar", err);
         setCanAccessHR(false);
         setCanAccessAccounting(false);
+        setCanManageOrders(false);
+        setCanUseCashier(false);
+        setCanManageSupport(false);
       });
   }, [user]);
 
@@ -133,6 +160,8 @@ export const Navbar: React.FC = () => {
     `px-3 py-1.5 rounded-full text-sm whitespace-nowrap ${
       active ? "bg-amber-500 text-white" : "text-gray-700 hover:bg-gray-100"
     }`;
+
+  const showEmployeeNav = isEmployeeRole || canManageOrders || canUseCashier || canManageSupport;
 
   const CartToggle: FC<{ showLabel?: boolean; compact?: boolean }> = ({
     showLabel = false,
@@ -352,29 +381,63 @@ export const Navbar: React.FC = () => {
               الرئيسية
             </Link>
             <Link
-              to="/menu"
-              className={navLinkClass(location.pathname === "/menu")}
-            >
-              القائمة
-            </Link>
-            <Link
               to="/order-tracking"
               className={navLinkClass(location.pathname === "/order-tracking")}
             >
               تتبع الطلب
             </Link>
-            <Link
-              to="/about"
-              className={navLinkClass(location.pathname === "/about")}
-            >
-              من نحن
-            </Link>
-            <Link
-              to="/contact"
-              className={navLinkClass(location.pathname === "/contact")}
-            >
-              تواصل معنا
-            </Link>
+            {showEmployeeNav ? (
+              <>
+                {canUseCashier && (
+                  <Link
+                    to="/dashboard/cashier"
+                    state={{ fromHeader: true }}
+                    className={navLinkClass(location.pathname.startsWith("/dashboard/cashier"))}
+                  >
+                    الكاشير
+                  </Link>
+                )}
+                {canManageOrders && (
+                  <Link
+                    to="/dashboard/orders"
+                    state={{ fromHeader: true }}
+                    className={navLinkClass(location.pathname.startsWith("/dashboard/orders"))}
+                  >
+                    الطلبات
+                  </Link>
+                )}
+                {canManageSupport && (
+                  <Link
+                    to="/dashboard/support-chat"
+                    state={{ fromHeader: true }}
+                    className={navLinkClass(location.pathname.startsWith("/dashboard/support-chat"))}
+                  >
+                    دعم فني
+                  </Link>
+                )}
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/menu"
+                  className={navLinkClass(location.pathname === "/menu")}
+                >
+                  القائمة
+                </Link>
+                <Link
+                  to="/about"
+                  className={navLinkClass(location.pathname === "/about")}
+                >
+                  من نحن
+                </Link>
+                <Link
+                  to="/contact"
+                  className={navLinkClass(location.pathname === "/contact")}
+                >
+                  تواصل معنا
+                </Link>
+              </>
+            )}
 
             {canAccessDashboard && (
               <Link
@@ -455,13 +518,6 @@ export const Navbar: React.FC = () => {
                   الرئيسية
                 </Link>
                 <Link
-                  to="/menu"
-                  onClick={() => setMobileOpen(false)}
-                  className={navLinkClass(location.pathname === "/menu")}
-                >
-                  القائمة
-                </Link>
-                <Link
                   to="/order-tracking"
                   onClick={() => setMobileOpen(false)}
                   className={navLinkClass(
@@ -470,20 +526,70 @@ export const Navbar: React.FC = () => {
                 >
                   تتبع الطلب
                 </Link>
-                <Link
-                  to="/about"
-                  onClick={() => setMobileOpen(false)}
-                  className={navLinkClass(location.pathname === "/about")}
-                >
-                  من نحن
-                </Link>
-                <Link
-                  to="/contact"
-                  onClick={() => setMobileOpen(false)}
-                  className={navLinkClass(location.pathname === "/contact")}
-                >
-                  تواصل معنا
-                </Link>
+                {showEmployeeNav ? (
+                  <>
+                    {canUseCashier && (
+                      <Link
+                        to="/dashboard/cashier"
+                        state={{ fromHeader: true }}
+                        onClick={() => setMobileOpen(false)}
+                        className={navLinkClass(
+                          location.pathname.startsWith("/dashboard/cashier")
+                        )}
+                      >
+                        الكاشير
+                      </Link>
+                    )}
+                    {canManageOrders && (
+                      <Link
+                        to="/dashboard/orders"
+                        state={{ fromHeader: true }}
+                        onClick={() => setMobileOpen(false)}
+                        className={navLinkClass(
+                          location.pathname.startsWith("/dashboard/orders")
+                        )}
+                      >
+                        الطلبات
+                      </Link>
+                    )}
+                    {canManageSupport && (
+                      <Link
+                        to="/dashboard/support-chat"
+                        state={{ fromHeader: true }}
+                        onClick={() => setMobileOpen(false)}
+                        className={navLinkClass(
+                          location.pathname.startsWith("/dashboard/support-chat")
+                        )}
+                      >
+                        دعم فني
+                      </Link>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/menu"
+                      onClick={() => setMobileOpen(false)}
+                      className={navLinkClass(location.pathname === "/menu")}
+                    >
+                      القائمة
+                    </Link>
+                    <Link
+                      to="/about"
+                      onClick={() => setMobileOpen(false)}
+                      className={navLinkClass(location.pathname === "/about")}
+                    >
+                      من نحن
+                    </Link>
+                    <Link
+                      to="/contact"
+                      onClick={() => setMobileOpen(false)}
+                      className={navLinkClass(location.pathname === "/contact")}
+                    >
+                      تواصل معنا
+                    </Link>
+                  </>
+                )}
 
                 {canAccessDashboard && (
                   <Link

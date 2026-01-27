@@ -1,6 +1,6 @@
 // src/pages/Dashboard.tsx
 import React, { useEffect } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { DashboardSidebar, RolePermissions } from "../components/layout/DashboardSidebar";
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -30,6 +30,7 @@ import EmployeeHRRouteGuard from "../components/hr/EmployeeHRRouteGuard";
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
   const nav = useNavigate();
+  const location = useLocation();
 
   const [rolePerms, setRolePerms] = React.useState<RolePermissions | null>(null);
   const [permLoading, setPermLoading] = React.useState(true);
@@ -156,13 +157,19 @@ const Dashboard: React.FC = () => {
   const canViewHRPerformance =
     isManager || !!rolePerms?.can_view_hr_performance;
 
+  const fromHeader = Boolean((location.state as any)?.fromHeader);
+  const headerRoutes = ["/dashboard/orders", "/dashboard/cashier", "/dashboard/support-chat"];
+  const hideDashboardBar = fromHeader && headerRoutes.some((path) => location.pathname.startsWith(path));
+
   return (
     <div className="flex flex-col gap-4 items-center">
-      <div className="w-full flex justify-center px-4">
-        <div className="w-full max-w-6xl">
-          <DashboardSidebar perms={rolePerms} />
+      {!hideDashboardBar && (
+        <div className="w-full flex justify-center px-4">
+          <div className="w-full max-w-6xl">
+            <DashboardSidebar perms={rolePerms} />
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 w-full">
         <Routes>
