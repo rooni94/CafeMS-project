@@ -7,6 +7,7 @@ from apps.loyalty.views import PassDownloadView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("health/", health),
+    path("api/health/", health),
     path('api/auth/', include('apps.accounts.urls')),
     path('api/products/', include('apps.products.urls')),
     path('api/orders/', include('apps.orders.urls')),
