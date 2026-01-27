@@ -151,8 +151,16 @@ REST_FRAMEWORK = {
         "apps.accounts.authentication.FlexibleJWTAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": env("REST_THROTTLE_USER", default="120/min"),
+        "anon": env("REST_THROTTLE_ANON", default="30/min"),
+    },
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
         "rest_framework.filters.SearchFilter",
@@ -239,6 +247,7 @@ FRONTEND_URL = env(
     "FRONTEND_URL",
     default="http://localhost:5173",
 )
+CHECKOUT_REDIRECT_HOSTS = env.list("CHECKOUT_REDIRECT_HOSTS", default=[])
 
 FRONTEND_RESET_PASSWORD_URL = env(
     "FRONTEND_RESET_PASSWORD_URL",

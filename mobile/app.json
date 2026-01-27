@@ -1,31 +1,32 @@
-{
+﻿{
   "expo": {
     "name": "CafeMS Demo",
     "slug": "mobile",
     "scheme": "mobile",
-    "version": "1.1.5",
+    "version": "1.1.6",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "buildNumber": "8",
+      "buildNumber": "9",
       "supportsTablet": true,
       "bundleIdentifier": "com.example.cafems",
-      "associatedDomains": ["webcredentials:example.invalid"],
+      "associatedDomains": [
+        "webcredentials:example.invalid"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "نستخدم الميكروفون لتسجيل رسائل الدعم الصوتية.",
-        "CFBundleLocalizations": ["ar", "en"]
+        "CFBundleLocalizations": [
+          "ar",
+          "en"
+        ]
       }
-    },
-    "androidNavigationBar": {
-      "visible": "sticky-immersive"
     },
     "android": {
       "versionCode": 2,
@@ -47,10 +48,14 @@
     "extra": {
       "eas": {
         "projectId": "00000000-0000-0000-0000-000000000000"
-      }
+      },
+      "apiUrl": "https://example.invalid/api/",
+      "socketUrl": "https://example.invalid/api/",
+      "easProjectId": "00000000-0000-0000-0000-000000000000"
     },
     "plugins": [
       "expo-localization"
-    ]
+    ],
+    "owner": "rooni"
   }
 }

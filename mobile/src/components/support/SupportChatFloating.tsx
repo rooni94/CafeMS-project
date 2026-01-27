@@ -33,6 +33,7 @@ type GuestProfile = {
 };
 
 const GUEST_STORAGE_KEY = "cafe_support_guest";
+const MAX_MESSAGES = 200;
 
 const getWsBaseUrl = () => {
   const apiUrl = ENV.apiUrl || "";
@@ -57,6 +58,15 @@ const b64ToUri = async (base64?: string | null, mime = "audio/mpeg") => {
 
   await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: "base64" });
   return fileUri;
+};
+
+const deleteTempFile = async (uri?: string | null) => {
+  if (!uri) return;
+  try {
+    await (FileSystem as any).deleteAsync(uri, { idempotent: true });
+  } catch {
+    /* ignore */
+  }
 };
 
 const SupportChatFloating: React.FC = () => {
@@ -100,6 +110,7 @@ const SupportChatFloating: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const scrollRef = useRef<ScrollView | null>(null);
   const soundRef = useRef<Audio.Sound | null>(null);
+  const currentAudioFileRef = useRef<string | null>(null);
 
   const wsBase = useMemo(() => getWsBaseUrl(), []);
   const styles = useMemo(() => createStyles(isRTL), [isRTL]);
@@ -117,7 +128,8 @@ const SupportChatFloating: React.FC = () => {
     setMessages((prev) => {
       const seen = new Set(prev.map((m) => m.id));
       const fresh = incoming.filter((m) => !seen.has(m.id));
-      return fresh.length ? [...prev, ...fresh] : prev;
+      const merged = fresh.length ? [...prev, ...fresh] : prev;
+      return merged.length > MAX_MESSAGES ? merged.slice(-MAX_MESSAGES) : merged;
     });
   };
 
@@ -165,6 +177,8 @@ const SupportChatFloating: React.FC = () => {
 
   const stopBotAudio = async () => {
     isPlayingRef.current = false;
+    const previousFile = currentAudioFileRef.current;
+    currentAudioFileRef.current = null;
     if (soundRef.current) {
       try {
         await soundRef.current.unloadAsync();
@@ -173,6 +187,7 @@ const SupportChatFloating: React.FC = () => {
       }
       soundRef.current = null;
     }
+    await deleteTempFile(previousFile);
   };
 
   const playBotAudio = async (payload: any) => {
@@ -195,10 +210,12 @@ const SupportChatFloating: React.FC = () => {
       return;
     }
 
+    const fileUri = uri;
     try {
       await ensurePlaybackMode();
       await stopBotAudio();
 
+      currentAudioFileRef.current = fileUri;
       const { sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true });
       soundRef.current = sound;
       isPlayingRef.current = true;
@@ -223,6 +240,10 @@ const SupportChatFloating: React.FC = () => {
         if ((status as any).didJustFinish) {
           sound.unloadAsync().catch(() => {});
           soundRef.current = null;
+          if (currentAudioFileRef.current === fileUri) {
+            currentAudioFileRef.current = null;
+            deleteTempFile(fileUri);
+          }
           maybeAutoRecord();
         }
       });
@@ -245,6 +266,10 @@ const SupportChatFloating: React.FC = () => {
             isPlayingRef.current = false;
             sound.unloadAsync().catch(() => {});
             soundRef.current = null;
+            if (currentAudioFileRef.current === fileUri) {
+              currentAudioFileRef.current = null;
+              deleteTempFile(fileUri);
+            }
             if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) {
               rearmRecordingIfIdle(450);
             }
@@ -256,6 +281,10 @@ const SupportChatFloating: React.FC = () => {
     } catch (e) {
       isPlayingRef.current = false;
       soundRef.current = null;
+      if (currentAudioFileRef.current === fileUri) {
+        currentAudioFileRef.current = null;
+        await deleteTempFile(fileUri);
+      }
       if (voiceSessionRef.current && voiceOverlayRef.current && openRef.current) {
         rearmRecordingIfIdle(450);
       }

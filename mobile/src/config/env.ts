@@ -29,7 +29,9 @@ const normalizeBaseUrl = (url?: string | null) => {
   return url;
 };
 
-const fromConstants = getExtra('apiUrl') as string | undefined;
+const fromConstants =
+  (getExtra('apiUrl') as string | undefined) ??
+  (getExtra('API_URL') as string | undefined);
 const fromEnv = process.env.EXPO_PUBLIC_API_URL || process.env.API_URL;
 
 export const ENV = {

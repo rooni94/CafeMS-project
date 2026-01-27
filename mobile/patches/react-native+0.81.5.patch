@@ -1,0 +1,28 @@
+diff --git a/node_modules/react-native/Libraries/AppDelegate/RCTAppSetupUtils.mm b/node_modules/react-native/Libraries/AppDelegate/RCTAppSetupUtils.mm
+index 2ffbbd0..45b3714 100644
+--- a/node_modules/react-native/Libraries/AppDelegate/RCTAppSetupUtils.mm
++++ b/node_modules/react-native/Libraries/AppDelegate/RCTAppSetupUtils.mm
+@@ -106,12 +106,20 @@ id<RCTTurboModule> RCTAppSetupDefaultModuleFromClass(Class moduleClass, id<RCTDe
+         initWithHandlersProvider:^NSArray<id<RCTURLRequestHandler>> *(RCTModuleRegistry *moduleRegistry) {
+           NSArray *URLRequestHandlerModules =
+               extractModuleConformingToProtocol(moduleRegistry, @protocol(RCTURLRequestHandler));
+-          return [@[
++          id blobModule = [moduleRegistry moduleForName:"BlobModule"];
++          NSMutableArray<id<RCTURLRequestHandler>> *handlers = [NSMutableArray arrayWithObjects:
+             [RCTHTTPRequestHandler new],
+             [RCTDataRequestHandler new],
+             [RCTFileRequestHandler new],
+-            [moduleRegistry moduleForName:"BlobModule"],
+-          ] arrayByAddingObjectsFromArray:URLRequestHandlerModules];
++            nil
++          ];
++          if (blobModule) {
++            [handlers addObject:blobModule];
++          }
++          if (URLRequestHandlerModules.count > 0) {
++            [handlers addObjectsFromArray:URLRequestHandlerModules];
++          }
++          return handlers;
+         }];
+   }
+   // No custom initializer here.
