@@ -58,7 +58,7 @@ const parseCategoryIdFromLink = (link?: string | null) => {
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const { copy, isRTL } = useI18n();
+  const { copy, t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { settings } = useStoreSettings();
   const { totalQuantity } = useCart();
@@ -249,6 +249,15 @@ const HomeScreen: React.FC = () => {
               </View>
             ))}
           </View>
+          <View style={styles.viewAllWrap}>
+            <Button
+              title={t("home.viewAll", isRTL ? "عرض الكل" : "View all")}
+              variant="secondary"
+              size="sm"
+              onPress={() => goToTab(navigation, "Menu")}
+              style={styles.viewAllButton}
+            />
+          </View>
         </DashboardSection>
       </ScrollView>
 
@@ -417,10 +426,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: isRTL ? "flex-start" : "space-between",
+    marginHorizontal: -8,
   },
   categoryItem: {
-    width: "49.5%",
-    marginBottom: 10,
+    width: "50%",
+    paddingHorizontal: 1,
+    marginBottom: 8,
   },
   categoryCard: {
     width: "100%",
@@ -475,6 +486,13 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     borderRadius: 20,
     padding: 4,
     marginTop: 8,
+  },
+  viewAllWrap: {
+    marginTop: 8,
+    alignItems: "center",
+  },
+  viewAllButton: {
+    minWidth: 160,
   },
 });
 
