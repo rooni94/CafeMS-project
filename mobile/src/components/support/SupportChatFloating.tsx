@@ -1013,7 +1013,7 @@ const createStyles = (isRTL: boolean) =>
     fab: {
       position: "absolute",
       bottom: 70,
-      end: 16,
+      start: 16,
       width: 52,
       height: 52,
       borderRadius: 26,
@@ -1036,7 +1036,7 @@ const createStyles = (isRTL: boolean) =>
     },
     panelWrap: {
       position: "absolute",
-      end: 16,
+      start: 16,
     },
     panel: {
       width: 320,
