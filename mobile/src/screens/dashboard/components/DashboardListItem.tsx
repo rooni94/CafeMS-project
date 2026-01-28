@@ -53,7 +53,7 @@ const DashboardListItem: React.FC<Props> = ({ title, subtitle, icon, onPress, ri
 const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     row: {
-      flexDirection: isRTL ? "row" : "row-reverse",
+      flexDirection: "row-reverse",
       alignItems: "center",
       gap: 8,
       paddingVertical: 9,

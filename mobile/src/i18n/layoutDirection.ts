@@ -13,13 +13,13 @@ export const applyLayoutDirection = (locale: string | null | undefined, options?
   const shouldRTL = resolvedLocale === "ar";
   const previousRTL = I18nManager.isRTL;
 
-  // Always allow RTL so swapping isn't disabled when returning to LTR.
+  // Allow RTL but avoid auto-swapping left/right since styles handle it explicitly.
   I18nManager.allowRTL(true);
   I18nManager.forceRTL(shouldRTL);
-  I18nManager.swapLeftAndRightInRTL(true);
+  I18nManager.swapLeftAndRightInRTL(false);
   // Keep JS-side flags in sync to allow style preprocessors to pick the intended direction before reload.
   (I18nManager as any).isRTL = shouldRTL;
-  (I18nManager as any).doLeftAndRightSwapInRTL = true;
+  (I18nManager as any).doLeftAndRightSwapInRTL = false;
 
   const direction = shouldRTL ? "rtl" : "ltr";
   const textAlign = shouldRTL ? "right" : "left";

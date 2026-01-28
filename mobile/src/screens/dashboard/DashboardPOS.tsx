@@ -862,7 +862,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       gap: 4,
     },
     productMeta: {
-      flexDirection: isRTL ? "row-reverse" : "row",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
       flexWrap: "wrap",

@@ -203,7 +203,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     brandRow: {
       width: "100%",
-      flexDirection: isRTL ? "row-reverse" : "row",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,
@@ -238,7 +238,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       alignItems: "center",
     },
     rememberRow: {
-      flexDirection: isRTL ? "row-reverse" : "row",
+      flexDirection: "row",
       alignItems: "center",
       gap: 8,
       paddingVertical: 4,

@@ -84,7 +84,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       borderRadius: 16,
       paddingHorizontal: 12,
       paddingVertical: 12,
-      flexDirection: isRTL ? "row-reverse" : "row",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       gap: 10,

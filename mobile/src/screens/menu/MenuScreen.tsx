@@ -250,7 +250,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       gap: 6,
     },
     topBar: {
-      flexDirection: isRTL ? "row-reverse" : "row",
+      flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
       marginBottom: 2,
@@ -284,7 +284,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       writingDirection: isRTL ? "rtl" : "ltr",
     },
     categoryRow: {
-      flexDirection: isRTL ? "row-reverse" : "row",
+      flexDirection: "row",
       gap: 12,
       paddingHorizontal: 2,
     },

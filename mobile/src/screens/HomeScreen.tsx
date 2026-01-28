@@ -270,7 +270,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     borderRadius: 22,
   },
   headerRow: {
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
@@ -414,7 +414,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     backgroundColor: "#f59e0b",
   },
   categoryGrid: {
-    flexDirection: isRTL ? "row-reverse" : "row",
+    flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: isRTL ? "flex-start" : "space-between",
   },

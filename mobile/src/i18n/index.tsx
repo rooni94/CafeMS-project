@@ -1,8 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, useEffect } from "react";
-import { DevSettings } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
-import * as Updates from "expo-updates";
 import { copy as copyAr } from "../config/copy";
 import { copyEn } from "../config/copy.en";
 import { strings } from "./strings";
@@ -43,25 +41,8 @@ const getNestedValue = (source: unknown, key: string): string | undefined => {
 };
 
 const ensureRTL = async (nextLocale: Locale) => {
-  const { shouldReload } = applyLayoutDirection(nextLocale, { log: __DEV__ });
-
-  if (!shouldReload) return;
-
-  // Avoid reload loops in Expo Go/dev; layout direction is already forced in JS.
-  if (__DEV__) {
-    console.log("[rtl] skip reload in dev/Expo Go");
-    return;
-  }
-
-  try {
-    if (Updates?.reloadAsync) {
-      await Updates.reloadAsync();
-    } else if (DevSettings.reload) {
-      DevSettings.reload();
-    }
-  } catch (error) {
-    console.warn("rtl reload failed", error);
-  }
+  // Keep direction changes JS-driven to avoid iOS TestFlight reload crashes.
+  applyLayoutDirection(nextLocale, { log: __DEV__ });
 };
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
