@@ -3,10 +3,10 @@ import { Card } from "../../ui/Card";
 import { Link } from "react-router-dom";
 
 const shortcuts = [
-  { to: "/dashboard/accounting/journal", title: "قيد يدوي سريع", subtitle: "أضف قيود اليومية" },
-  { to: "/dashboard/accounting/invoices", title: "فاتورة جديدة", subtitle: "إنشاء/مراجعة الفواتير" },
-  { to: "/dashboard/accounting/expenses", title: "تسجيل مصروف", subtitle: "حفظ إيصال أو مصروف تشغيلي" },
-  { to: "/dashboard/accounting/payments", title: "مطابقة بنك", subtitle: "مراجعة الحركات البنكية" },
+  { to: "/accounting/journal", title: "قيد يدوي سريع", subtitle: "أضف قيود اليومية" },
+  { to: "/accounting/invoices", title: "فاتورة جديدة", subtitle: "إنشاء/مراجعة الفواتير" },
+  { to: "/accounting/expenses", title: "تسجيل مصروف", subtitle: "حفظ إيصال أو مصروف تشغيلي" },
+  { to: "/accounting/payments", title: "مطابقة بنك", subtitle: "مراجعة الحركات البنكية" },
 ];
 
 const FinancialWidgets: React.FC = () => {

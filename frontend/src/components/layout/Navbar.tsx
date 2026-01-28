@@ -162,6 +162,8 @@ export const Navbar: React.FC = () => {
     }`;
 
   const showEmployeeNav = isEmployeeRole || canManageOrders || canUseCashier || canManageSupport;
+  const showHRLink = !!user && canAccessHR;
+  const showAccountingLink = !!user && canAccessAccounting;
 
   const CartToggle: FC<{ showLabel?: boolean; compact?: boolean }> = ({
     showLabel = false,
@@ -450,7 +452,7 @@ export const Navbar: React.FC = () => {
               </Link>
             )}
 
-            {canAccessHR && (
+            {showHRLink && (
               <Link
                 to="/dashboard/hr"
                 className={navLinkClass(
@@ -461,7 +463,7 @@ export const Navbar: React.FC = () => {
               </Link>
             )}
 
-            {canAccessAccounting && (
+            {showAccountingLink && (
               <Link
                 to="/accounting"
                 className={navLinkClass(location.pathname.startsWith("/accounting"))}
@@ -605,7 +607,7 @@ export const Navbar: React.FC = () => {
                   </Link>
                 )}
 
-                {canAccessHR && (
+                {showHRLink && (
                   <Link
                     to="/dashboard/hr"
                     onClick={() => setMobileOpen(false)}
@@ -617,7 +619,7 @@ export const Navbar: React.FC = () => {
                   </Link>
                 )}
 
-                {canAccessAccounting && (
+                {showAccountingLink && (
                   <Link
                     to="/accounting"
                     onClick={() => setMobileOpen(false)}
