@@ -173,6 +173,8 @@ def _decode_to_pcm(
 
         if ct in ("audio/mp4", "video/mp4", "audio/m4a", "audio/x-m4a"):
             guessed.append("mp4")
+        if ct in ("audio/3gpp", "video/3gpp", "audio/3gpp2", "video/3gpp2"):
+            guessed.append("3gp")
         if ct in ("audio/webm", "video/webm"):
             guessed.append("webm")
         if ct in ("audio/ogg", "audio/opus"):
@@ -183,9 +185,13 @@ def _decode_to_pcm(
             guessed.append("mp3")
         if ct in ("audio/aac",):
             guessed.append("aac")
+        if ct in ("audio/amr", "audio/amr-wb", "audio/x-amr"):
+            guessed.append("amr")
 
         if name.endswith(".m4a") or name.endswith(".mp4"):
             guessed.append("mp4")
+        if name.endswith(".3gp") or name.endswith(".3gpp") or name.endswith(".3gpp2"):
+            guessed.append("3gp")
         if name.endswith(".webm"):
             guessed.append("webm")
         if name.endswith(".ogg") or name.endswith(".opus"):
@@ -196,6 +202,8 @@ def _decode_to_pcm(
             guessed.append("mp3")
         if name.endswith(".aac"):
             guessed.append("aac")
+        if name.endswith(".amr"):
+            guessed.append("amr")
 
         # إزالة التكرار مع الحفاظ على الترتيب
         seen = set()

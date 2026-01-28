@@ -472,18 +472,32 @@ const SupportChatFloating: React.FC = () => {
 
       await ensureRecordingMode();
 
-      const recordingOptions = {
-        ...(Audio as any).RECORDING_OPTIONS_PRESET_HIGH_QUALITY,
+      const recordingOptions: Audio.RecordingOptions = {
         android: {
-          ...((Audio as any).RECORDING_OPTIONS_PRESET_HIGH_QUALITY?.android || {}),
           extension: ".m4a",
+          outputFormat: (Audio as any).AndroidOutputFormat.MPEG_4,
+          audioEncoder: (Audio as any).AndroidAudioEncoder.AAC,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 64000,
         },
         ios: {
-          ...((Audio as any).RECORDING_OPTIONS_PRESET_HIGH_QUALITY?.ios || {}),
           extension: ".m4a",
+          outputFormat: (Audio as any).IOSOutputFormat.MPEG4AAC,
+          audioQuality: (Audio as any).IOSAudioQuality.MEDIUM,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 64000,
+          linearPCMBitDepth: 16,
+          linearPCMIsBigEndian: false,
+          linearPCMIsFloat: false,
+        },
+        web: {
+          mimeType: "audio/webm",
+          bitsPerSecond: 64000,
         },
         isMeteringEnabled: true,
-      } as Audio.RecordingOptions;
+      };
 
       const { recording: rec } = await Audio.Recording.createAsync(recordingOptions, (status) => {
         if (!status || !status.canRecord) return;
@@ -603,7 +617,7 @@ const SupportChatFloating: React.FC = () => {
         {
           uri: fixedUri,
           name: `voice-${Date.now()}.m4a`,
-          type: Platform.OS === "ios" ? "audio/m4a" : "audio/mp4",
+          type: "audio/m4a",
         } as any,
       );
 
