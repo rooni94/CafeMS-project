@@ -199,7 +199,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     headerContent: {
       gap: 8,
-      alignItems: "flex-end",
+      alignItems: "flex-start",
     },
     brandRow: {
       width: "100%",

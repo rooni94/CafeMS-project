@@ -48,7 +48,7 @@ const CartScreen: React.FC = () => {
                     <Text style={styles.fallbackText}>{t("product.noImage", "لا توجد صورة")}</Text>
                   </View>
                 )}
-                <View style={{ flex: 1, gap: 4, alignItems: "flex-end" }}>
+                <View style={{ flex: 1, gap: 4, alignItems: "flex-start" }}>
                   <Text style={styles.cartName}>{item.name}</Text>
                   {item.addons && item.addons.length > 0 ? (
                     <Text style={styles.cartAddons}>+ {item.addons.map((addon) => addon.name).join("? ")}</Text>

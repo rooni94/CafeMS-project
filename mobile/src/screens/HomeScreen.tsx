@@ -277,7 +277,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   },
   brandBlock: {
     flex: 1,
-    alignItems: isRTL ? "flex-end" : "flex-start",
+    alignItems: "flex-start",
     gap: 4,
   },
   brandTitle: {
@@ -341,10 +341,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   heroOverlay: {
     padding: 14,
     gap: 10,
-    alignItems: isRTL ? "flex-end" : "flex-start",
+    alignItems: "flex-start",
   },
   heroGlass: {
-    alignSelf: isRTL ? "flex-end" : "flex-start",
+    alignSelf: "flex-start",
     maxWidth: "78%",
     backgroundColor: "rgba(255, 255, 255, 0.72)",
     borderRadius: 18,
@@ -359,7 +359,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#f59e0b",
-    alignSelf: isRTL ? "flex-end" : "flex-start",
+    alignSelf: "flex-start",
   },
   heroTagText: {
     color: "#111827",
@@ -453,7 +453,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     justifyContent: "space-between",
   },
   categoryBadge: {
-    alignSelf: isRTL ? "flex-end" : "flex-start",
+    alignSelf: "flex-start",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
@@ -470,7 +470,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     color: theme.palette.text,
   },
   categoryAction: {
-    alignSelf: isRTL ? "flex-start" : "flex-end",
+    alignSelf: "flex-end",
     backgroundColor: "rgba(255,255,255,0.9)",
     borderRadius: 20,
     padding: 4,

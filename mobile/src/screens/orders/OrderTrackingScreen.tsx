@@ -375,7 +375,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     infoBody: {
       flex: 1,
-      alignItems: isRTL ? "flex-end" : "flex-start",
+      alignItems: "flex-start",
       gap: 4,
     },
     infoLabel: {
@@ -402,7 +402,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     stageText: {
       flex: 1,
-      alignItems: isRTL ? "flex-end" : "flex-start",
+      alignItems: "flex-start",
       gap: 2,
     },
     stageIcon: {

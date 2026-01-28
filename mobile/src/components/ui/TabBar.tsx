@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { useTheme } from "../../theme";
@@ -24,6 +24,7 @@ const TabBar: React.FC<BottomTabBarProps> = ({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   return (
     <View
       style={[
@@ -36,7 +37,6 @@ const TabBar: React.FC<BottomTabBarProps> = ({
       <View
         style={[
           styles.container,
-          isRTL ? styles.containerRtl : null,
           {
             backgroundColor: theme.palette.surface,
             borderColor: theme.palette.border,
@@ -142,7 +142,8 @@ const TabBar: React.FC<BottomTabBarProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (_isRTL: boolean) =>
+  StyleSheet.create({
   outer: {
     paddingTop: 6,
     marginTop: -46,
@@ -165,9 +166,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
-  },
-  containerRtl: {
-    flexDirection: "row-reverse",
   },
   tab: {
     borderRadius: 22,
@@ -248,6 +246,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 3,
   },
-});
+  });
 
 export default TabBar;

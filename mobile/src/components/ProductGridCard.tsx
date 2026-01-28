@@ -122,7 +122,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     addBtn: {
       position: "absolute",
       bottom: 8,
-      ...(isRTL ? { right: 8 } : { left: 8 }),
+      start: 8,
       width: 28,
       height: 28,
       borderRadius: 14,

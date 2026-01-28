@@ -77,7 +77,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     body: {
       flex: 1,
-      alignItems: isRTL ? "flex-end" : "flex-start",
+      alignItems: "flex-start",
       gap: 3,
     },
     title: {

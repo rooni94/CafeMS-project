@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, useEffect } from "react";
+import { DevSettings } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import { copy as copyAr } from "../config/copy";
@@ -40,9 +41,13 @@ const getNestedValue = (source: unknown, key: string): string | undefined => {
   }, source as any);
 };
 
-const ensureRTL = async (nextLocale: Locale) => {
-  // Keep direction changes JS-driven to avoid iOS TestFlight reload crashes.
-  applyLayoutDirection(nextLocale, { log: __DEV__ });
+const applyLocaleDirection = (nextLocale: Locale) => {
+  const { shouldReload } = applyLayoutDirection(nextLocale, { log: __DEV__ });
+
+  // Reload only in dev to make RTL layout apply in Expo Go.
+  if (__DEV__ && shouldReload && DevSettings.reload) {
+    DevSettings.reload();
+  }
 };
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -56,8 +61,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const stored = await AsyncStorage.getItem(STORAGE_KEY);
         const initial = resolveLocale(stored || getSystemLocale());
         if (!mounted) return;
+        applyLocaleDirection(initial);
         setLocaleState(initial);
-        await ensureRTL(initial);
       } catch (error) {
         console.warn("language init failed", error);
       } finally {
@@ -73,13 +78,13 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const setLocale = useCallback(async (next: Locale) => {
     const resolved = resolveLocale(next);
+    applyLocaleDirection(resolved);
     setLocaleState(resolved);
     try {
       await AsyncStorage.setItem(STORAGE_KEY, resolved);
     } catch (error) {
       console.warn("language persist failed", error);
     }
-    await ensureRTL(resolved);
   }, []);
 
   const t = useCallback(

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList, ToastAndroid, Platform } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList, ToastAndroid, Platform, useWindowDimensions } from "react-native";
 import { Directions, FlingGestureHandler, State } from "react-native-gesture-handler";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -35,6 +35,10 @@ const MenuScreen: React.FC = () => {
   const { copy, t, isRTL } = useI18n();
   const initialCategory: number | null = route.params?.categoryId ?? null;
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
+  const { width } = useWindowDimensions();
+  const gridColumns = width >= 1200 ? 4 : width >= 900 ? 3 : 2;
+  const gridItemWidth =
+    gridColumns === 1 ? "100%" : `${Math.max(100 / gridColumns - 2, 22)}%`;
 
   const [activeCategory, setActiveCategory] = useState<number | null>(initialCategory);
   const [search, setSearch] = useState("");
@@ -205,21 +209,22 @@ const MenuScreen: React.FC = () => {
               <EmptyState title={copy.menu.emptyTitle} description={copy.menu.emptyDescription} />
             ) : (
               <Card style={styles.sectionCard}>
-                <FlatList
-                  data={filteredProducts}
-                  keyExtractor={(item) => String(item.id)}
-                  numColumns={2}
-                  scrollEnabled={false}
-                  contentContainerStyle={styles.gridList}
-                  columnWrapperStyle={styles.gridRow}
-                  renderItem={({ item: product }) => (
-                    <View style={styles.gridItem}>
-                      <ProductGridCard
-                        product={product}
-                        style={styles.productCard}
-                        onPress={() => navigation.navigate("ProductDetails", { productId: product.id })}
-                        onAdd={() => handleAddRequest(product)}
-                        priceColor={theme.palette.success}
+            <FlatList
+              data={filteredProducts}
+              keyExtractor={(item) => String(item.id)}
+              numColumns={gridColumns}
+              key={String(gridColumns)}
+              scrollEnabled={false}
+              contentContainerStyle={styles.gridList}
+              columnWrapperStyle={gridColumns > 1 ? styles.gridRow : undefined}
+              renderItem={({ item: product }) => (
+                <View style={[styles.gridItem, { width: gridItemWidth }]}>
+                  <ProductGridCard
+                    product={product}
+                    style={styles.productCard}
+                    onPress={() => navigation.navigate("ProductDetails", { productId: product.id })}
+                    onAdd={() => handleAddRequest(product)}
+                    priceColor={theme.palette.success}
                       />
                     </View>
                   )}
@@ -306,10 +311,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     gridRow: {
       flexDirection: "row",
       justifyContent: "space-between",
-      marginBottom: 4,
+      marginBottom: 8,
     },
     gridItem: {
-      width: "49.5%",
+      marginBottom: 4,
     },
     productCard: {},
     sectionCard: {

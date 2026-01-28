@@ -1,6 +1,6 @@
-import * as Localization from "expo-localization";
-import { applyLayoutDirection, normalizeLocale } from "./layoutDirection";
+import { I18nManager } from "react-native";
+import { applyLayoutDirection } from "./layoutDirection";
 
 // Apply an early direction so StyleSheet preprocessors and defaults are aligned before first render.
-const initialLocale = normalizeLocale(Localization.getLocales?.()[0]?.languageCode);
+const initialLocale = I18nManager.isRTL ? "ar" : "en";
 applyLayoutDirection(initialLocale, { log: __DEV__ });

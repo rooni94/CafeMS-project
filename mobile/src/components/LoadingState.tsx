@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { ActivityIndicator, Text, View, StyleSheet } from "react-native";
 import { useI18n } from "../i18n";
 
@@ -8,6 +8,7 @@ type LoadingStateProps = {
 
 const LoadingState: React.FC<LoadingStateProps> = ({ message }) => {
   const { t, isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   return (
     <View style={styles.container}>
       <ActivityIndicator color="#f59e0b" />
@@ -16,21 +17,22 @@ const LoadingState: React.FC<LoadingStateProps> = ({ message }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#fef3c7",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  text: {
-    color: "#92400e",
-    fontSize: 13,
-  },
-});
+const createStyles = (_isRTL: boolean) =>
+  StyleSheet.create({
+    container: {
+      padding: 16,
+      borderRadius: 16,
+      backgroundColor: "#fff",
+      borderWidth: 1,
+      borderColor: "#fef3c7",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    text: {
+      color: "#92400e",
+      fontSize: 13,
+    },
+  });
 
 export default LoadingState;

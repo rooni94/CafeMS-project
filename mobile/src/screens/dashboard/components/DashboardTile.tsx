@@ -68,7 +68,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     textWrap: {
       flex: 1,
-      alignItems: isRTL ? "flex-end" : "flex-start",
+      alignItems: "flex-start",
       gap: 4,
     },
     title: {

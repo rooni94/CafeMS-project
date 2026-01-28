@@ -82,7 +82,7 @@ const ResetPasswordScreen: React.FC = () => {
 const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     header: {
-      alignItems: "flex-end",
+      alignItems: "flex-start",
       marginBottom: 12,
       paddingHorizontal: 4,
       gap: 4,
@@ -106,7 +106,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     footer: {
       marginTop: 12,
-      alignItems: "flex-end",
+      alignItems: "flex-start",
     },
   });
 

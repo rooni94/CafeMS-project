@@ -1047,7 +1047,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
 
     detailLeft: {
 
-      alignItems: "flex-end",
+      alignItems: "flex-start",
 
       gap: 4,
 
@@ -1057,7 +1057,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
 
       flex: 1,
 
-      alignItems: "flex-end",
+      alignItems: "flex-start",
 
       gap: 4,
 

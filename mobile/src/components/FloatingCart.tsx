@@ -25,7 +25,7 @@ const FloatingCart: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    start: 20,
+    end: 20,
     top: 50,
     width: 52,
     height: 52,

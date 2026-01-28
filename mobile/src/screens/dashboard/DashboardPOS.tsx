@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, useWindowDimensions, FlatList } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -102,6 +102,10 @@ const DashboardPOS: React.FC = () => {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const isWide = width >= 980;
+  const productColumns = width >= 1200 ? 3 : width >= 720 ? 2 : 1;
+  const productCardWidth =
+    productColumns === 1 ? "100%" : `${Math.max(100 / productColumns - 2, 22)}%`;
+  const useProductGrid = productColumns > 1;
   const { t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
@@ -193,6 +197,7 @@ const DashboardPOS: React.FC = () => {
     if (!q) return list;
     return list.filter((p) => p.name.toLowerCase().includes(q));
   }, [categoryId, products, search]);
+  const productData = useMemo(() => filteredProducts.slice(0, visibleProducts), [filteredProducts, visibleProducts]);
 
   const addToCart = (p: ProductRow) => {
     const price = parseNumber(p.price);
@@ -400,7 +405,7 @@ const DashboardPOS: React.FC = () => {
                           updateTableStatus.mutate({ tableId: tbl.id, status: nextTableStatus(tbl.status) });
                         }}
                       >
-                        <View style={{ flex: 1, alignItems: "flex-end", gap: 4 }}>
+                        <View style={{ flex: 1, alignItems: "flex-start", gap: 4 }}>
                           <Text style={[styles.itemTitle, { color: theme.palette.text }]} numberOfLines={1}>
                             {tbl.label}
                           </Text>
@@ -456,8 +461,8 @@ const DashboardPOS: React.FC = () => {
             </Text>
           ) : (
             <>
-              <View style={styles.list}>
-                {filteredProducts.slice(0, visibleProducts).map((p) => {
+                <View style={[styles.list, useProductGrid ? styles.listGrid : null]}>
+                  {filteredProducts.slice(0, visibleProducts).map((p) => {
                   const stockNumber = parseNumber(p.stock);
                   const hasStock = p.stock == null ? null : stockNumber > 0;
                   const categoryName =
@@ -468,11 +473,14 @@ const DashboardPOS: React.FC = () => {
                         : undefined;
                   const inCartQty = cartLookup.get(p.id);
                   return (
-                    <Pressable
-                      key={p.id}
-                      style={[styles.productCard, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}
-                      onPress={() => addToCart(p)}
-                    >
+                      <Pressable
+                        key={p.id}
+                        style={[
+                          styles.productCard,
+                          { width: productCardWidth, borderColor: theme.palette.border, backgroundColor: theme.palette.surface },
+                        ]}
+                        onPress={() => addToCart(p)}
+                      >
                       <View style={styles.productInfo}>
                         <Text style={[styles.itemTitle, { color: theme.palette.text }]} numberOfLines={2}>
                           {p.name}
@@ -525,7 +533,7 @@ const DashboardPOS: React.FC = () => {
             <View style={styles.list}>
               {cart.map((it) => (
                 <View key={it.product_id} style={[styles.cartRow, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
-                  <View style={{ flex: 1, alignItems: "flex-end", gap: 4 }}>
+                  <View style={{ flex: 1, alignItems: "flex-start", gap: 4 }}>
                     <Text style={[styles.itemTitle, { color: theme.palette.text }]} numberOfLines={1}>
                       {it.name}
                     </Text>
@@ -754,7 +762,7 @@ const DashboardPOS: React.FC = () => {
             <View style={styles.list}>
               {inventory.low_stock.slice(0, 10).map((it) => (
                 <View key={it.id} style={[styles.inventoryRow, { borderColor: theme.palette.border, backgroundColor: theme.palette.surface }]}>
-                  <View style={{ flex: 1, alignItems: "flex-end", gap: 2 }}>
+                  <View style={{ flex: 1, alignItems: "flex-start", gap: 2 }}>
                     <Text style={[styles.itemTitle, { color: theme.palette.text }]} numberOfLines={1}>
                       {it.name}
                     </Text>
@@ -830,6 +838,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     list: {
       gap: 8,
     },
+    listGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "space-between",
+    },
     statsRow: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -846,7 +859,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       justifyContent: "space-between",
     },
     productCard: {
-      width: "100%",
       borderWidth: 1,
       borderRadius: 16,
       padding: 10,
@@ -855,10 +867,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       alignItems: "flex-start",
       justifyContent: "space-between",
       minHeight: 72,
+      marginBottom: 8,
     },
     productInfo: {
       flex: 1,
-      alignItems: isRTL ? "flex-end" : "flex-start",
+      alignItems: "flex-start",
       gap: 4,
     },
     productMeta: {

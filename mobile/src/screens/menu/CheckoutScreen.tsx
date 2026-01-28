@@ -333,7 +333,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     lineBody: {
       flex: 1,
-      alignItems: "flex-end",
+      alignItems: "flex-start",
       gap: 3,
     },
     itemName: {

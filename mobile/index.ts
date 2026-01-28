@@ -1,9 +1,9 @@
 import { registerRootComponent } from "expo";
-import * as Localization from "expo-localization";
+import { I18nManager } from "react-native";
 import App from "./App";
-import { applyLayoutDirection, normalizeLocale } from "./src/i18n/layoutDirection";
+import { applyLayoutDirection } from "./src/i18n/layoutDirection";
 
-const initialLocale = normalizeLocale(Localization.getLocales?.()[0]?.languageCode);
+const initialLocale = I18nManager.isRTL ? "ar" : "en";
 applyLayoutDirection(initialLocale, { log: __DEV__ });
 
 registerRootComponent(App);

@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Pressable, Text, StyleSheet } from "react-native";
 import { Category } from "../types";
 import { useTheme } from "../theme";
+import { useI18n } from "../i18n";
 
 type CategoryPillProps = {
   category: Category;
@@ -15,6 +16,8 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
   onPress,
 }) => {
   const theme = useTheme();
+  const { isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   return (
     <Pressable
       onPress={onPress}
@@ -42,20 +45,21 @@ const CategoryPill: React.FC<CategoryPillProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  pill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    marginEnd: 8,
-    marginBottom: 8,
-    flexDirection: "row",
-  },
-  text: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-});
+const createStyles = (_isRTL: boolean) =>
+  StyleSheet.create({
+    pill: {
+      borderRadius: 999,
+      borderWidth: 1,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+      marginEnd: 8,
+      marginBottom: 8,
+      flexDirection: "row",
+    },
+    text: {
+      fontSize: 12,
+      fontWeight: "600",
+    },
+  });
 
 export default CategoryPill;

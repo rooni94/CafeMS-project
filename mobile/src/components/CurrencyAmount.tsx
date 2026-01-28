@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleProp, StyleSheet, TextStyle, ViewStyle } from "react-native";
 import SaudiRiyalSymbol from "./SaudiRiyalSymbol";
+import { useI18n } from "../i18n";
 
 type Props = {
   value: number | string | null | undefined;
@@ -21,6 +22,8 @@ const CurrencyAmount: React.FC<Props> = ({
   textStyle,
   fallback = "-",
 }) => {
+  const { isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   const numeric = typeof value === "number" ? value : Number(value);
   const isValid = Number.isFinite(numeric);
   const formatted = isValid ? numeric.toFixed(precision) : fallback;
@@ -37,15 +40,16 @@ const CurrencyAmount: React.FC<Props> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  symbol: {
-    marginStart: 4,
-  },
-});
+const createStyles = (_isRTL: boolean) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    symbol: {
+      marginStart: 4,
+    },
+  });
 
 export default CurrencyAmount;
 

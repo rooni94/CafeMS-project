@@ -1,7 +1,8 @@
-import React, { ComponentProps, createContext, useContext } from "react";
+import React, { ComponentProps, createContext, useContext, useMemo } from "react";
 import { StyleSheet, StyleProp, ViewStyle, TextStyle } from "react-native";
 import { Button as PaperButton } from "react-native-paper";
 import { useTheme } from "../../theme";
+import { useI18n } from "../../i18n";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "link";
 type ButtonSize = "md" | "sm";
@@ -73,6 +74,8 @@ const Button: React.FC<ButtonProps> = ({
   ...rest
 }) => {
   const theme = useTheme();
+  const { isRTL } = useI18n();
+  const styles = useMemo(() => createStyles(isRTL), [isRTL]);
   const density = useContext(ButtonDensityContext);
   const resolvedSize: ButtonSize = size || (density === "compact" ? "sm" : "md");
 
@@ -138,58 +141,59 @@ const Button: React.FC<ButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
-  buttonBase: {
-    borderRadius: 14,
-  },
-  buttonMd: {
-    minHeight: 42,
-  },
-  buttonSm: {
-    minHeight: 32,
-  },
-  buttonLink: {
-    minHeight: 0,
-  },
-  contentBase: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  contentMd: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-  },
-  contentSm: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-  },
-  contentLink: {
-    paddingVertical: 4,
-    paddingHorizontal: 2,
-  },
-  labelBase: {
-    textAlign: "center",
-    letterSpacing: 0,
-    includeFontPadding: false,
-  },
-  labelMd: {
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: "700",
-  },
-  labelSm: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: "700",
-  },
-  elevated: {
-    shadowColor: "#000",
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-});
+const createStyles = (_isRTL: boolean) =>
+  StyleSheet.create({
+    buttonBase: {
+      borderRadius: 14,
+    },
+    buttonMd: {
+      minHeight: 42,
+    },
+    buttonSm: {
+      minHeight: 32,
+    },
+    buttonLink: {
+      minHeight: 0,
+    },
+    contentBase: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    contentMd: {
+      paddingVertical: 10,
+      paddingHorizontal: 18,
+    },
+    contentSm: {
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+    },
+    contentLink: {
+      paddingVertical: 4,
+      paddingHorizontal: 2,
+    },
+    labelBase: {
+      textAlign: "center",
+      letterSpacing: 0,
+      includeFontPadding: false,
+    },
+    labelMd: {
+      fontSize: 14,
+      lineHeight: 18,
+      fontWeight: "700",
+    },
+    labelSm: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: "700",
+    },
+    elevated: {
+      shadowColor: "#000",
+      shadowOpacity: 0.12,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 3,
+    },
+  });
 
 export default Button;
