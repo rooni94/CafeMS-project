@@ -232,7 +232,11 @@ const DashboardProducts: React.FC = () => {
       fetchData();
     } catch (error: any) {
       console.error(error);
-      alert("تعذر حذف المنتج.");
+      if (error?.response?.status === 409) {
+        alert("لا يمكن حذف هذا المنتج لأنه مرتبط بطلبات سابقة.");
+      } else {
+        alert("تعذر حذف المنتج.");
+      }
     }
   };
 
@@ -354,9 +358,19 @@ const DashboardProducts: React.FC = () => {
 
     setBulkLoading(true);
     try {
-      await Promise.all(
-        selectedProductIds.map((id) => api.delete(`products/items/${id}/`))
-      );
+      const res = await api.post("products/items/bulk-delete/", {
+        ids: selectedProductIds,
+      });
+      const { deleted, blocked, failed } = res.data || {};
+      if ((blocked && blocked.length) || (failed && failed.length)) {
+        const blockedMsg = blocked?.length
+          ? `محجوز/مرتبط بطلبات: ${blocked.length}`
+          : "";
+        const failedMsg = failed?.length ? `أخطاء: ${failed.length}` : "";
+        alert(
+          `تم حذف ${deleted?.length || 0} منتج. ${blockedMsg} ${failedMsg}`.trim()
+        );
+      }
       fetchData();
     } catch (error: any) {
       console.error(error);

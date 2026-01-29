@@ -2,6 +2,7 @@
 import json
 
 from django.db import transaction
+from django.db.models.deletion import ProtectedError
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -209,6 +210,70 @@ class ProductViewSet(viewsets.ModelViewSet):
               "updated": updated_count,
               "skipped": skipped_count,
               "errors": errors,
+          },
+          status=status.HTTP_200_OK,
+      )
+
+  def destroy(self, request, *args, **kwargs):
+      instance = self.get_object()
+      try:
+          self.perform_destroy(instance)
+      except ProtectedError:
+          return Response(
+              {
+                  "detail": "لا يمكن حذف المنتج لأنه مرتبط بطلبات سابقة.",
+                  "product_id": instance.id,
+              },
+              status=status.HTTP_409_CONFLICT,
+          )
+      return Response(status=status.HTTP_204_NO_CONTENT)
+
+  @action(detail=False, methods=["post"], url_path="bulk-delete")
+  def bulk_delete(self, request):
+      ids = request.data.get("ids") or request.data.get("products")
+      if not isinstance(ids, list):
+          return Response(
+              {"detail": "يرجى إرسال قائمة معرفات في الحقل ids."},
+              status=status.HTTP_400_BAD_REQUEST,
+          )
+
+      deleted = []
+      not_found = []
+      blocked = []
+      failed = []
+
+      for raw_id in ids:
+          try:
+              product_id = int(raw_id)
+          except (TypeError, ValueError):
+              failed.append({"id": raw_id, "error": "معرف غير صالح."})
+              continue
+
+          product = Product.objects.filter(pk=product_id).first()
+          if not product:
+              not_found.append(product_id)
+              continue
+
+          try:
+              product.delete()
+              deleted.append(product_id)
+          except ProtectedError:
+              blocked.append(
+                  {
+                      "id": product_id,
+                      "name": product.name,
+                      "error": "مرتبط بطلبات سابقة.",
+                  }
+              )
+          except Exception as exc:
+              failed.append({"id": product_id, "error": str(exc)})
+
+      return Response(
+          {
+              "deleted": deleted,
+              "not_found": not_found,
+              "blocked": blocked,
+              "failed": failed,
           },
           status=status.HTTP_200_OK,
       )
