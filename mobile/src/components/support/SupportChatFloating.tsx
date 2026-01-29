@@ -93,6 +93,7 @@ const SupportChatFloating: React.FC = () => {
   const silenceSinceRef = useRef<number | null>(null);
   const activeRecordingRef = useRef<Audio.Recording | null>(null);
   const isPlayingRef = useRef<boolean>(false);
+  const startInFlightRef = useRef<boolean>(false);
 
   // وضع المحادثة الصوتية المستمرة (push-to-talk أول مرة فقط)
   const voiceSessionRef = useRef<boolean>(false);
@@ -444,16 +445,19 @@ const SupportChatFloating: React.FC = () => {
       isPlayingRef.current = false;
     }
     if (!force && (recordingFlagRef.current || sendingAudioRef.current || isPlayingRef.current)) return;
-    if (recordingFlagRef.current || activeRecordingRef.current) return;
+    if (recordingFlagRef.current || activeRecordingRef.current || startInFlightRef.current) return;
+    startInFlightRef.current = true;
 
     if (!conversationId) {
       setGuestError(t("supportChat.startChatFirstVoice", "ابدأ المحادثة أولاً قبل التسجيل الصوتي."));
+      startInFlightRef.current = false;
       return;
     }
 
     // لو مستخدم مسجّل ومافي توكن: لا تحاول ترسل وتاخذ 401
     if (!isGuest && !accessToken) {
       setGuestError(t("supportChat.sessionExpired", "انتهت الجلسة. أعد تسجيل الدخول ثم حاول."));
+      startInFlightRef.current = false;
       return;
     }
 
@@ -466,6 +470,7 @@ const SupportChatFloating: React.FC = () => {
         const req = await Audio.requestPermissionsAsync();
         if (!req.granted) {
           setGuestError(t("supportChat.micPermission", "يرجى السماح بصلاحية المايكروفون."));
+          startInFlightRef.current = false;
           return;
         }
       }
@@ -488,9 +493,6 @@ const SupportChatFloating: React.FC = () => {
           sampleRate: 16000,
           numberOfChannels: 1,
           bitRate: 64000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
         },
         web: {
           mimeType: "audio/webm",
@@ -499,7 +501,7 @@ const SupportChatFloating: React.FC = () => {
         isMeteringEnabled: true,
       };
 
-      const { recording: rec } = await Audio.Recording.createAsync(recordingOptions, (status) => {
+      const onRecordStatus = (status: Audio.RecordingStatus) => {
         if (!status || !status.canRecord) return;
         const now = Date.now();
         const level = (status as any).metering;
@@ -516,7 +518,31 @@ const SupportChatFloating: React.FC = () => {
         } else {
           silenceSinceRef.current = null;
         }
-      });
+      };
+
+      let rec: Audio.Recording | null = null;
+      try {
+        rec = new Audio.Recording();
+        rec.setOnRecordingStatusUpdate(onRecordStatus);
+        await rec.prepareToRecordAsync(recordingOptions);
+        await rec.startAsync();
+      } catch (prepareErr) {
+        try {
+          if (rec) {
+            await rec.stopAndUnloadAsync();
+          }
+        } catch {
+          /* ignore */
+        }
+        const fallback = await Audio.Recording.createAsync(
+          (Audio as any).RECORDING_OPTIONS_PRESET_HIGH_QUALITY,
+          onRecordStatus,
+        );
+        rec = fallback.recording;
+      }
+      if (!rec) {
+        throw new Error("Recording not created");
+      }
 
       recordingFlagRef.current = true;
       activeRecordingRef.current = rec;
@@ -527,6 +553,13 @@ const SupportChatFloating: React.FC = () => {
       voiceTimeoutRef.current = setTimeout(() => stopVoiceRecording(true), 35000);
     } catch (err) {
       console.error("voice start failed", err);
+      try {
+        if (activeRecordingRef.current) {
+          await activeRecordingRef.current.stopAndUnloadAsync();
+        }
+      } catch {
+        /* ignore */
+      }
       setRecording(null);
       recordingFlagRef.current = false;
       activeRecordingRef.current = null;
@@ -535,6 +568,8 @@ const SupportChatFloating: React.FC = () => {
       setVoiceOverlay(false);
       voiceOverlayRef.current = false;
       voiceSessionRef.current = false;
+    } finally {
+      startInFlightRef.current = false;
     }
   };
 

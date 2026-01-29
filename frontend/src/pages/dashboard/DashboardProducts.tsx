@@ -53,6 +53,16 @@ const DashboardProducts: React.FC = () => {
   const [addonEditingId, setAddonEditingId] = useState<number | null>(null);
   const [addonsLoading, setAddonsLoading] = useState(false);
   const [addonsSaving, setAddonsSaving] = useState(false);
+  const [bulkImportFile, setBulkImportFile] = useState<File | null>(null);
+  const [bulkImportUpdateExisting, setBulkImportUpdateExisting] = useState(false);
+  const [bulkImportLoading, setBulkImportLoading] = useState(false);
+  const [bulkImportReport, setBulkImportReport] = useState<{
+    created: number;
+    updated: number;
+    skipped: number;
+    errors?: Array<{ row: number; name?: string; error: string }>;
+  } | null>(null);
+  const [bulkImportError, setBulkImportError] = useState<string | null>(null);
 
   // إدارة الفئات (إضافة تصنيف جديد)
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -286,6 +296,36 @@ const DashboardProducts: React.FC = () => {
     }
   };
 
+  const handleBulkImport = async () => {
+    if (!bulkImportFile) {
+      setBulkImportError("يرجى اختيار ملف JSON أولاً.");
+      return;
+    }
+
+    setBulkImportLoading(true);
+    setBulkImportError(null);
+    setBulkImportReport(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", bulkImportFile);
+      formData.append("update", bulkImportUpdateExisting ? "true" : "false");
+
+      const res = await api.post("products/items/bulk-upload/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setBulkImportReport(res.data);
+      setBulkImportFile(null);
+      fetchData();
+    } catch (error: any) {
+      console.error(error);
+      setBulkImportError("تعذر استيراد المنتجات من الملف.");
+    } finally {
+      setBulkImportLoading(false);
+    }
+  };
+
   // منطق التحديد / تحديد الكل للأطباق
   const allProductsSelected =
     products.length > 0 && selectedProductIds.length === products.length;
@@ -416,6 +456,75 @@ const DashboardProducts: React.FC = () => {
           <p className="text-[11px] text-gray-500">
             عدد الفئات الحالية: {categories.length}
           </p>
+        )}
+      </div>
+
+      {/* رفع منتجات دفعة واحدة (JSON) */}
+      <div className="bg-white rounded-xl shadow p-4 space-y-3 text-sm">
+        <h3 className="font-semibold text-sm mb-1">رفع منتجات دفعة واحدة</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="file"
+            accept=".json,application/json"
+            onChange={(e) =>
+              setBulkImportFile(e.target.files ? e.target.files[0] : null)
+            }
+          />
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={bulkImportUpdateExisting}
+              onChange={(e) => setBulkImportUpdateExisting(e.target.checked)}
+            />
+            تحديث المنتجات الموجودة بنفس الاسم
+          </label>
+          <button
+            type="button"
+            onClick={handleBulkImport}
+            disabled={bulkImportLoading}
+            className="px-4 py-2 rounded-full bg-amber-500 text-white text-xs hover:bg-amber-600 disabled:opacity-60"
+          >
+            {bulkImportLoading ? "جاري الرفع..." : "رفع الملف"}
+          </button>
+        </div>
+        <div className="text-[11px] text-gray-500 space-y-1">
+          <p>صيغة مقترحة: قائمة منتجات أو كائن يحتوي على مفتاح products.</p>
+          <pre className="bg-gray-50 border rounded-lg p-2 overflow-auto">
+{`[
+  {
+    "name": "كابتشينو",
+    "price": 12.5,
+    "stock": 20,
+    "available": true,
+    "category_name": "مشروبات ساخنة",
+    "subcategory_name": "قهوة",
+    "description": "قهوة مع رغوة حليب",
+    "track_inventory": true,
+    "minimum_stock": 5,
+    "image": ""
+  }
+]`}
+          </pre>
+        </div>
+        {bulkImportError && (
+          <div className="text-xs text-red-500">{bulkImportError}</div>
+        )}
+        {bulkImportReport && (
+          <div className="text-xs text-gray-600 space-y-1">
+            <div>
+              تم إنشاء {bulkImportReport.created}، تحديث {bulkImportReport.updated}،
+              تخطي {bulkImportReport.skipped}.
+            </div>
+            {bulkImportReport.errors && bulkImportReport.errors.length > 0 && (
+              <div className="max-h-32 overflow-auto border rounded-lg p-2 bg-amber-50">
+                {bulkImportReport.errors.map((err, idx) => (
+                  <div key={`${err.row}-${idx}`} className="text-[11px] text-amber-700">
+                    سطر {err.row}: {err.name ? `${err.name} - ` : ""}{err.error}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
