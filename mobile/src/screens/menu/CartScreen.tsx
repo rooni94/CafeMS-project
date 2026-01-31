@@ -190,9 +190,9 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       backgroundColor: theme.palette.surface,
     },
     image: {
-      width: 62,
-      height: 62,
-      borderRadius: 14,
+      width: 84,
+      aspectRatio: 4 / 3,
+      borderRadius: 18,
     },
     imageFallback: {
       backgroundColor: theme.palette.surfaceAlt,

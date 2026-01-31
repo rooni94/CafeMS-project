@@ -461,7 +461,10 @@ const AppNavigator = () => {
         <Stack.Screen
           name="ProductDetails"
           component={ProductDetailsScreen}
-          options={{ title: t("nav.productDetails") }}
+          options={{
+            title: t("nav.productDetails"),
+            headerTitleStyle: { fontSize: 16, fontWeight: "700" },
+          }}
         />
 
         <Stack.Screen name="Checkout" component={CheckoutScreen} options={{ title: t("nav.checkout", "إتمام الطلب") }} />

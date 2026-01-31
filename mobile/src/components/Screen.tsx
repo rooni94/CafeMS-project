@@ -1,5 +1,5 @@
 import React from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, Edge } from "react-native-safe-area-context";
 import { ScrollView, StyleProp, ViewStyle } from "react-native";
 import { useTheme } from "../theme";
 import { useI18n } from "../i18n";
@@ -9,9 +9,10 @@ type ScreenProps = {
   scrollable?: boolean;
   style?: StyleProp<ViewStyle>;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  edges?: Edge[];
 };
 
-const Screen: React.FC<ScreenProps> = ({ children, scrollable = true, style, contentContainerStyle }) => {
+const Screen: React.FC<ScreenProps> = ({ children, scrollable = true, style, contentContainerStyle, edges }) => {
   const theme = useTheme();
   const { isRTL } = useI18n();
   const direction: "rtl" | "ltr" = isRTL ? "rtl" : "ltr";
@@ -22,7 +23,7 @@ const Screen: React.FC<ScreenProps> = ({ children, scrollable = true, style, con
 
   if (scrollable) {
     return (
-      <SafeAreaView style={baseStyle}>
+      <SafeAreaView style={baseStyle} edges={edges}>
         <ScrollView
           contentContainerStyle={[{ ...containerDefaults, direction, ...writingDirectionStyle }, contentContainerStyle]}
           style={{ flex: 1 }}
@@ -34,7 +35,10 @@ const Screen: React.FC<ScreenProps> = ({ children, scrollable = true, style, con
   }
 
   return (
-    <SafeAreaView style={[{ flex: 1, ...containerDefaults, direction, ...writingDirectionStyle }, ...baseStyle]}>
+    <SafeAreaView
+      style={[{ flex: 1, ...containerDefaults, direction, ...writingDirectionStyle }, ...baseStyle]}
+      edges={edges}
+    >
       {children}
     </SafeAreaView>
   );

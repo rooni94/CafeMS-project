@@ -98,8 +98,12 @@ const ProductDetailsScreen: React.FC = () => {
   const availabilityTone = safeProduct.available ? theme.palette.success : theme.palette.danger;
 
   return (
-    <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <Screen scrollable={false} edges={["left", "right", "bottom"]} style={{ backgroundColor: theme.palette.background }}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="never"
+      >
         <Card style={styles.heroCard} contentStyle={styles.heroContent}>
           <View style={styles.imageWrap}>
             {safeProduct.image ? (
@@ -228,7 +232,7 @@ const ProductDetailsScreen: React.FC = () => {
         />
       </ScrollView>
 
-      <FloatingCart />
+      <FloatingCart style={styles.floatingCart} />
     </Screen>
   );
 };
@@ -237,7 +241,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
   StyleSheet.create({
     container: {
       paddingHorizontal: 8,
-      paddingTop: 10,
+      paddingTop: 0,
       paddingBottom: 24,
       gap: 10,
     },
@@ -254,15 +258,18 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     imageWrap: {
       width: "100%",
-      height: 240,
+      aspectRatio: 4 / 3,
       backgroundColor: theme.palette.surfaceAlt,
       overflow: "hidden",
       borderBottomWidth: 1,
       borderColor: theme.palette.border,
+      borderRadius: 18,
+      position: "relative",
     },
     image: {
       width: "100%",
       height: "100%",
+      borderRadius: 18,
     },
     imageFallback: {
       alignItems: "center",
@@ -271,6 +278,14 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     imageFallbackText: {
       color: theme.palette.muted,
       fontSize: 12,
+    },
+    floatingCart: {
+      position: "absolute",
+      top: 12,
+      end: 20,
+      width: 48,
+      height: 48,
+      borderRadius: 24,
     },
     heroBody: {
       padding: 14,

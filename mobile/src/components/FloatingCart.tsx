@@ -1,17 +1,24 @@
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View, StyleProp, ViewStyle } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useCart } from "../context/CartContext";
 import { useNavigation } from "@react-navigation/native";
 import { useTheme } from "../theme";
 
-const FloatingCart: React.FC = () => {
+type FloatingCartProps = {
+  style?: StyleProp<ViewStyle>;
+};
+
+const FloatingCart: React.FC<FloatingCartProps> = ({ style }) => {
   const { totalQuantity } = useCart();
   const navigation = useNavigation<any>();
   const theme = useTheme();
 
   return (
-    <Pressable style={[styles.container, { backgroundColor: theme.palette.surface }]} onPress={() => navigation.navigate("Cart")}>
+    <Pressable
+      style={[styles.container, { backgroundColor: theme.palette.surface }, style]}
+      onPress={() => navigation.navigate("Cart")}
+    >
       <Ionicons name="cart-outline" size={20} color="#f59e0b" />
       {totalQuantity > 0 && (
         <View style={[styles.badge, { backgroundColor: theme.palette.accent }]}>

@@ -82,7 +82,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     imageWrap: {
       width: "100%",
-      height: 112,
+      aspectRatio: 4 / 3,
       alignItems: "center",
       justifyContent: "center",
       marginBottom: 6,
