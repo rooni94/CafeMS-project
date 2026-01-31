@@ -30,7 +30,7 @@ const ProductGridCard: React.FC<Props> = ({ product, style, onPress, onAdd, pric
     >
       <View style={styles.imageWrap}>
         {product.image ? (
-          <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain" />
+          <Image source={{ uri: product.image }} style={styles.image} resizeMode="cover" />
         ) : (
           <View style={styles.imageFallback}>
             <Text style={styles.imageFallbackText}>{t("product.noImage", "\u0644\u0627 \u062a\u0648\u062c\u062f \u0635\u0648\u0631\u0629")}</Text>
@@ -70,7 +70,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       width: "100%",
       backgroundColor: theme.palette.surface,
       borderRadius: 24,
-      padding: 8,
+      padding: 6,
       alignItems: "center",
       position: "relative",
       shadowColor: "#000",
@@ -82,14 +82,18 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     imageWrap: {
       width: "100%",
-      height: 106,
+      height: 112,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 4,
+      marginBottom: 6,
+      borderRadius: 18,
+      overflow: "hidden",
+      backgroundColor: theme.palette.surfaceAlt,
     },
     image: {
-      width: "85%",
+      width: "100%",
       height: "100%",
+      borderRadius: 18,
     },
     imageFallback: {
       width: "100%",
