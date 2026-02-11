@@ -11,7 +11,7 @@ import { useCart } from "../../context/CartContext";
 import { api, parseApiError } from "../../services/api";
 import { ENV } from "../../config/env";
 import { useTheme } from "../../theme";
-import { Address, DeliveryMode, PaymentMethod } from "../../types";
+import { Address, DeliveryMode } from "../../types";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import DashboardTile from "../dashboard/components/DashboardTile";
@@ -26,7 +26,7 @@ const CheckoutScreen: React.FC = () => {
   const { items, totalPrice, clearCart, removeItem } = useCart();
 
   const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>("pickup");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online">("cash");
 
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [addressId, setAddressId] = useState<number | "custom">("custom");
@@ -67,10 +67,9 @@ const CheckoutScreen: React.FC = () => {
       ? customAddress.trim()
       : addresses.find((addr) => addr.id === addressId)?.details || "";
 
-  const paymentLabel = (method: PaymentMethod) => {
+  const paymentLabel = (method: "cash" | "online") => {
     if (method === "cash") return t("checkout.paymentCash", "دفع نقدي عند الاستلام");
-    if (method === "card") return t("checkout.paymentCard", "بطاقة (جهاز نقاط البيع)");
-    return t("checkout.paymentWallet", "دفع إلكتروني (Stripe)");
+    return t("checkout.paymentOnline", "دفع إلكتروني (بطاقات / Apple Pay / Google Pay)");
   };
 
   const frontendBaseUrl = useMemo(() => {
@@ -120,12 +119,15 @@ const CheckoutScreen: React.FC = () => {
     setSubmitting(true);
     setError(null);
     try {
-      const normalizedPaymentMethod =
-        paymentMethod === "wallet"
-          ? "online"
-          : paymentMethod === "card"
-          ? "card_pos"
-          : "cash";
+      const normalizedPaymentMethod = paymentMethod;
+
+      if (normalizedPaymentMethod === "online") {
+        const statusRes = await api.get("orders/stripe/status/");
+        const backendConfigured = Boolean(statusRes.data?.configured);
+        if (!backendConfigured) {
+          throw new Error("الدفع الإلكتروني غير مفعّل حالياً على الخادم.");
+        }
+      }
 
       const payload = {
         order_type: deliveryMode === "pickup" ? "takeaway" : "delivery",
@@ -160,11 +162,11 @@ const CheckoutScreen: React.FC = () => {
           throw new Error("تعذر إنشاء جلسة الدفع.");
         }
 
-        clearCart();
         navigation.navigate("OrderTracking", { orderId });
         await Linking.openURL(checkoutUrl);
+        clearCart();
         Alert.alert(
-          "التحويل إلى Stripe",
+          "التحويل إلى بوابة الدفع",
           "تم فتح بوابة الدفع الآمنة. بعد إنهاء الدفع ارجع للتطبيق لمتابعة حالة الطلب."
         );
         return;
@@ -339,11 +341,10 @@ const CheckoutScreen: React.FC = () => {
         <Select
           label={t("checkout.paymentTitle", "طريقة الدفع")}
           value={paymentMethod}
-          onChange={(v) => setPaymentMethod(v as PaymentMethod)}
+          onChange={(v) => setPaymentMethod(v as "cash" | "online")}
           options={[
             { value: "cash", label: paymentLabel("cash") },
-            { value: "card", label: paymentLabel("card") },
-            { value: "wallet", label: paymentLabel("wallet") },
+            { value: "online", label: paymentLabel("online") },
           ]}
         />
       </DashboardSection>

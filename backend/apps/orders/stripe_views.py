@@ -7,7 +7,7 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import UserRateThrottle
 
 from apps.orders.models import Order
@@ -313,6 +313,18 @@ def _handle_checkout_session_event(session, payment_ok):
     else:
         _sync_order_payment_state(order, "failed")
         _upsert_payment_transaction(order, session, PaymentTransaction.Status.FAILED)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def stripe_checkout_status(request):
+    publishable_key = getattr(settings, "STRIPE_PUBLISHABLE_KEY", "") or ""
+    return JsonResponse(
+        {
+            "configured": bool(getattr(settings, "STRIPE_SECRET_KEY", "")),
+            "publishable_key_configured": bool(publishable_key),
+        }
+    )
 
 
 @api_view(["POST"])

@@ -36,9 +36,9 @@ const Checkout: React.FC = () => {
   >("custom");
   const [addressesLoading, setAddressesLoading] = useState(false);
   const [addressesErr, setAddressesErr] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<
-    "cash" | "card" | "wallet"
-  >("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online">(
+    "cash"
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderSuccess, setOrderSuccess] = useState<OrderSuccessState | null>(
@@ -189,12 +189,18 @@ const Checkout: React.FC = () => {
     setSubmitting(true);
 
     try {
-      const normalizedPaymentMethod =
-        paymentMethod === "wallet"
-          ? "online"
-          : paymentMethod === "card"
-          ? "card_pos"
-          : "cash";
+      const normalizedPaymentMethod = paymentMethod;
+
+      if (normalizedPaymentMethod === "online") {
+        const statusRes = await api.get("orders/stripe/status/");
+        const backendConfigured = Boolean(statusRes.data?.configured);
+        if (!backendConfigured) {
+          throw new Error("الدفع الإلكتروني غير مفعّل حالياً على الخادم.");
+        }
+        if (!stripePublishableKey) {
+          throw new Error("الدفع الإلكتروني غير مفعّل محلياً. أضف مفتاح النشر ثم أعد المحاولة.");
+        }
+      }
 
       const payload = {
         order_type: deliveryType === "pickup" ? "takeaway" : "delivery",
@@ -214,8 +220,6 @@ const Checkout: React.FC = () => {
       const createdOrder = res.data;
 
       if (normalizedPaymentMethod === "online") {
-        clearCart();
-
         const frontendBase = (
           import.meta.env.VITE_FRONTEND_URL || window.location.origin
         ).replace(/\/$/, "");
@@ -232,6 +236,7 @@ const Checkout: React.FC = () => {
         if (stripePromise && sessionId) {
           const stripe = await stripePromise;
           if (stripe) {
+            clearCart();
             const { error: redirectError } = await stripe.redirectToCheckout({
               sessionId,
             });
@@ -245,6 +250,7 @@ const Checkout: React.FC = () => {
         }
 
         if (checkoutUrl) {
+          clearCart();
           window.location.assign(checkoutUrl);
           return;
         }
@@ -477,13 +483,14 @@ const Checkout: React.FC = () => {
             value={paymentMethod}
             onChange={(e) =>
               setPaymentMethod(
-                e.target.value as "cash" | "card" | "wallet"
+                e.target.value as "cash" | "online"
               )
             }
           >
             <option value="cash">دفع نقدي عند الاستلام</option>
-            <option value="card">بطاقة (جهاز POS)</option>
-            <option value="wallet">دفع إلكتروني (Stripe)</option>
+            <option value="online">
+              دفع إلكتروني (بطاقات / Apple Pay / Google Pay)
+            </option>
           </select>
         </div>
 
