@@ -4,11 +4,15 @@ import { useTheme } from "../../theme";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import { useI18n } from "../../i18n";
+import { useStoreSettings } from "../../context/StoreSettingsContext";
+import { normalizeBrandName } from "../../utils/text";
 
 const PrivacyScreen: React.FC = () => {
   const theme = useTheme();
   const { t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
+  const { settings } = useStoreSettings();
+  const storeName = normalizeBrandName((settings as any)?.store_name, "لاڤـا كافيـه");
 
   const Bullet = ({ children }: { children: string }) => (
     <View style={styles.bulletRow}>
@@ -31,7 +35,7 @@ const PrivacyScreen: React.FC = () => {
         <Paragraph>
           {t(
             "privacy.intro",
-            "في CafeMS Demo نحترم خصوصيتك ونعامل بياناتك الشخصية بسرية تامة. تهدف هذه السياسة إلى توضيح كيفية جمع واستخدام وحماية معلوماتك عند استخدامك لموقعنا أو تطبيقنا."
+            `في ${storeName} نحترم خصوصيتك ونعامل بياناتك الشخصية بسرية تامة. تهدف هذه السياسة إلى توضيح كيفية جمع واستخدام وحماية معلوماتك عند استخدامك لموقعنا أو تطبيقنا.`
           )}
         </Paragraph>
 

@@ -12,6 +12,7 @@ from .models import Address, RolePermission, UserActivity
 from django.utils import timezone
 
 from .phone import is_plausible_e164, normalize_phone
+from apps.store.utils import get_store_name
 
 
 User = get_user_model()
@@ -141,14 +142,15 @@ class RegisterSerializer(serializers.ModelSerializer):
                 f"/verify-email?uid={uidb64}&token={token}"
             )
 
-            subject = "تفعيل حسابك – CafeMS Demo"
+            store_name = get_store_name()
+            subject = f"تفعيل حسابك – {store_name}"
             message = (
                 f"مرحباً {user.username},\n\n"
-                "شكراً لتسجيلك في CafeMS Demo.\n"
+                f"شكراً لتسجيلك في {store_name}.\n"
                 "لإكمال عملية التسجيل وتفعيل حسابك، الرجاء الضغط على الرابط التالي:\n\n"
                 f"{verify_url}\n\n"
                 "إذا لم تقم بالتسجيل في موقعنا، يمكنك تجاهل هذه الرسالة.\n\n"
-                "مع تحيات فريق CafeMS Demo."
+                f"مع تحيات فريق {store_name}."
             )
             safe_send_mail(subject, message, [user.email])
 

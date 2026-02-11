@@ -137,6 +137,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { settings } = useStoreSettings();
+  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -183,10 +184,10 @@ const Home: React.FC = () => {
   };
 
   const missionTitle =
-    settings?.about_title?.trim() || "رسالتنا في CafeMS Demo";
+    settings?.about_title?.trim() || `رسالتنا في ${storeName}`;
   const missionTagline =
     settings?.about_subtitle?.trim() ||
-    "نمزج بين الوصفات الأصلية ولمسات الطهاة المعاصرة لنصنع لحظة ممتعة لكل ضيف.";
+    "نمزج بين شغف القهوة ولمساتنا الخاصة لنصنع لحظة ممتعة في كل كوب.";
   const missionParagraphs =
     settings?.about_description?.trim()
       ? settings.about_description
@@ -194,13 +195,13 @@ const Home: React.FC = () => {
           .map((paragraph: string) => paragraph.trim())
           .filter((paragraph) => paragraph.length > 0)
       : [
-          "رسالتنا بسيطة: نجهز وجبات ومشروبات طازجة تمنح عملاءنا لحظة استراحة حقيقية وسط إيقاع اليوم السريع. نعتني بأدق التفاصيل بدءاً من تنسيق الطاولة وحتى اختيار المكونات لنضمن تجربة ضيافة محلية دافئة.",
-          "نراجع آراء ضيوفنا يومياً ونضبط وصفاتنا وخدمة التقديم لتبقى التجربة سهلة ودافئة سواء زرتنا في الموقع أو عبر الطلبات الرقمية. كل تفصيلة نضيفها هدفها أن تبقى رحلتك مع CafeMS Demo ألذ وأسهل.",
+          "رسالتنا بسيطة: نقدّم قهوة ومشروبات ساخنة وباردة وحلويات ومخبوزات تُحضّر بذوق لتمنحك لحظة استراحة حقيقية وسط إيقاع اليوم السريع. نعتني بالتفاصيل من اختيار الحبوب حتى تقديم الكوب.",
+          `نراجع آراء ضيوفنا يومياً ونطوّر الوصفات وطريقة الخدمة لتبقى التجربة سهلة ودافئة سواء زرتنا في الفرع أو عبر الطلبات الرقمية. كل تفصيلة نضيفها هدفها أن تبقى رحلتك مع ${storeName} ألذ وأسهل.`,
         ];
   const summaryText =
     Array.isArray(settings?.about_highlights) && settings?.about_highlights?.length
       ? settings.about_highlights[0]
-      : "إليك أهم بيانات التواصل اليومية مع CafeMS Demo في حال احتجت لأي دعم أو متابعة خاصة.";
+      : `إليك أهم بيانات التواصل اليومية مع ${storeName} في حال احتجت لأي دعم أو متابعة خاصة.`;
   const missionLinkLabel = "تعرف أكثر على قصتنا";
   const summaryTitle = "ملخص سريع";
   const summaryItems = [
@@ -488,7 +489,7 @@ const Home: React.FC = () => {
                   <div className="p-3 flex-1 flex flex-col">
                     <h3 className="font-semibold text-sm mb-1">{p.name}</h3>
                     <p className="text-xs text-gray-500 line-clamp-2 mb-2">
-                      {p.description || "صنف من قائمة CafeMS Demo."}
+                      {p.description || `صنف من قائمة ${storeName}.`}
                     </p>
 
                     <div className="mt-auto flex items-center justify-between gap-2">

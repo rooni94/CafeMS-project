@@ -80,7 +80,7 @@ const Contact: React.FC = () => {
           </h1>
           <p className="text-sm md:text-base text-gray-700 leading-relaxed">
             {settings?.contact_subtitle?.trim() ||
-              "رأيك يهمنا ويساعدنا على التطوير المستمر لخدمتنا."}
+              "يسعدنا سماع رسالتك ومساعدتك في أي استفسار."}
           </p>
         </motion.div>
 
@@ -94,7 +94,7 @@ const Contact: React.FC = () => {
           >
             <p className="text-gray-700 leading-relaxed">
             {settings?.contact_description?.trim() ||
-                "رأيك يهمنا. شاركنا رأيك حول الخدمة أو الجودة أو إذا كان عندك أي شكوى حول الخدمة المقدمة وسنقوم بمتابعة ملاحظتك خلال 24 ساعة"}
+                "للاستفسارات حول الطلبات، القهوة والمشروبات، الحلويات والمخبوزات، أو لأي ملاحظة لتحسين تجربتك في لاڤـا كافيـه—اترك رسالتك وسنرد عليك في أقرب وقت ممكن."}
             </p>
             <div className="space-y-2 text-gray-700 text-right">
               {fallbackPhone && (

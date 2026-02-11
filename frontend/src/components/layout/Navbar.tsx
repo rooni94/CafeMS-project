@@ -150,9 +150,11 @@ export const Navbar: React.FC = () => {
       });
   }, [user]);
 
-  const storeName = settings?.store_name || "CafeMS Demo";
+  const storeName = settings?.store_name || "لاڤـا كافيـه";
   const brandPrimary = settings?.primary_color || "#f59e0b";
   const brandSecondary = settings?.secondary_color || "#4c1d95";
+  const [brandFirst, ...brandRest] = storeName.trim().split(/\s+/);
+  const brandSecond = brandRest.join(" ");
   const headerLinks =
     settings?.header_links?.filter((link) => link?.label && link?.url) || [];
 
@@ -349,8 +351,10 @@ export const Navbar: React.FC = () => {
               />
             ) : (
               <span className="text-xl font-bold">
-                <span style={{ color: brandPrimary }}>كافيه </span>
-                <span style={{ color: brandSecondary }}>الخليج</span>
+                <span style={{ color: brandPrimary }}>
+                  {brandFirst || storeName}{" "}
+                </span>
+                <span style={{ color: brandSecondary }}>{brandSecond}</span>
               </span>
             )}
           </Link>
@@ -369,8 +373,10 @@ export const Navbar: React.FC = () => {
               />
             ) : (
               <span className="text-2xl font-bold">
-                <span style={{ color: brandPrimary }}>كافيه </span>
-                <span style={{ color: brandSecondary }}>الخليج</span>
+                <span style={{ color: brandPrimary }}>
+                  {brandFirst || storeName}{" "}
+                </span>
+                <span style={{ color: brandSecondary }}>{brandSecond}</span>
               </span>
             )}
           </Link>

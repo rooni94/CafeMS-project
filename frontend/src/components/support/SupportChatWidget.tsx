@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { useStoreSettings } from "../../context/StoreSettingsContext";
 
 type SupportMessage = {
   id: number;
@@ -51,6 +52,8 @@ const b64ToUrl = (b64: string, mime = "audio/mpeg") => {
 
 const SupportChatWidget: React.FC = () => {
   const { user, accessToken } = useAuth();
+  const { settings } = useStoreSettings();
+  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
   const isGuest = !user;
 
   const [open, setOpen] = useState(false);
@@ -743,7 +746,7 @@ const SupportChatWidget: React.FC = () => {
           style={{ width: widgetWidth, height: widgetHeight }}
         >
           <div className="px-3 py-2 bg-amber-500 text-white flex items-center justify-between sticky top-0 z-10">
-            <span className="text-sm font-semibold">دعم CafeMS Demo</span>
+            <span className="text-sm font-semibold">دعم {storeName}</span>
             <div className="flex items-center gap-2">
               {(user || (isGuest && guestStep === "chat")) && (
                 <button

@@ -5,6 +5,9 @@
 (مثل تسجيل نشاط، تنسيق رسائل، ...).
 """
 
+from apps.store.utils import get_store_name
+
+
 def arabic_app_name() -> str:
-    return "CafeMS Demo"
+    return get_store_name()
 

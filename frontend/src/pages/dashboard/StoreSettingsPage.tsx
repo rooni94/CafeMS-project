@@ -83,27 +83,27 @@ const defaultLink: EditableLink = { label: "", url: "" };
 const defaultSocial: EditableSocial = { platform: "", url: "" };
 const HERO_CARDS_TEMPLATE: HeroCard[] = [
   {
-    title: "ساندوتشات تُحضّر بشغف",
+    title: "قهوة ومشروبات ساخنة",
     description:
-      "من ساندوتش الدجاج المكسيكي إلى الحلوم المشوي، كل لقمة مصنوعة بعناية لتمنحك بداية يوم مميزة",
-    button_text: "عرض الساندوتشات",
-    button_link: "/menu?category=2",
+      "إسبريسو، لاتيه، كابتشينو وأكثر… نُحضّر كل كوب بعناية ليبدأ يومك بمذاق يليق بك.",
+    button_text: "تصفّح الساخن",
+    button_link: "/menu",
     image: "/Hero1.jpg",
   },
   {
-    title: "خفائف تمنحك الطاقة",
+    title: "مشروبات باردة ومنعشة",
     description:
-      "برجر، فلافل، وخيارات خفيفة تجعل استراحة منتصف اليوم ألذ وأسعد",
-    button_text: "عرض الخفايف",
-    button_link: "/menu?category=3",
+      "فرابيه، آيس لاتيه، عصائر ومشروبات منعشة تُضيف لوقتك نكهة مختلفة.",
+    button_text: "تصفّح البارد",
+    button_link: "/menu",
     image: "/Hero2.jpg",
   },
   {
-    title: "أطباق جانبية تكتمل بها الوجبة",
+    title: "حلويات ومخبوزات طازجة",
     description:
-      "أطباقنا الجانبية محضّرة لتدعم وتغني نكهة اختيارك الرئيسي",
-    button_text: "الأطباق الجانبية",
-    button_link: "/menu?category=4",
+      "كوكيز، كيك، كرواسون ومخبوزات تُخبز وتُقدّم لترافق قهوتك بأفضل شكل.",
+    button_text: "استكشف الحلى",
+    button_link: "/menu",
     image: "/Hero3.jpg",
   },
 ];

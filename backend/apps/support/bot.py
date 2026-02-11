@@ -476,7 +476,7 @@ def generate_bot_reply(user: Optional[User], content: str, conversation: Optiona
                 return _mark_reply("تم، أي خدمة ثانية؟ أقدر أرسل المنيو أو أراجع حالة طلب سابق.", None)
 
             if "منيو" in lower or "قائمة" in lower:
-                return _mark_reply("قائمة CafeMS Demo كاملة في صفحة «القائمة». تحب أرسل ترشيح سريع ولا تضيف صنف معين؟", "ASK_NEXT", order_id=order_id)
+                return _mark_reply("قائمة المتجر كاملة في صفحة «القائمة». تحب أرسل ترشيح سريع ولا تضيف صنف معين؟", "ASK_NEXT", order_id=order_id)
 
             return _mark_reply("أقدر أدوّن ملاحظة، أضيف صنف جديد، أو أرسل الفاتورة. وش تختار؟", "ASK_NEXT", order_id=order_id)
 

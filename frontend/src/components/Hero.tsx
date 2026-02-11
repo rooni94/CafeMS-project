@@ -20,27 +20,27 @@ type Slide = {
 const FALLBACK_SLIDES: Slide[] = [
   {
     image: "/Hero1.jpg",
-    title: "ساندوتشات تُحضّر بشغف",
+    title: "قهوة ومشروبات ساخنة",
     description:
-      "من ساندوتش الدجاج المكسيكي إلى الحلوم المشوي، كل لقمة مصنوعة بعناية لتمنحك بداية يوم مميزة",
-    ctaText: "عرض الساندوتشات",
-    ctaLink: "/menu?category=2",
+      "إسبريسو، لاتيه، كابتشينو وأكثر… نُحضّر كل كوب بعناية ليبدأ يومك بمذاق يليق بك.",
+    ctaText: "تصفّح الساخن",
+    ctaLink: "/menu",
   },
   {
     image: "/Hero2.jpg",
-    title: "خفائف تمنحك الطاقة",
+    title: "مشروبات باردة ومنعشة",
     description:
-      "برجر، فلافل، وخيارات خفيفة تجعل استراحة منتصف اليوم ألذ وأسعد",
-    ctaText: "عرض الخفايف",
-    ctaLink: "/menu?category=3",
+      "فرابيه، آيس لاتيه، عصائر ومشروبات منعشة تُضيف لوقتك نكهة مختلفة.",
+    ctaText: "تصفّح البارد",
+    ctaLink: "/menu",
   },
   {
     image: "/Hero3.jpg",
-    title: "أطباق جانبية تكتمل بها الوجبة",
+    title: "حلويات ومخبوزات طازجة",
     description:
-      "أطباقنا الجانبية محضّرة لتدعم وتغني نكهة اختيارك الرئيسي",
-    ctaText: "الأطباق الجانبية",
-    ctaLink: "/menu?category=4",
+      "كوكيز، كيك، كرواسون ومخبوزات تُخبز وتُقدّم لترافق قهوتك بأفضل شكل.",
+    ctaText: "استكشف الحلى",
+    ctaLink: "/menu",
   },
 ];
 
@@ -72,6 +72,11 @@ const extractCategoryId = (link?: string | null): number | null => {
 const Hero: React.FC<HeroProps> = ({ onCategorySelect }) => {
   const { settings } = useStoreSettings();
   const [index, setIndex] = useState(0);
+  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
+  const brandPrimary = settings?.primary_color || "#f59e0b";
+  const brandSecondary = settings?.secondary_color || "#4c1d95";
+  const [brandFirst, ...brandRest] = storeName.split(/\s+/);
+  const brandSecond = brandRest.join(" ");
 
   const slides = useMemo(() => {
     if (settings?.hero_cards && settings.hero_cards.length > 0) {
@@ -143,7 +148,7 @@ const Hero: React.FC<HeroProps> = ({ onCategorySelect }) => {
             >
               {settings?.tagline && settings.tagline.trim().length
                 ? settings.tagline
-                : "CafeMS Demo – نكهة أصيلة... بلمسة من الامتنان"}
+                : `${storeName} – قهوة ومشروبات وحلويات تُحضّر بذوق.`}
             </motion.p>
 
             <motion.h1
@@ -157,8 +162,10 @@ const Hero: React.FC<HeroProps> = ({ onCategorySelect }) => {
               ) : (
                 <>
                   أهلاً بكم في{" "}
-                  <span className="text-gulfOrange">كافيه </span>
-                  <span className="text-gulfPurple">الخليج</span>
+                  <span style={{ color: brandPrimary }}>
+                    {brandFirst || storeName}{" "}
+                  </span>
+                  <span style={{ color: brandSecondary }}>{brandSecond}</span>
                 </>
               )}
               <span className="block text-base md:text-xl font-normal mt-3 text-amber-100">

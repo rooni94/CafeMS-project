@@ -1,11 +1,15 @@
 ﻿import React from "react";
 
+import { useStoreSettings } from "../context/StoreSettingsContext";
+
 const TermsAndConditions: React.FC = () => {
+  const { settings } = useStoreSettings();
+  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
   return (
     <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6 space-y-4 text-sm leading-relaxed">
       <h1 className="text-xl font-semibold mb-2">الشروط والأحكام</h1>
       <p>
-        باستخدامك لموقع CafeMS Demo أو إنشاءك لحساب، فإنك توافق على الشروط
+        باستخدامك لموقع {storeName} أو إنشاءك لحساب، فإنك توافق على الشروط
         والأحكام التالية. يرجى قراءتها بعناية.
       </p>
 

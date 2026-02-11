@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
 
 from apps.accounts.emails import safe_send_mail
+from apps.store.utils import get_store_name
 from .models import (
     Conversation,
     SupportMessage,
@@ -499,12 +500,13 @@ class GuestRequestCodeView(APIView):
             code=code,
         )
 
-        subject = "كود التحقق من البريد – دعم CafeMS Demo"
+        store_name = get_store_name()
+        subject = f"كود التحقق من البريد – دعم {store_name}"
         message = (
             f"مرحباً {name},\n\n"
             f"كود التحقق الخاص بك هو: {code}\n"
             "صلاحيته 15 دقيقة.\n\n"
-            "مع تحيات CafeMS Demo."
+            f"مع تحيات {store_name}."
         )
         safe_send_mail(subject, message, [email])
 

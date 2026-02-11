@@ -6,10 +6,12 @@ import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system/legacy";
 
 import { useAuth } from "../../context/AuthContext";
+import { useStoreSettings } from "../../context/StoreSettingsContext";
 import { api } from "../../services/api";
 import { ENV } from "../../config/env";
 import { Button } from "../ui";
 import { useI18n } from "../../i18n";
+import { normalizeBrandName } from "../../utils/text";
 
 type SupportMessage = {
   id: number;
@@ -72,6 +74,8 @@ const deleteTempFile = async (uri?: string | null) => {
 const SupportChatFloating: React.FC = () => {
   const { user, accessToken } = useAuth();
   const { t, isRTL } = useI18n();
+  const { settings } = useStoreSettings();
+  const storeName = normalizeBrandName((settings as any)?.store_name, "لاڤـا كافيـه");
   const isGuest = !user;
 
   const [open, setOpen] = useState(false);
@@ -877,7 +881,7 @@ const SupportChatFloating: React.FC = () => {
           <View style={[styles.panelWrap, { bottom: keyboardHeight ? keyboardHeight + 16 : 80 }]}>
             <Pressable style={styles.panel} onPress={() => undefined}>
               <View style={styles.header}>
-                <Text style={styles.headerTitle}>{t("supportChat.headerTitle", "دعم CafeMS Demo")}</Text>
+                <Text style={styles.headerTitle}>{t("supportChat.headerTitle", `دعم ${storeName}`)}</Text>
                 <View style={styles.headerActions}>
                   {(user || (isGuest && guestStep === "chat")) && (
                     <Pressable

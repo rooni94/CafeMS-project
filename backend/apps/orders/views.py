@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from .signals import log_order_activity
 from apps.store.email_utils import send_store_email
+from apps.store.utils import get_store_name
 from .models import Order, OrderActivityLog, Table, InventoryAdjustment
 from .serializers import (
     OrderSerializer,
@@ -138,14 +139,15 @@ def send_order_created_email(order: Order):
     if not order.user or not order.user.email:
         return
 
-    subject = f"تم استلام طلبك رقم #{order.id} - CafeMS Demo"
+    store_name = get_store_name()
+    subject = f"تم استلام طلبك رقم #{order.id} - {store_name}"
     message = (
         f"مرحباً {order.user.username},\n\n"
-        f"شكراً لطلبك من CafeMS Demo. رقم طلبك هو #{order.id}.\n"
+        f"شكراً لطلبك من {store_name}. رقم طلبك هو #{order.id}.\n"
         f"إجمالي الطلب: {order.total} ريال.\n\n"
         "سنقوم بإشعارك عند تحديث حالة الطلب.\n\n"
         "تحياتنا،\n"
-        "فريق CafeMS Demo"
+        f"فريق {store_name}"
     )
     if not send_store_email(subject, message, [order.user.email], kind="default"):
         print("Email error (order created)")
@@ -158,6 +160,7 @@ def send_order_status_changed_email(order: Order, old_status: str, new_status: s
     if not order.user or not order.user.email:
         return
 
+    store_name = get_store_name()
     subject = f"تحديث حالة طلبك رقم #{order.id}"
     message = (
         f"مرحباً {order.user.username},\n\n"
@@ -165,7 +168,7 @@ def send_order_status_changed_email(order: Order, old_status: str, new_status: s
         f"إجمالي الطلب: {order.total} ريال.\n\n"
         "يمكنك تتبع الطلب عبر صفحة تتبع الطلب في الموقع.\n\n"
         "تحياتنا،\n"
-        "فريق CafeMS Demo"
+        f"فريق {store_name}"
     )
     if not send_store_email(subject, message, [order.user.email], kind="default"):
         print("Email error (status change)")

@@ -4,11 +4,15 @@ import { useTheme } from "../../theme";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
 import { useI18n } from "../../i18n";
+import { useStoreSettings } from "../../context/StoreSettingsContext";
+import { normalizeBrandName } from "../../utils/text";
 
 const TermsScreen: React.FC = () => {
   const theme = useTheme();
   const { t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
+  const { settings } = useStoreSettings();
+  const storeName = normalizeBrandName((settings as any)?.store_name, "لاڤـا كافيـه");
 
   const Bullet = ({ children }: { children: string }) => (
     <View style={styles.bulletRow}>
@@ -28,7 +32,12 @@ const TermsScreen: React.FC = () => {
   return (
     <DashboardShell title={t("terms.title", "الشروط والأحكام")} subtitle={t("terms.subtitle", "يرجى قراءة الشروط بعناية قبل استخدام التطبيق.")}>
       <DashboardSection>
-        <Paragraph>{t("terms.intro", "باستخدامك لموقع CafeMS Demo أو إنشاءك لحساب، فإنك توافق على الشروط والأحكام التالية. يرجى قراءتها بعناية.")}</Paragraph>
+        <Paragraph>
+          {t(
+            "terms.intro",
+            `باستخدامك لموقع ${storeName} أو إنشاءك لحساب، فإنك توافق على الشروط والأحكام التالية. يرجى قراءتها بعناية.`
+          )}
+        </Paragraph>
 
         <SectionTitle>{t("terms.section1Title", "١. إنشاء الحساب")}</SectionTitle>
         <Bullet>{t("terms.section1Bullet1", "يجب أن تكون جميع البيانات المقدّمة صحيحة ومحدّثة.")}</Bullet>

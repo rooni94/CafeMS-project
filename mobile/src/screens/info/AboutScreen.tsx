@@ -6,7 +6,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Button } from "../../components/ui";
 import { useStoreSettings } from "../../context/StoreSettingsContext";
 import { useTheme } from "../../theme";
-import { normalizeArabicText } from "../../utils/text";
+import { normalizeArabicText, normalizeBrandName } from "../../utils/text";
 import { goToTab } from "../../navigation/helpers";
 import DashboardShell from "../dashboard/components/DashboardShell";
 import DashboardSection from "../dashboard/components/DashboardSection";
@@ -36,16 +36,19 @@ const AboutScreen: React.FC = () => {
   const { t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { settings } = useStoreSettings();
+  const brandName = normalizeBrandName((settings as any)?.store_name, "لاڤـا كافيـه");
 
-  const aboutTitle = normalizeArabicText((settings as any)?.about_title) || t("about.title", "من نحن – CafeMS Demo");
+  const aboutTitle =
+    normalizeArabicText((settings as any)?.about_title) ||
+    t("about.title", `من نحن – ${brandName}`);
   const aboutSubtitle =
     normalizeArabicText((settings as any)?.about_subtitle) ||
-    t("about.subtitle", "نحن مساحة دافئة تحتضن شغف الطعام ونكهاته الأصيلة.");
+    t("about.subtitle", "نحن مساحة دافئة تحتضن شغف القهوة والنكهات التي تُبهج يومك.");
   const aboutDescription =
     normalizeArabicText((settings as any)?.about_description) ||
     t(
       "about.description",
-      "CafeMS Demo محطتكم اليومية للاستمتاع بسندويتشات طازجة، خفايف شهية، ومشروبات تعكس ذائقة الخليج. نؤمن بأن تجربة الطعام لا تكتمل دون خدمة مفعمة بالامتنان وسهولة في كل خطوة من الطلب حتى الاستلام."
+      `${brandName} هو متجر كافيه يقدم القهوة والمشروبات الساخنة والمشروبات الباردة والمنعشة، بالإضافة إلى الحلويات والمخبوزات. نحرص على أن تكون تجربتك بسيطة ولطيفة: تختار، تطلب، وتستمتع.`
     );
 
   const defaultHighlights = [
@@ -79,13 +82,13 @@ const AboutScreen: React.FC = () => {
         <Text style={styles.body}>
           {t(
             "about.storyParagraph1",
-            "تبدأ حكايتنا من المطبخ؛ حيث نستيقظ باكراً لتحميص الخبز، تقطيع الخضار، وتحضير خلطاتنا الخاصة قبل فتح الأبواب. كل طبق يمر عبر فريق يضع معياراً للجودة ويهتم بإيصال الطعام سريعاً من دون التفريط بطعمه."
+            "تبدأ حكايتنا من تفاصيل اليوم: اختيار حبوب القهوة بعناية، ضبط الطحن، وتجهيز المشروبات والحلى لتكون جاهزة لك في الوقت المناسب. نؤمن أن الجودة تظهر في التفاصيل الصغيرة قبل الكبيرة."
           )}
         </Text>
         <Text style={styles.body}>
           {t(
             "about.storyParagraph2",
-            "رؤيتنا أن تكون CafeMS Demo محطةً يشعر فيها الضيف أنه يعرفنا منذ زمن: وصفات أصيلة بطابع عصري، سرعة في الخدمة، واهتمام بالتفاصيل الصغيرة من اختيار التوابل وحتى نبرة الترحيب. نحدّث قائمتنا باستمرار ونراقب تعليقات عملائنا لنحافظ على هذا التوازن بين الأصالة والتجربة الحديثة."
+            `رؤيتنا أن يكون ${brandName} وجهتك اليومية التي تجد فيها كوباً متقناً ومذاقاً ثابتاً، مع خيارات ساخنة وباردة تناسب مزاجك، وحلويات ومخبوزات تكمل التجربة. نحدّث قائمتنا باستمرار ونستمع لملاحظاتكم لنحافظ على توازن رائع بين الطعم والخدمة وسهولة الطلب.`
           )}
         </Text>
         <Button title={t("about.menuButton", "اذهب إلى القائمة")} onPress={() => goToTab(navigation, "Menu")} />

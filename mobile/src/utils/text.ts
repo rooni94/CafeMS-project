@@ -87,7 +87,7 @@ export const decodeUnicodeEscapes = (value?: string | null) => {
   return normalizeArabicText(decoded);
 };
 
-const DEFAULT_BRAND_NAME = "CafeMS Demo";
+const DEFAULT_BRAND_NAME = "لاڤـا كافيـه";
 
 export const normalizeBrandName = (
   value?: string | null,

@@ -3,6 +3,7 @@ import { Alert, StyleSheet, Text, View } from "react-native";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Input } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
+import { useStoreSettings } from "../../context/StoreSettingsContext";
 import { api } from "../../services/api";
 import { useTheme } from "../../theme";
 import DashboardShell from "./components/DashboardShell";
@@ -27,6 +28,7 @@ const DashboardSettings: React.FC = () => {
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const qc = useQueryClient();
   const { user, permissions } = useAuth();
+  const { refresh: refreshPublicSettings } = useStoreSettings();
 
   const allowed = has(user, permissions, "can_manage_store_settings");
 
@@ -83,6 +85,7 @@ const DashboardSettings: React.FC = () => {
         hero_subtitle: form.hero_subtitle,
       });
       qc.invalidateQueries({ queryKey: ["dashboard", "store-settings"] });
+      await refreshPublicSettings();
       Alert.alert(t("dashboard.settingsSaveTitle", "تم الحفظ"), t("dashboard.settingsSaveBody", "تم تحديث إعدادات المتجر بنجاح."));
     } catch {
       Alert.alert(t("dashboard.settingsSaveErrorTitle", "تعذر الحفظ"), t("dashboard.settingsSaveErrorBody", "حدث خطأ أثناء حفظ الإعدادات."));

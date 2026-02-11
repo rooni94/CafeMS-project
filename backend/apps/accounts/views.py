@@ -27,6 +27,7 @@ from .permissions import IsManager, CanManageUsers, CanViewUserActivity, get_rol
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
+from apps.store.utils import get_store_name
 
 from .authentica import AuthenticaError, send_otp as authentica_send_otp, verify_otp as authentica_verify_otp
 from .phone import normalize_phone
@@ -262,14 +263,15 @@ class PasswordResetRequestView(views.APIView):
         else:
             reset_url = build_frontend_url(f"/reset-password?uid={uidb64}&token={token}")
 
-        subject = "إعادة تعيين كلمة المرور – CafeMS Demo"
+        store_name = get_store_name()
+        subject = f"إعادة تعيين كلمة المرور – {store_name}"
         message = (
             "مرحبًا!\n\n"
             "وصلنا طلب لإعادة تعيين كلمة المرور الخاصة بحسابك.\n"
             "يمكنك تعيين كلمة مرور جديدة من خلال الرابط التالي:\n\n"
             f"{reset_url}\n\n"
             "إذا لم تقم بطلب إعادة التعيين، يمكنك تجاهل هذه الرسالة.\n\n"
-            "مع تحيات CafeMS Demo 🌿"
+            f"مع تحيات {store_name} 🌿"
         )
 
         safe_send_mail(subject, message, [user.email])

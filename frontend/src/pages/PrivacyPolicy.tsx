@@ -1,11 +1,15 @@
 ﻿import React from "react";
 
+import { useStoreSettings } from "../context/StoreSettingsContext";
+
 const PrivacyPolicy: React.FC = () => {
+  const { settings } = useStoreSettings();
+  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
   return (
     <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6 space-y-4 text-sm leading-relaxed">
       <h1 className="text-xl font-semibold mb-2">سياسة الخصوصية</h1>
       <p>
-        في CafeMS Demo نحترم خصوصيتك ونعامل بياناتك الشخصية بسرية تامة. تهدف
+        في {storeName} نحترم خصوصيتك ونعامل بياناتك الشخصية بسرية تامة. تهدف
         هذه السياسة إلى توضيح كيفية جمع واستخدام وحماية معلوماتك عند استخدامك
         لموقعنا أو تطبيقنا.
       </p>

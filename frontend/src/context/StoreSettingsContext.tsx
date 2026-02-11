@@ -62,27 +62,27 @@ const StoreSettingsContext = createContext<StoreSettingsContextValue | undefined
 const HERO_CARDS_FALLBACK = [
   {
     image: "/Hero1.jpg",
-    title: "ساندوتشات تُحضّر بشغف",
+    title: "قهوة ومشروبات ساخنة",
     description:
-      "من ساندوتش الدجاج المكسيكي إلى الحلوم المشوي، كل لقمة مصنوعة بعناية لتمنحك بداية يوم مميزة",
-    button_text: "عرض الساندوتشات",
-    button_link: "/menu?category=2",
+      "إسبريسو، لاتيه، كابتشينو وأكثر… نُحضّر كل كوب بعناية ليبدأ يومك بمذاق يليق بك.",
+    button_text: "تصفّح الساخن",
+    button_link: "/menu",
   },
   {
     image: "/Hero2.jpg",
-    title: "خفائف تمنحك الطاقة",
+    title: "مشروبات باردة ومنعشة",
     description:
-      "برجر، فلافل، وخيارات خفيفة تجعل استراحة منتصف اليوم ألذ وأسعد",
-    button_text: "عرض الخفايف",
-    button_link: "/menu?category=3",
+      "فرابيه، آيس لاتيه، عصائر ومشروبات منعشة تُضيف لوقتك نكهة مختلفة.",
+    button_text: "تصفّح البارد",
+    button_link: "/menu",
   },
   {
     image: "/Hero3.jpg",
-    title: "أطباق جانبية تكتمل بها الوجبة",
+    title: "حلويات ومخبوزات طازجة",
     description:
-      "أطباقنا الجانبية محضّرة لتدعم وتغني نكهة اختيارك الرئيسي",
-    button_text: "الأطباق الجانبية",
-    button_link: "/menu?category=4",
+      "كوكيز، كيك، كرواسون ومخبوزات تُخبز وتُقدّم لترافق قهوتك بأفضل شكل.",
+    button_text: "استكشف الحلى",
+    button_link: "/menu",
   },
 ];
 
@@ -94,8 +94,8 @@ const DEFAULT_SOCIAL_LINKS: Record<string, string> = {
 };
 
 const fallbackSettings: StoreBranding = {
-  store_name: "CafeMS Demo",
-  tagline: "",
+  store_name: "لاڤـا كافيـه",
+  tagline: "قهوة ومشروبات ساخنة وباردة وحلويات ومخبوزات… اطلبها بسهولة.",
   primary_color: "#f59e0b",
   secondary_color: "#4c1d95",
   accent_color: "#0f172a",
@@ -120,19 +120,19 @@ const fallbackSettings: StoreBranding = {
   hero_button_text: "",
   hero_button_link: "",
   hero_cards: HERO_CARDS_FALLBACK,
-  about_title: "من نحن – CafeMS Demo",
-  about_subtitle: "نكهة أصيلة مع خدمة مفعمة بالامتنان.",
+  about_title: "من نحن – لاڤـا كافيـه",
+  about_subtitle: "نكهة قهوة دافئة… وتجربة لطيفة في كل زيارة.",
   about_description:
-    "CafeMS Demo محطتكم اليومية للاستمتاع بسندوتشات طازجة وخدمة ودودة. نحرص على تقديم تجربة رقمية سلسة تربط بين الوصفات الأصيلة واحتياجات عملائنا الحديثة.",
+    "لاڤـا كافيـه وجهتكم اليومية للقهوة والمشروبات الساخنة والباردة المنعشة، مع تشكيلة من الحلويات والمخبوزات التي تُقدَّم بطزاجة. نحرص على أن تكون تجربتكم سهلة ولطيفة من أول اختيار حتى الاستلام.",
   about_highlights: [
-    "مكونات مختارة بعناية وتحضير لحظي لكل طلب.",
-    "منصة رقمية متكاملة للطلب وتتبع الحالة.",
-    "فريق خدمة يعمل بروح الضيافة الخليجية.",
+    "حبوب قهوة مختارة وتحضير متقن لكل كوب.",
+    "مشروبات باردة ومنعشة تناسب كل الأوقات.",
+    "حلويات ومخبوزات ترافق قهوتك بأفضل شكل.",
   ],
   contact_title: "تواصل معنا",
-  contact_subtitle: "يسعدنا الاستماع إلى أفكارك واقتراحاتك.",
+  contact_subtitle: "يسعدنا الاستماع إلى رسائلك واقتراحاتك.",
   contact_description:
-    "يعمل فريق الدعم لدينا على مدار اليوم للرد على استفساراتكم ومساعدتكم في كل ما يتعلق بطلباتكم وخدمات المتجر.",
+    "إذا كان لديك استفسار عن الطلبات أو المنتجات أو أي ملاحظة لتحسين تجربتك، اكتب لنا وسنرد عليك في أقرب وقت ممكن.",
   contact_address: "Demo cafe address",
   contact_hours: "يومياً من 8:00 صباحاً حتى 12:00 منتصف الليل",
   contact_map_embed: DEFAULT_MAP_EMBED,

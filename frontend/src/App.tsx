@@ -46,7 +46,7 @@ const App: React.FC = () => {
     settings?.footer_text && settings.footer_text.trim().length > 0
       ? settings.footer_text
       : "نكهة أصيلة... بلمسة من الامتنان.";
-  const storeName = settings?.store_name || "CafeMS Demo";
+  const storeName = settings?.store_name || "لاڤـا كافيـه";
   const year = new Date().getFullYear();
 
   return (

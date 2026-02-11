@@ -6,6 +6,7 @@ from django.utils.timezone import now
 
 from apps.accounts.permissions import CanManageContactMessages
 from apps.store.email_utils import send_store_email
+from apps.store.utils import get_store_name
 from .models import ContactMessage
 from .serializers import ContactMessageSerializer, ContactRequestSerializer
 
@@ -63,7 +64,7 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        subject = "رد على رسالتك – CafeMS Demo"
+        subject = f"رد على رسالتك – {get_store_name()}"
         message = reply_text
         try:
             send_store_email(
