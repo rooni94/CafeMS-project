@@ -7,6 +7,13 @@ import logging
 
 logging.getLogger("django.security.DisallowedHost").setLevel(logging.WARNING)
 
+try:
+    import django_user_agents  # noqa: F401
+
+    HAS_DJANGO_USER_AGENTS = True
+except Exception:
+    HAS_DJANGO_USER_AGENTS = False
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(DEBUG=(bool, False))
@@ -57,12 +64,13 @@ INSTALLED_APPS = [
     "apps.payments",
     "apps.accounts.apps.AccountsConfig",
     "apps.accounting.apps.AccountingConfig",
-    "django_user_agents",
     "django_filters",
     "apps.hr.apps.HrConfig",
     "apps.store.apps.StoreConfig",
     "apps.loyalty.apps.LoyaltyConfig",
 ]
+if HAS_DJANGO_USER_AGENTS:
+    INSTALLED_APPS.append("django_user_agents")
 
 from corsheaders.defaults import default_headers
 
@@ -79,8 +87,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.accounts.middleware.UserActivityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    "django_user_agents.middleware.UserAgentMiddleware",
 ]
+if HAS_DJANGO_USER_AGENTS:
+    MIDDLEWARE.append("django_user_agents.middleware.UserAgentMiddleware")
 
 ROOT_URLCONF = "cafe_backend.urls"
 
@@ -118,6 +127,7 @@ DATABASES = {
 # ================== Stripe (لاحقاً) ==================
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+STRIPE_CURRENCY = env("STRIPE_CURRENCY", default="SAR").strip() or "SAR"
 
 # ================== Expo Push Notifications ==================
 EXPO_ACCESS_TOKEN = env("EXPO_ACCESS_TOKEN", default="").strip()

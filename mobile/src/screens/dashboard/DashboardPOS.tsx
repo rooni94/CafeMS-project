@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, useWindowDimensions, FlatList } from "react-native";
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View, useWindowDimensions, FlatList, DimensionValue } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -103,8 +103,8 @@ const DashboardPOS: React.FC = () => {
   const { width } = useWindowDimensions();
   const isWide = width >= 980;
   const productColumns = width >= 1200 ? 3 : width >= 720 ? 2 : 1;
-  const productCardWidth =
-    productColumns === 1 ? "100%" : `${Math.max(100 / productColumns - 2, 22)}%`;
+  const productCardWidth: DimensionValue =
+    productColumns === 1 ? "100%" : (`${Math.max(100 / productColumns - 2, 22)}%` as const);
   const useProductGrid = productColumns > 1;
   const { t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);

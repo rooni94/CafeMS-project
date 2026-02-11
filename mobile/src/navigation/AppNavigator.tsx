@@ -442,7 +442,7 @@ const AppNavigator = () => {
 
         screenOptions={{
 
-          headerTitleAlign: isRTL ? "right" : "center",
+          headerTitleAlign: isRTL ? "left" : "center",
 
           headerBackTitle: t("nav.back", "رجوع"),
 

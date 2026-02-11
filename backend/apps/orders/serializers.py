@@ -284,7 +284,15 @@ class PublicOrderTrackingSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ["id", "status", "status_display", "total", "created_at"]
+        fields = [
+            "id",
+            "status",
+            "status_display",
+            "payment_method",
+            "payment_status",
+            "total",
+            "created_at",
+        ]
 
 
 class OrderActivityLogSerializer(serializers.ModelSerializer):

@@ -4,6 +4,7 @@ import { useCart } from "../context/CartContext";
 import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { TrashIcon } from "@heroicons/react/16/solid";
+import { loadStripe } from "@stripe/stripe-js";
 import CurrencyAmount from "../components/common/CurrencyAmount";
 import { useAuth } from "../context/AuthContext";
 
@@ -18,6 +19,9 @@ type OrderSuccessState = {
   orderId: number;
   createdAt: string;
 };
+
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 const Checkout: React.FC = () => {
   const { items, total, clearCart, removeItem } = useCart();
@@ -185,12 +189,17 @@ const Checkout: React.FC = () => {
     setSubmitting(true);
 
     try {
+      const normalizedPaymentMethod =
+        paymentMethod === "wallet"
+          ? "online"
+          : paymentMethod === "card"
+          ? "card_pos"
+          : "cash";
+
       const payload = {
         order_type: deliveryType === "pickup" ? "takeaway" : "delivery",
         delivery_address: resolvedAddress,
-        payment_method:
-          paymentMethod === "card" ? "card_pos" : paymentMethod, // تتوافق مع الباكند
-        // ???????: ???? ??? ???????? ??????? ??? ????? ?????? Authorization ?????? ??? proxy
+        payment_method: normalizedPaymentMethod,
         customer_name: user?.username,
         customer_id: user?.id,
         token: accessToken || localStorage.getItem("access"),
@@ -203,6 +212,46 @@ const Checkout: React.FC = () => {
 
       const res = await api.post("orders/", payload);
       const createdOrder = res.data;
+
+      if (normalizedPaymentMethod === "online") {
+        clearCart();
+
+        const frontendBase = (
+          import.meta.env.VITE_FRONTEND_URL || window.location.origin
+        ).replace(/\/$/, "");
+
+        const sessionRes = await api.post("orders/stripe/checkout-session/", {
+          order_id: createdOrder.id,
+          success_url: `${frontendBase}/checkout/success?order=${createdOrder.id}`,
+          cancel_url: `${frontendBase}/checkout/cancel?order=${createdOrder.id}`,
+        });
+
+        const sessionId = sessionRes.data?.id as string | undefined;
+        const checkoutUrl = sessionRes.data?.url as string | undefined;
+
+        if (stripePromise && sessionId) {
+          const stripe = await stripePromise;
+          if (stripe) {
+            const { error: redirectError } = await stripe.redirectToCheckout({
+              sessionId,
+            });
+            if (redirectError) {
+              throw new Error(
+                redirectError.message || "تعذر التحويل إلى بوابة الدفع."
+              );
+            }
+            return;
+          }
+        }
+
+        if (checkoutUrl) {
+          window.location.assign(checkoutUrl);
+          return;
+        }
+
+        throw new Error("تعذر إنشاء جلسة الدفع عبر Stripe.");
+      }
+
       const successPayload: OrderSuccessState = {
         orderId: createdOrder.id,
         createdAt: new Date().toISOString(),
@@ -434,7 +483,7 @@ const Checkout: React.FC = () => {
           >
             <option value="cash">دفع نقدي عند الاستلام</option>
             <option value="card">بطاقة (جهاز POS)</option>
-            <option value="wallet">محفظة إلكترونية</option>
+            <option value="wallet">دفع إلكتروني (Stripe)</option>
           </select>
         </div>
 

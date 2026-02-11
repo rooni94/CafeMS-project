@@ -13,9 +13,17 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-import qrcode
-import arabic_reshaper
-from bidi.algorithm import get_display
+try:
+    import qrcode
+except Exception:  # pragma: no cover
+    qrcode = None
+
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+except Exception:  # pragma: no cover
+    arabic_reshaper = None
+    get_display = None
 
 
 def ar(text: str) -> str:
@@ -24,6 +32,8 @@ def ar(text: str) -> str:
     """
     if not text:
         return ""
+    if arabic_reshaper is None or get_display is None:
+        return text
     # reportlab لا يدعم Arabic shaping، فنستخدم arabic_reshaper + bidi
     reshaped = arabic_reshaper.reshape(text)
     bidi_text = get_display(reshaped)
@@ -191,6 +201,8 @@ class Invoice(models.Model):
 
         # الـ QR
         try:
+            if qrcode is None:
+                raise RuntimeError("qrcode library is not installed")
             from django.conf import settings as dj_settings
 
             frontend_url = getattr(dj_settings, "FRONTEND_URL", "http://localhost:5173")

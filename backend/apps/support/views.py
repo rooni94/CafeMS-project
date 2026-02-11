@@ -27,12 +27,23 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 from .bot import generate_bot_reply, should_handover_to_human
-from .voice import (
-    VoiceProcessingError,
-    encode_audio_base64,
-    text_to_speech,
-    transcribe_audio,
-)
+try:
+    from .voice import (
+        VoiceProcessingError,
+        encode_audio_base64,
+        text_to_speech,
+        transcribe_audio,
+    )
+except Exception:  # pragma: no cover
+    class VoiceProcessingError(Exception):
+        pass
+
+    def _voice_unavailable(*args, **kwargs):
+        raise VoiceProcessingError("Voice features are unavailable in this environment.")
+
+    encode_audio_base64 = _voice_unavailable
+    text_to_speech = _voice_unavailable
+    transcribe_audio = _voice_unavailable
 
 User = get_user_model()
 logger = logging.getLogger(__name__)

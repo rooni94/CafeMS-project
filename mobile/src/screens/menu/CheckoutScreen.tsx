@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import EmptyState from "../../components/EmptyState";
@@ -9,6 +9,7 @@ import { Button, Input, Select } from "../../components/ui";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import { api, parseApiError } from "../../services/api";
+import { ENV } from "../../config/env";
 import { useTheme } from "../../theme";
 import { Address, DeliveryMode, PaymentMethod } from "../../types";
 import DashboardShell from "../dashboard/components/DashboardShell";
@@ -69,8 +70,19 @@ const CheckoutScreen: React.FC = () => {
   const paymentLabel = (method: PaymentMethod) => {
     if (method === "cash") return t("checkout.paymentCash", "دفع نقدي عند الاستلام");
     if (method === "card") return t("checkout.paymentCard", "بطاقة (جهاز نقاط البيع)");
-    return t("checkout.paymentWallet", "محفظة رقمية");
+    return t("checkout.paymentWallet", "دفع إلكتروني (Stripe)");
   };
+
+  const frontendBaseUrl = useMemo(() => {
+    const fallback = "https://example.invalid";
+    try {
+      const parsed = new URL(ENV.apiUrl);
+      const origin = `${parsed.protocol}//${parsed.host}`;
+      return origin.replace(/\/$/, "");
+    } catch {
+      return fallback;
+    }
+  }, []);
 
   const deliveryLabel = (mode: DeliveryMode) => {
     if (mode === "pickup") return t("checkout.deliveryPickup", "استلام من المتجر");
@@ -108,9 +120,16 @@ const CheckoutScreen: React.FC = () => {
     setSubmitting(true);
     setError(null);
     try {
+      const normalizedPaymentMethod =
+        paymentMethod === "wallet"
+          ? "online"
+          : paymentMethod === "card"
+          ? "card_pos"
+          : "cash";
+
       const payload = {
         order_type: deliveryMode === "pickup" ? "takeaway" : "delivery",
-        payment_method: paymentMethod === "card" ? "card_pos" : paymentMethod,
+        payment_method: normalizedPaymentMethod,
         delivery_address: deliveryMode === "delivery" ? selectedAddress : "",
         customer_name: user?.username,
         token: (typeof api.defaults.headers.common["Authorization"] === "string"
@@ -123,6 +142,34 @@ const CheckoutScreen: React.FC = () => {
         })),
       };
       const res = await api.post("orders/", payload);
+
+      if (normalizedPaymentMethod === "online") {
+        const orderId = Number(res.data?.id);
+        if (!Number.isFinite(orderId)) {
+          throw new Error(t("checkout.submitError", "تعذر إرسال الطلب. حاول مرة أخرى."));
+        }
+
+        const sessionRes = await api.post("orders/stripe/checkout-session/", {
+          order_id: orderId,
+          success_url: `${frontendBaseUrl}/checkout/success?order=${orderId}`,
+          cancel_url: `${frontendBaseUrl}/checkout/cancel?order=${orderId}`,
+        });
+
+        const checkoutUrl = sessionRes.data?.url as string | undefined;
+        if (!checkoutUrl) {
+          throw new Error("تعذر إنشاء جلسة الدفع.");
+        }
+
+        clearCart();
+        navigation.navigate("OrderTracking", { orderId });
+        await Linking.openURL(checkoutUrl);
+        Alert.alert(
+          "التحويل إلى Stripe",
+          "تم فتح بوابة الدفع الآمنة. بعد إنهاء الدفع ارجع للتطبيق لمتابعة حالة الطلب."
+        );
+        return;
+      }
+
       clearCart();
       Alert.alert(
         t("checkout.orderCreatedTitle", "تم إنشاء الطلب"),

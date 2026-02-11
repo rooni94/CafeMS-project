@@ -7,6 +7,8 @@ import Home from "./pages/Home";
 import Menu from "./pages/Menu";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
+import CheckoutCancel from "./pages/CheckoutCancel";
 import OrderTracking from "./pages/OrderTracking";
 import ProductDetails from "./pages/ProductDetails";
 import Login from "./pages/Login";
@@ -59,6 +61,8 @@ const App: React.FC = () => {
           <Route path="/about" element={<About />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
+          <Route path="/checkout/cancel" element={<CheckoutCancel />} />
           <Route path="/order-tracking" element={<OrderTracking />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

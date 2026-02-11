@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList, ToastAndroid, Platform, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList, ToastAndroid, Platform, useWindowDimensions, DimensionValue } from "react-native";
 import { Directions, FlingGestureHandler, State } from "react-native-gesture-handler";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
@@ -37,8 +37,7 @@ const MenuScreen: React.FC = () => {
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { width } = useWindowDimensions();
   const gridColumns = width >= 1200 ? 4 : width >= 900 ? 3 : 2;
-  const gridItemWidth =
-    gridColumns === 1 ? "100%" : `${Math.max(100 / gridColumns - 2, 22)}%`;
+  const gridItemWidth: DimensionValue = `${Math.max(100 / gridColumns - 2, 22)}%` as const;
 
   const [activeCategory, setActiveCategory] = useState<number | null>(initialCategory);
   const [search, setSearch] = useState("");
