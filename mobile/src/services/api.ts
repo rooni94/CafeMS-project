@@ -43,6 +43,29 @@ export const parseApiError = (error: any, fallback?: string): string => {
     if (Array.isArray(data.non_field_errors)) {
       return data.non_field_errors.join(" ");
     }
+    if (typeof data === "object") {
+      const messages: string[] = [];
+      Object.entries(data).forEach(([field, value]) => {
+        if (field === "detail" || field === "non_field_errors") return;
+        if (Array.isArray(value)) {
+          const txt = value.map((v) => String(v)).join(" ");
+          if (txt) messages.push(txt);
+          return;
+        }
+        if (typeof value === "string") {
+          messages.push(value);
+          return;
+        }
+        if (value && typeof value === "object") {
+          const nested = Object.values(value as Record<string, unknown>)
+            .flatMap((v) => (Array.isArray(v) ? v : [v]))
+            .map((v) => String(v))
+            .join(" ");
+          if (nested) messages.push(nested);
+        }
+      });
+      if (messages.length) return messages.join("\n");
+    }
     if (typeof data.message === "string") return data.message;
   }
   if (error?.message) return error.message;

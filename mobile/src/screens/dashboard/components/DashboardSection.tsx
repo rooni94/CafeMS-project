@@ -42,7 +42,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     header: {
       gap: 4,
-      alignItems: "flex-start",
+      alignItems: isRTL ? "flex-end" : "flex-start",
     },
     title: {
       fontSize: 16,

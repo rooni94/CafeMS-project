@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList, ToastAndroid, Platform, useWindowDimensions, DimensionValue } from "react-native";
-import { Directions, FlingGestureHandler, State } from "react-native-gesture-handler";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -152,17 +151,7 @@ const MenuScreen: React.FC = () => {
     );
   }
 
-  const handleFling = ({ nativeEvent }: { nativeEvent: any }) => {
-    if (nativeEvent.state === State.END) {
-      goToTab(navigation, "Home");
-    }
-  };
-
   return (
-    <FlingGestureHandler
-      direction={Directions.RIGHT}
-      onHandlerStateChange={handleFling}
-    >
       <View style={{ flex: 1 }}>
         <Screen scrollable={false} style={{ backgroundColor: theme.palette.background }}>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
@@ -238,10 +227,9 @@ const MenuScreen: React.FC = () => {
             onClose={() => setAddonProduct(null)}
             onConfirm={handleConfirmAddons}
           />
-          <FloatingCart />
+          <FloatingCart style={styles.menuCartFab} />
         </Screen>
       </View>
-    </FlingGestureHandler>
   );
 };
 
@@ -316,6 +304,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       marginBottom: 4,
     },
     productCard: {},
+    menuCartFab: {
+      top: 220,
+      bottom: undefined,
+      end: 14,
+    },
     sectionCard: {
       borderRadius: 22,
       borderColor: theme.palette.border,

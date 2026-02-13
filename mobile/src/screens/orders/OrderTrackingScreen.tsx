@@ -182,6 +182,24 @@ const OrderTrackingScreen: React.FC = () => {
     normalizeArabicText((order as any)?.status) ||
     "";
 
+  const labelForStatus = (value?: string | null) => {
+    const normalized = String(value || "").toLowerCase().trim();
+    const table: Record<string, string> = {
+      pending: statusLabels.pending,
+      confirmed: statusLabels.confirmed,
+      preparing: statusLabels.preparing,
+      ready: statusLabels.ready,
+      completed: statusLabels.completed,
+      complated: statusLabels.completed,
+      paid: statusLabels.paid,
+      failed: statusLabels.failed,
+      refunded: statusLabels.refunded,
+      cancelled: statusLabels.cancelled,
+      canceled: statusLabels.cancelled,
+    };
+    return table[normalized] || normalizeArabicText(value || "") || DASH;
+  };
+
   const InfoCard = ({
     icon,
     label,
@@ -358,7 +376,7 @@ const OrderTrackingScreen: React.FC = () => {
                 <View key={o.id}>
                   <DashboardListItem
                     title={`${labels.orderLabel} #${o.id}`}
-                    subtitle={`${normalizeArabicText((o as any).status || "")} ${DOT} ${formatDateTime((o as any).created_at)}`}
+                    subtitle={`${labelForStatus((o as any).status)} ${DOT} ${formatDateTime((o as any).created_at)}`}
                     icon="receipt-outline"
                     onPress={() => {
                       setOrderId(String(o.id));

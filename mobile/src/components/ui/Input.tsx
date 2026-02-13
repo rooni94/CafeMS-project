@@ -26,6 +26,7 @@ const Input: React.FC<InputProps> = ({ label, error, hint, style, contentStyle, 
         textColor={theme.palette.text}
         placeholderTextColor={theme.palette.muted}
         contentStyle={[styles.content, contentStyle]}
+        textAlign={isRTL ? "right" : "left"}
       />
       {hint ? (
         <Text style={[styles.hint, { color: theme.palette.muted }]}>{hint}</Text>
@@ -49,9 +50,11 @@ const createStyles = (isRTL: boolean) =>
   },
   input: {
     textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
   },
   content: {
     textAlign: isRTL ? "right" : "left",
+    writingDirection: isRTL ? "rtl" : "ltr",
   },
   hint: {
     textAlign: isRTL ? "right" : "left",

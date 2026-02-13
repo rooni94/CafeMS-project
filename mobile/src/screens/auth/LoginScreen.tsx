@@ -199,7 +199,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     headerContent: {
       gap: 8,
-      alignItems: "flex-start",
+      alignItems: isRTL ? "flex-end" : "flex-start",
     },
     brandRow: {
       width: "100%",
@@ -233,12 +233,12 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       backgroundColor: theme.palette.surface,
     },
     linksRow: {
-      flexDirection: "row",
+      flexDirection: isRTL ? "row-reverse" : "row",
       justifyContent: "space-between",
       alignItems: "center",
     },
     rememberRow: {
-      flexDirection: "row",
+      flexDirection: isRTL ? "row-reverse" : "row",
       alignItems: "center",
       gap: 8,
       paddingVertical: 4,

@@ -317,40 +317,6 @@ class HRReportSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["generated_at"]
 
-class HRWorkReportSerializer(serializers.ModelSerializer):
-    employee_name = serializers.CharField(
-        source="employee.user.username", read_only=True
-    )
-
-    class Meta:
-        model = WorkReport
-        fields = [
-            "id",
-            "employee",
-            "employee_name",
-            "date",
-            "hours_worked",
-            "overtime_hours",
-            "absence_reason",
-            "notes",
-            "status",
-            "created_at",
-            "reviewed_at",
-        ]
-        read_only_fields = ["created_at", "reviewed_at"]
-        
-class MyEmployeeMixin:
-    """
-    helper: يرجع Employee المرتبط بالمستخدم
-    """
-    def get_employee_for_user(self):
-        user = self.context["request"].user
-        try:
-            return Employee.objects.get(user=user)
-        except Employee.DoesNotExist:
-            raise serializers.ValidationError("لم يتم ربط حسابك كسجل موظف بعد.")
-
-
 class MyEmployeeMixin:
     """
     helper: يرجع Employee المرتبط بالمستخدم
@@ -423,7 +389,7 @@ class SalaryRaiseRequestSerializer(serializers.ModelSerializer, MyEmployeeMixin)
         read_only_fields = ["status", "created_at", "decided_at"]
 
     def create(self, validated_data):
-        emp = self.get_employee()
+        emp = self.get_employee_for_user()
         obj = SalaryRaiseRequest.objects.create(employee=emp, **validated_data)
 
         # إشعار للموظف نفسه بتسجيل الطلب

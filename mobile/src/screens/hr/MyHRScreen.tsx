@@ -133,6 +133,16 @@ const safeNumber = (value: string) => {
   return Number.isFinite(n) ? n : null;
 };
 
+const toIsoDate = (value: string): string | null => {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return raw;
+  const dmy = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
+  return null;
+};
+
 const MyHRScreen: React.FC = () => {
   const theme = useTheme();
   const { t, isRTL } = useI18n();
@@ -280,10 +290,15 @@ const MyHRScreen: React.FC = () => {
     }
     setLeaveSaving(true);
     try {
+      const startDate = toIsoDate(leaveStart);
+      const endDate = toIsoDate(leaveEnd);
+      if (!startDate || !endDate) {
+        throw new Error(t("myHr.invalidDate", "صيغة التاريخ غير صحيحة. استخدم YYYY-MM-DD أو DD-MM-YYYY."));
+      }
       await api.post("hr/my/leaves/", {
         leave_type: leaveType,
-        start_date: leaveStart.trim(),
-        end_date: leaveEnd.trim(),
+        start_date: startDate,
+        end_date: endDate,
         reason: leaveReason.trim() || undefined,
       });
       setLeaveType("annual");
@@ -309,8 +324,12 @@ const MyHRScreen: React.FC = () => {
     }
     setReportSaving(true);
     try {
+      const reportIsoDate = toIsoDate(reportDate);
+      if (!reportIsoDate) {
+        throw new Error(t("myHr.invalidDate", "صيغة التاريخ غير صحيحة. استخدم YYYY-MM-DD أو DD-MM-YYYY."));
+      }
       await api.post("hr/my/work-reports/", {
-        date: reportDate.trim(),
+        date: reportIsoDate,
         hours_worked: reportHours || "0",
         overtime_hours: reportOvertime || "0",
         absence_reason: reportReason.trim() || undefined,
@@ -399,8 +418,16 @@ const MyHRScreen: React.FC = () => {
       const formData = new FormData();
       formData.append("document_type", docType);
       formData.append("document_name", docName.trim());
-      if (docIssueDate.trim()) formData.append("issue_date", docIssueDate.trim());
-      if (docExpiryDate.trim()) formData.append("expiry_date", docExpiryDate.trim());
+      const issueDate = toIsoDate(docIssueDate);
+      const expiryDate = toIsoDate(docExpiryDate);
+      if (docIssueDate.trim() && !issueDate) {
+        throw new Error(t("myHr.invalidDate", "صيغة التاريخ غير صحيحة. استخدم YYYY-MM-DD أو DD-MM-YYYY."));
+      }
+      if (docExpiryDate.trim() && !expiryDate) {
+        throw new Error(t("myHr.invalidDate", "صيغة التاريخ غير صحيحة. استخدم YYYY-MM-DD أو DD-MM-YYYY."));
+      }
+      if (issueDate) formData.append("issue_date", issueDate);
+      if (expiryDate) formData.append("expiry_date", expiryDate);
 
       const fileName = `document-${Date.now()}.jpg`;
       formData.append("file", {
