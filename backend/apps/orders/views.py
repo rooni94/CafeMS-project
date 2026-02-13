@@ -160,11 +160,26 @@ def send_order_status_changed_email(order: Order, old_status: str, new_status: s
     if not order.user or not order.user.email:
         return
 
+    status_map = {
+        "pending": "قيد المراجعة",
+        "confirmed": "تم تأكيد الطلب",
+        "preparing": "طلبك قيد التحضير",
+        "ready": "طلبك جاهز للاستلام",
+        "completed": "اكتمل الطلب",
+        "paid": "تم الدفع",
+        "failed": "فشلت عملية الدفع",
+        "refunded": "تم استرجاع المبلغ",
+        "cancelled": "تم إلغاء الطلب",
+        "complated": "اكتمل الطلب",
+    }
+    old_status_text = status_map.get((old_status or "").lower(), old_status)
+    new_status_text = status_map.get((new_status or "").lower(), new_status)
+
     store_name = get_store_name()
     subject = f"تحديث حالة طلبك رقم #{order.id}"
     message = (
         f"مرحباً {order.user.username},\n\n"
-        f"تم تحديث حالة طلبك رقم #{order.id} من '{old_status}' إلى '{new_status}'.\n"
+        f"تم تحديث حالة طلبك رقم #{order.id} من '{old_status_text}' إلى '{new_status_text}'.\n"
         f"إجمالي الطلب: {order.total} ريال.\n\n"
         "يمكنك تتبع الطلب عبر صفحة تتبع الطلب في الموقع.\n\n"
         "تحياتنا،\n"
@@ -192,9 +207,36 @@ def notify_order_status_changed(order: Order, old_status: str, new_status: str):
     if not order.user:
         return
     try:
+        status_phrases = {
+            "pending": "أخذنا طلبك وبدأنا مراجعته. انتظرنا دقائق ونرجع لك بتحديث جديد.",
+            "confirmed": "تم تأكيد طلبك رسميا، وبدأنا الخطوات التالية للتجهيز.",
+            "preparing": "طلبك الآن تحت التحضير بكل حب، قريباً يكون جاهز.",
+            "ready": "طلبك أصبح جاهز! تفضل للاستلام الآن.",
+            "completed": "تم تسليم طلبك بنجاح، بالعافية عليك.",
+            "paid": "تم تسجيل الدفع بنجاح، شكراً لك.",
+            "failed": "للأسف عملية الدفع لم تكتمل. تقدر تعيد المحاولة في أي وقت.",
+            "refunded": "تم استرجاع مبلغ طلبك بنجاح.",
+            "cancelled": "تم إلغاء طلبك. إذا تحتاج مساعدة تواصل معنا.",
+            "complated": "تم تسليم طلبك بنجاح، بالعافية عليك.",
+        }
+        status_label_map = {
+            "pending": "قيد المراجعة",
+            "confirmed": "مؤكد",
+            "preparing": "قيد التحضير",
+            "ready": "جاهز",
+            "completed": "مكتمل",
+            "paid": "مدفوع",
+            "failed": "فشل الدفع",
+            "refunded": "مسترجع",
+            "cancelled": "ملغي",
+            "complated": "مكتمل",
+        }
+        normalized_status = (new_status or "").strip().lower()
         title = f"تحديث حالة الطلب #{order.id}"
-        status_text = order.get_status_display() if hasattr(order, "get_status_display") else new_status
-        body = f"تم تحديث حالة طلبك إلى {status_text}."
+        status_text = status_label_map.get(normalized_status) or (
+            order.get_status_display() if hasattr(order, "get_status_display") else new_status
+        )
+        body = status_phrases.get(normalized_status) or f"تم تحديث حالة طلبك إلى {status_text}."
         notify_user(
             order.user,
             title=title,
@@ -202,7 +244,8 @@ def notify_order_status_changed(order: Order, old_status: str, new_status: str):
             data={
                 "type": "order_status",
                 "order_id": order.id,
-                "status": new_status,
+                "status": normalized_status,
+                "status_label_ar": status_text,
                 "old_status": old_status,
             },
         )

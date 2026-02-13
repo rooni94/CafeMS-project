@@ -3,6 +3,8 @@ from datetime import date, timedelta
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
+from apps.accounts.models import RolePermission
+from apps.accounts.push import notify_user
 
 from .models import(
     Employee,
@@ -104,26 +106,44 @@ def notify_new_payroll(sender, instance, created, **kwargs):
     )
 
 def _notify_managers_and_employee(user, noti_type, title, message, extra_data=None):
-    # تنبيه الموظف نفسه
-    if user:
-        Notification.objects.create(
-            user=user,
-            type=noti_type,
-            title=title,
-            message=message,
-            data=extra_data or {},
-        )
+    payload = extra_data or {}
+    recipients = []
 
-    # تنبيه جميع المدراء (role = manager)
-    managers = User.objects.filter(role="manager")
-    for m in managers:
-        Notification.objects.create(
-            user=m,
+    if user:
+        recipients.append(user)
+
+    allowed_roles = {"manager", "supervisor"}
+    perms_roles = set(
+        RolePermission.objects.filter(can_manage_hr_documents=True).values_list("role", flat=True)
+    )
+    allowed_roles.update(perms_roles)
+
+    for staff_user in User.objects.filter(role__in=list(allowed_roles), is_active=True):
+        if not any(existing.id == staff_user.id for existing in recipients):
+            recipients.append(staff_user)
+
+    for target in recipients:
+        notif = Notification.objects.create(
+            user=target,
             type=noti_type,
             title=title,
             message=message,
-            data=extra_data or {},
+            data=payload,
         )
+        try:
+            notify_user(
+                target,
+                title=title,
+                body=message,
+                data={
+                    "type": noti_type,
+                    "category": "hr",
+                    "notification_id": notif.id,
+                    **payload,
+                },
+            )
+        except Exception as exc:
+            print("push notify hr expiry error:", exc)
 
 
 @receiver(post_save, sender=VisaResidence)

@@ -8,7 +8,7 @@ from .emails import safe_send_mail, build_frontend_url
 from .tokens import account_activation_token
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from .models import Address, RolePermission, UserActivity
+from .models import Address, RolePermission, UserActivity, NotificationCampaign
 from django.utils import timezone
 
 from .phone import is_plausible_e164, normalize_phone
@@ -324,4 +324,35 @@ class UserActivitySerializer(serializers.ModelSerializer):
 
     def get_order_id(self, obj):
         return obj.order_id
+
+
+class NotificationCampaignSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.username", read_only=True)
+
+    class Meta:
+        model = NotificationCampaign
+        fields = [
+            "id",
+            "title",
+            "message",
+            "status",
+            "target",
+            "scheduled_at",
+            "sent_at",
+            "sent_count",
+            "created_by",
+            "created_by_name",
+            "extra_data",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "sent_at",
+            "sent_count",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "updated_at",
+        ]
 

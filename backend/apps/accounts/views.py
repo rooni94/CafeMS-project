@@ -4,9 +4,11 @@ from django.contrib.auth import authenticate
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.utils import timezone
+from django.db import transaction
 from rest_framework import viewsets, generics, permissions, status, views
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from django.conf import settings
 
 from .serializers import (
@@ -17,10 +19,11 @@ from .serializers import (
     ChangePasswordSerializer,
     RolePermissionSerializer,
     UserActivitySerializer, 
+    NotificationCampaignSerializer,
     PhoneRegisterStartSerializer,
     PhoneRegisterVerifySerializer,
 )
-from .models import Address, RolePermission, UserActivity, PushToken
+from .models import Address, RolePermission, UserActivity, PushToken, NotificationCampaign
 from .emails import safe_send_mail, build_frontend_url
 from .tokens import account_activation_token, password_reset_token
 from .permissions import IsManager, CanManageUsers, CanViewUserActivity, get_role_permission
@@ -28,6 +31,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import AuthenticationFailed
 from apps.store.utils import get_store_name
+from .push import send_expo_push
 
 from .authentica import AuthenticaError, send_otp as authentica_send_otp, verify_otp as authentica_verify_otp
 from .phone import normalize_phone
@@ -549,4 +553,74 @@ class PushTokenView(APIView):
 
         PushToken.objects.filter(user=request.user, token=token).update(is_active=False)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _campaign_target_roles(target: str) -> list[str]:
+    if target == "customers":
+        return ["customer"]
+    if target == "staff":
+        return ["staff", "supervisor", "manager"]
+    return ["customer", "staff", "supervisor", "manager"]
+
+
+def _dispatch_campaign(campaign: NotificationCampaign) -> int:
+    roles = _campaign_target_roles(campaign.target)
+    tokens = list(
+        PushToken.objects.filter(user__role__in=roles, is_active=True).values_list("token", flat=True)
+    )
+    if tokens:
+        send_expo_push(
+            tokens,
+            title=campaign.title,
+            body=campaign.message,
+            data={
+                "type": "marketing_campaign",
+                "campaign_id": campaign.id,
+                **(campaign.extra_data or {}),
+            },
+        )
+
+    campaign.sent_count = len(tokens)
+    campaign.sent_at = timezone.now()
+    campaign.status = "sent"
+    campaign.save(update_fields=["sent_count", "sent_at", "status", "updated_at"])
+    return len(tokens)
+
+
+class NotificationCampaignViewSet(viewsets.ModelViewSet):
+    queryset = NotificationCampaign.objects.select_related("created_by").all()
+    serializer_class = NotificationCampaignSerializer
+    permission_classes = [CanManageUsers]
+
+    def perform_create(self, serializer):
+        campaign = serializer.save(created_by=self.request.user)
+        status_value = campaign.status
+        if status_value == "sent":
+            _dispatch_campaign(campaign)
+        elif status_value == "scheduled" and campaign.scheduled_at and campaign.scheduled_at <= timezone.now():
+            _dispatch_campaign(campaign)
+
+    def perform_update(self, serializer):
+        campaign = serializer.save()
+        if campaign.status == "sent" and campaign.sent_at is None:
+            _dispatch_campaign(campaign)
+
+    @action(detail=True, methods=["post"], permission_classes=[CanManageUsers])
+    def send_now(self, request, pk=None):
+        campaign = self.get_object()
+        with transaction.atomic():
+            campaign.status = "sent"
+            campaign.scheduled_at = timezone.now()
+            campaign.save(update_fields=["status", "scheduled_at", "updated_at"])
+            sent_count = _dispatch_campaign(campaign)
+        return Response({"detail": "Campaign sent.", "sent_count": sent_count})
+
+    @action(detail=False, methods=["post"], permission_classes=[CanManageUsers])
+    def process_due(self, request):
+        now = timezone.now()
+        due = NotificationCampaign.objects.filter(status="scheduled", scheduled_at__lte=now).order_by("scheduled_at", "id")
+        total = 0
+        for campaign in due:
+            total += _dispatch_campaign(campaign)
+        return Response({"detail": "Due campaigns processed.", "sent_count": total})
 

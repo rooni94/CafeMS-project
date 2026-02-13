@@ -2,6 +2,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from datetime import date
+from apps.accounts.push import notify_user
 from .models import (
     Employee,
     Attendance,
@@ -24,6 +25,32 @@ from .models import (
 )
 
 User = get_user_model()
+
+
+def notify_hr_reviewers(title: str, message: str, data: dict | None = None):
+    reviewers = User.objects.filter(role__in=["manager", "supervisor"], is_active=True)
+    for reviewer in reviewers:
+        notif = Notification.objects.create(
+            user=reviewer,
+            type="hr",
+            title=title,
+            message=message,
+            category="hr",
+            data=data or {},
+        )
+        try:
+            notify_user(
+                reviewer,
+                title=title,
+                body=message,
+                data={
+                    "type": "hr_review_required",
+                    "notification_id": notif.id,
+                    **(data or {}),
+                },
+            )
+        except Exception:
+            pass
 
 
 # ========= User مختصر (للاستخدام داخل Employee) =========
@@ -365,7 +392,21 @@ class MyLeaveRequestSerializer(serializers.ModelSerializer, MyEmployeeMixin):
         if days < 1:
             raise serializers.ValidationError("تاريخ النهاية يجب أن يكون بعد تاريخ البداية.")
         validated_data["days_requested"] = days
-        return LeaveRequest.objects.create(employee=emp, **validated_data)
+        leave = LeaveRequest.objects.create(employee=emp, **validated_data)
+        create_notification_for_employee(
+            emp,
+            title="استلمنا طلب إجازتك",
+            message="تم استلام طلب الإجازة بنجاح وهو الآن قيد المراجعة.",
+            category="leave",
+            related_object="LeaveRequest",
+            related_id=leave.id,
+        )
+        notify_hr_reviewers(
+            title="طلب إجازة جديد يحتاج مراجعة",
+            message=f"الموظف {emp.user.username} قدم طلب إجازة من {leave.start_date} إلى {leave.end_date}.",
+            data={"leave_id": leave.id, "employee_id": emp.id, "type": "leave_request"},
+        )
+        return leave
 
 
 class SalaryRaiseRequestSerializer(serializers.ModelSerializer, MyEmployeeMixin):
@@ -394,6 +435,11 @@ class SalaryRaiseRequestSerializer(serializers.ModelSerializer, MyEmployeeMixin)
             related_object="SalaryRaiseRequest",
             related_id=obj.id,
         )
+        notify_hr_reviewers(
+            title="طلب زيادة راتب جديد",
+            message=f"الموظف {emp.user.username} قدم طلب زيادة راتب بقيمة {obj.requested_amount}.",
+            data={"raise_id": obj.id, "employee_id": emp.id, "type": "salary_raise"},
+        )
         return obj
 
 
@@ -414,7 +460,21 @@ class WorkReportSerializer(serializers.ModelSerializer, MyEmployeeMixin):
 
     def create(self, validated_data):
         emp = self.get_employee_for_user()
-        return WorkReport.objects.create(employee=emp, **validated_data)
+        report = WorkReport.objects.create(employee=emp, **validated_data)
+        create_notification_for_employee(
+            emp,
+            title="تم استلام تقرير الدوام",
+            message=f"تم استلام تقريرك بتاريخ {report.date} وهو الآن بانتظار المراجعة.",
+            category="hr",
+            related_object="WorkReport",
+            related_id=report.id,
+        )
+        notify_hr_reviewers(
+            title="تقرير دوام جديد يحتاج مراجعة",
+            message=f"الموظف {emp.user.username} رفع تقرير دوام بتاريخ {report.date}.",
+            data={"work_report_id": report.id, "employee_id": emp.id, "type": "work_report"},
+        )
+        return report
     
 class HRWorkReportSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(

@@ -22,6 +22,7 @@ import CashierPage from "./dashboard/CashierPage";
 import InventoryManagementPage from "./dashboard/InventoryManagementPage";
 import TablesManagementPage from "./dashboard/TablesManagementPage";
 import DashboardLoyaltyPage from "./dashboard/DashboardLoyaltyPage";
+import NotificationCampaignsPage from "./dashboard/NotificationCampaignsPage";
 
 import MyLeavesPage from "./My/MyLeavesPage";
 import MyDocumentsPage from "./My/MyDocumentsPage";
@@ -227,6 +228,10 @@ const Dashboard: React.FC = () => {
 
           {canManageUsers && (
             <Route path="users" element={<DashboardUsers />} />
+          )}
+
+          {canManageUsers && (
+            <Route path="notification-campaigns" element={<NotificationCampaignsPage />} />
           )}
 
           {isManager && (

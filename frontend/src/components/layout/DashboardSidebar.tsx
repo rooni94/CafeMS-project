@@ -158,6 +158,14 @@ export const DashboardSidebar: React.FC<SidebarProps> = ({ perms }) => {
           المستخدمون
         </NavLink>
       )}
+      {canManageUsers && (
+        <NavLink
+          to="/dashboard/notification-campaigns"
+          className={({ isActive }) => linkClass(isActive)}
+        >
+          حملات الإشعارات
+        </NavLink>
+      )}
       {canManageStoreSettings && (
         <NavLink
           to="/dashboard/store-settings"

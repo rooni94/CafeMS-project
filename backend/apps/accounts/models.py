@@ -2,6 +2,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 
 class User(AbstractUser):
@@ -59,6 +60,54 @@ class PushToken(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.platform}"
+
+
+class NotificationCampaign(models.Model):
+    STATUS_CHOICES = (
+        ("draft", "Draft"),
+        ("scheduled", "Scheduled"),
+        ("sent", "Sent"),
+        ("failed", "Failed"),
+    )
+
+    TARGET_CHOICES = (
+        ("customers", "Customers"),
+        ("all", "All users"),
+        ("staff", "Staff only"),
+    )
+
+    title = models.CharField(max_length=120)
+    message = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    target = models.CharField(max_length=20, choices=TARGET_CHOICES, default="customers")
+    scheduled_at = models.DateTimeField(null=True, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    sent_count = models.PositiveIntegerField(default=0)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notification_campaigns",
+    )
+    extra_data = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"
+
+    def should_send_now(self) -> bool:
+        if self.status == "draft":
+            return False
+        if self.status == "sent":
+            return False
+        if not self.scheduled_at:
+            return self.status in ("scheduled",)
+        return self.scheduled_at <= timezone.now()
 class Address(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

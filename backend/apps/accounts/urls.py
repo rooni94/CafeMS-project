@@ -16,6 +16,7 @@ from .views import (
     VerifyEmailView,
     TokenObtainPairByIdentifierView,
     RolePermissionViewSet,
+    NotificationCampaignViewSet,
     MyRolePermissionView,
     UserActivityListView,   
     MyPermissionsAPIView,
@@ -29,6 +30,7 @@ router = DefaultRouter()
 # GET    /api/auth/role-permissions/        -> list
 # PATCH  /api/auth/role-permissions/<id>/   -> update
 router.register(r"role-permissions", RolePermissionViewSet, basename="role-permissions")
+router.register(r"notification-campaigns", NotificationCampaignViewSet, basename="notification-campaigns")
 
 urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
