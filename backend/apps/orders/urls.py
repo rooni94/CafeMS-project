@@ -12,7 +12,12 @@ from .views import (
     InventoryAdjustView,
     POSCashierOrderView,
 )
-from .stripe_views import create_checkout_session, stripe_checkout_status, stripe_webhook
+from .stripe_views import (
+    create_checkout_session,
+    stripe_checkout_status,
+    stripe_session_status,
+    stripe_webhook,
+)
 
 order_list = OrderViewSet.as_view({
     "get": "list",
@@ -40,6 +45,7 @@ table_detail = TableViewSet.as_view({
 
 urlpatterns = [
     path("stripe/status/", stripe_checkout_status, name="stripe-checkout-status"),
+    path("stripe/session-status/", stripe_session_status, name="stripe-session-status"),
     path("stripe/checkout-session/", create_checkout_session, name="stripe-checkout-session"),
     path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
 

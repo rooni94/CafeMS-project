@@ -27,6 +27,7 @@ import AddressesScreen from "../screens/profile/AddressesScreen";
 import CartScreen from "../screens/menu/CartScreen";
 
 import CheckoutScreen from "../screens/menu/CheckoutScreen";
+import CheckoutPaymentWebViewScreen from "../screens/menu/CheckoutPaymentWebViewScreen";
 
 import LoginScreen from "../screens/auth/LoginScreen";
 
@@ -140,6 +141,8 @@ export type AppStackParamList = {
 
   Checkout: undefined;
 
+  CheckoutPaymentWebView: { checkoutUrl: string };
+
   OrderTracking: { orderId?: number } | undefined;
 
   Login: undefined;
@@ -242,27 +245,11 @@ const TabSwipeWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
     if (swipeDelta > threshold) {
 
-      if (isRTL) {
-
-        if (index > 0) navigation.navigate(routes[index - 1].name as any);
-
-      } else if (index < routes.length - 1) {
-
-        navigation.navigate(routes[index + 1].name as any);
-
-      }
+      if (index > 0) navigation.navigate(routes[index - 1].name as any);
 
     } else if (swipeDelta < -threshold) {
 
-      if (isRTL) {
-
-        if (index < routes.length - 1) navigation.navigate(routes[index + 1].name as any);
-
-      } else if (index > 0) {
-
-        navigation.navigate(routes[index - 1].name as any);
-
-      }
+      if (index < routes.length - 1) navigation.navigate(routes[index + 1].name as any);
 
     }
 
@@ -442,7 +429,7 @@ const AppNavigator = () => {
 
         screenOptions={{
 
-          headerTitleAlign: isRTL ? "left" : "center",
+          headerTitleAlign: "center",
 
           headerBackTitle: t("nav.back", "رجوع"),
 
@@ -470,6 +457,12 @@ const AppNavigator = () => {
         <Stack.Screen name="Checkout" component={CheckoutScreen} options={{ title: t("nav.checkout", "إتمام الطلب") }} />
 
         <Stack.Screen
+          name="CheckoutPaymentWebView"
+          component={CheckoutPaymentWebViewScreen}
+          options={{ title: t("checkout.paymentTitle", "طريقة الدفع") }}
+        />
+
+        <Stack.Screen
 
           name="OrderTracking"
 
@@ -494,6 +487,8 @@ const AppNavigator = () => {
         />
 
         <Stack.Screen name="Contact" component={ContactScreen} options={{ title: t("nav.contact", "تواصل معنا") }} />
+
+        <Stack.Screen name="About" component={AboutScreen} options={{ title: t("nav.about", "من نحن") }} />
 
         <Stack.Screen name="Rewards" component={RewardsScreen} options={{ title: t("nav.rewards", "المكافآت") }} />
 

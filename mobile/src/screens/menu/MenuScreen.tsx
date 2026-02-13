@@ -160,7 +160,7 @@ const MenuScreen: React.FC = () => {
 
   return (
     <FlingGestureHandler
-      direction={isRTL ? Directions.LEFT : Directions.RIGHT}
+      direction={Directions.RIGHT}
       onHandlerStateChange={handleFling}
     >
       <View style={{ flex: 1 }}>

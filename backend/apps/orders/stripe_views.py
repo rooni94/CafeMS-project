@@ -1,9 +1,12 @@
 import json
+import uuid
 from decimal import Decimal, ROUND_HALF_UP
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import stripe
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
@@ -11,10 +14,18 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import UserRateThrottle
 
 from apps.orders.models import Order
+from apps.orders.serializers import OrderSerializer
 from apps.payments.models import PaymentMethod, PaymentTransaction
 from apps.products.models import Product, ProductAddon
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
+User = get_user_model()
+
+CHECKOUT_PAYLOAD_CACHE_TTL = 60 * 60 * 6
+
+
+def _payload_cache_key(checkout_ref: str) -> str:
+    return f"stripe_checkout_payload:{checkout_ref}"
 
 
 def _allowed_redirect_hosts():
@@ -294,6 +305,43 @@ def _upsert_payment_transaction(order: Order, session, status: str):
 def _handle_checkout_session_event(session, payment_ok):
     metadata = session.get("metadata") or {}
     raw_order_id = metadata.get("order_id") or session.get("client_reference_id")
+
+    checkout_ref = metadata.get("checkout_ref")
+    user_id = metadata.get("user_id")
+    provider_reference = (
+        session.get("payment_intent")
+        or session.get("id")
+        or (f"checkout-ref-{checkout_ref}" if checkout_ref else None)
+    )
+
+    if not raw_order_id and checkout_ref and payment_ok:
+        if provider_reference:
+            existing_txn = PaymentTransaction.objects.filter(
+                provider_reference=provider_reference,
+                order__isnull=False,
+            ).select_related("order").first()
+            if existing_txn and existing_txn.order_id:
+                raw_order_id = str(existing_txn.order_id)
+
+        if not raw_order_id:
+            cached_payload = cache.get(_payload_cache_key(checkout_ref))
+            if isinstance(cached_payload, dict):
+                order_payload = dict(cached_payload)
+                order_payload.pop("token", None)
+                order_payload.pop("customer_id", None)
+                order_payload["payment_method"] = "online"
+
+                serializer = OrderSerializer(data=order_payload, context={})
+                if serializer.is_valid():
+                    user = None
+                    if user_id:
+                        user = User.objects.filter(pk=user_id).first()
+                    order = serializer.save(user=user)
+                    raw_order_id = str(order.id)
+                    cache.delete(_payload_cache_key(checkout_ref))
+                else:
+                    return
+
     if not raw_order_id:
         return
 
@@ -323,6 +371,65 @@ def stripe_checkout_status(request):
         {
             "configured": bool(getattr(settings, "STRIPE_SECRET_KEY", "")),
             "publishable_key_configured": bool(publishable_key),
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def stripe_session_status(request):
+    if not settings.STRIPE_SECRET_KEY:
+        return JsonResponse({"detail": "Stripe is not configured."}, status=503)
+
+    session_id = (request.query_params.get("session_id") or "").strip()
+    if not session_id:
+        return JsonResponse({"detail": "session_id is required."}, status=400)
+
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except Exception:
+        return JsonResponse({"detail": "Invalid checkout session."}, status=400)
+
+    metadata = session.get("metadata") or {}
+    user_role = getattr(request.user, "role", "")
+    metadata_user_id = str(metadata.get("user_id") or "").strip()
+    if (
+        user_role not in ("manager", "supervisor", "staff")
+        and metadata_user_id
+        and metadata_user_id != str(request.user.id)
+    ):
+        return JsonResponse({"detail": "Not allowed."}, status=403)
+
+    payment_status = (session.get("payment_status") or "").strip()
+    if payment_status in ("paid", "no_payment_required"):
+        _handle_checkout_session_event(session, payment_ok=True)
+
+    order_id = None
+    raw_order_id = metadata.get("order_id") or session.get("client_reference_id")
+    try:
+        if raw_order_id is not None:
+            order_id = int(raw_order_id)
+    except (TypeError, ValueError):
+        order_id = None
+
+    if order_id is None:
+        provider_reference = session.get("payment_intent") or session.get("id")
+        if provider_reference:
+            txn = (
+                PaymentTransaction.objects.filter(provider_reference=provider_reference)
+                .select_related("order")
+                .first()
+            )
+            if txn and txn.order_id:
+                order_id = int(txn.order_id)
+
+    return JsonResponse(
+        {
+            "session_id": session.get("id"),
+            "payment_status": payment_status,
+            "order_id": order_id,
         }
     )
 
@@ -365,15 +472,65 @@ def create_checkout_session(request):
             order.payment_method = "online"
             order.save(update_fields=["payment_method"])
     else:
-        items = request.data.get("items", [])
-        if not isinstance(items, list):
-            return JsonResponse({"detail": "Invalid items payload."}, status=400)
-        try:
-            line_items = _resolve_line_items(items)
-        except Product.DoesNotExist:
-            return JsonResponse({"detail": "Product not found."}, status=400)
-        except ValueError as exc:
-            return JsonResponse({"detail": str(exc)}, status=400)
+        order_payload = request.data.get("order_payload")
+        if isinstance(order_payload, str):
+            try:
+                order_payload = json.loads(order_payload)
+            except Exception:
+                order_payload = None
+
+        if not isinstance(order_payload, dict):
+            root_items = request.data.get("items", [])
+            if isinstance(root_items, str):
+                try:
+                    root_items = json.loads(root_items)
+                except Exception:
+                    root_items = []
+            order_payload = {
+                "order_type": request.data.get("order_type", "takeaway"),
+                "delivery_address": request.data.get("delivery_address", ""),
+                "customer_name": request.data.get("customer_name", ""),
+                "items": root_items,
+            }
+
+        if isinstance(order_payload, dict):
+            payload_copy = dict(order_payload)
+            payload_copy.pop("token", None)
+            payload_copy.pop("customer_id", None)
+            payload_copy["payment_method"] = "online"
+
+            items = payload_copy.get("items", [])
+            if not isinstance(items, list):
+                return JsonResponse({"detail": "Invalid order payload."}, status=400)
+
+            try:
+                line_items = _resolve_line_items(items)
+            except Product.DoesNotExist:
+                return JsonResponse({"detail": "Product not found."}, status=400)
+            except ValueError as exc:
+                return JsonResponse({"detail": str(exc)}, status=400)
+
+            checkout_ref = uuid.uuid4().hex
+            cache.set(
+                _payload_cache_key(checkout_ref),
+                payload_copy,
+                timeout=CHECKOUT_PAYLOAD_CACHE_TTL,
+            )
+            metadata = {
+                "checkout_ref": checkout_ref,
+                "user_id": str(request.user.id),
+            }
+            client_reference_id = checkout_ref
+        else:
+            items = request.data.get("items", [])
+            if not isinstance(items, list):
+                return JsonResponse({"detail": "Invalid items payload."}, status=400)
+            try:
+                line_items = _resolve_line_items(items)
+            except Product.DoesNotExist:
+                return JsonResponse({"detail": "Product not found."}, status=400)
+            except ValueError as exc:
+                return JsonResponse({"detail": str(exc)}, status=400)
 
     success_url = _sanitize_redirect_url(
         request.data.get("success_url"), "/checkout/success"
@@ -383,20 +540,40 @@ def create_checkout_session(request):
         request.data.get("cancel_url"), "/checkout/cancel"
     )
 
-    session = stripe.checkout.Session.create(
-        payment_method_types=["card"],
-        line_items=line_items,
-        mode="payment",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata=metadata,
-        client_reference_id=client_reference_id,
-    )
+    raw_embedded = request.data.get("embedded", False)
+    embedded = str(raw_embedded).strip().lower() in ("1", "true", "yes", "on")
+
+    session_kwargs = {
+        "payment_method_types": ["card"],
+        "line_items": line_items,
+        "mode": "payment",
+        "metadata": metadata,
+        "client_reference_id": client_reference_id,
+    }
+
+    if embedded:
+        session_kwargs.update(
+            {
+                "ui_mode": "embedded",
+                "return_url": success_url,
+            }
+        )
+    else:
+        session_kwargs.update(
+            {
+                "success_url": success_url,
+                "cancel_url": cancel_url,
+            }
+        )
+
+    session = stripe.checkout.Session.create(**session_kwargs)
     return JsonResponse(
         {
             "id": session.id,
             "url": session.url,
+            "client_secret": session.get("client_secret"),
             "order_id": metadata.get("order_id"),
+            "embedded": embedded,
         }
     )
 

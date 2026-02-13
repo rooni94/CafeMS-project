@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 import EmptyState from "../../components/EmptyState";
@@ -143,18 +143,16 @@ const CheckoutScreen: React.FC = () => {
           addon_ids: item.addons?.map((addon) => addon.id) || [],
         })),
       };
-      const res = await api.post("orders/", payload);
 
       if (normalizedPaymentMethod === "online") {
-        const orderId = Number(res.data?.id);
-        if (!Number.isFinite(orderId)) {
-          throw new Error(t("checkout.submitError", "تعذر إرسال الطلب. حاول مرة أخرى."));
-        }
-
         const sessionRes = await api.post("orders/stripe/checkout-session/", {
-          order_id: orderId,
-          success_url: `${frontendBaseUrl}/checkout/success?order=${orderId}`,
-          cancel_url: `${frontendBaseUrl}/checkout/cancel?order=${orderId}`,
+          order_payload: payload,
+          order_type: payload.order_type,
+          delivery_address: payload.delivery_address,
+          customer_name: payload.customer_name,
+          items: payload.items,
+          success_url: `${frontendBaseUrl}/checkout/success`,
+          cancel_url: `${frontendBaseUrl}/checkout/cancel`,
         });
 
         const checkoutUrl = sessionRes.data?.url as string | undefined;
@@ -162,15 +160,12 @@ const CheckoutScreen: React.FC = () => {
           throw new Error("تعذر إنشاء جلسة الدفع.");
         }
 
-        navigation.navigate("OrderTracking", { orderId });
-        await Linking.openURL(checkoutUrl);
         clearCart();
-        Alert.alert(
-          "التحويل إلى بوابة الدفع",
-          "تم فتح بوابة الدفع الآمنة. بعد إنهاء الدفع ارجع للتطبيق لمتابعة حالة الطلب."
-        );
+        navigation.navigate("CheckoutPaymentWebView", { checkoutUrl });
         return;
       }
+
+      const res = await api.post("orders/", payload);
 
       clearCart();
       Alert.alert(

@@ -5,12 +5,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useTheme } from "../../theme";
 import { useAuth } from "../../context/AuthContext";
-import { api } from "../../services/api";
+import { api, parseApiError } from "../../services/api";
 import { Button, Input } from "../../components/ui";
 import CurrencyAmount from "../../components/CurrencyAmount";
 import OrderTimeline from "../../components/OrderTimeline";
 import FloatingCart from "../../components/FloatingCart";
 import { OrderDetails, OrderSummary } from "../../types";
+import { useCart } from "../../context/CartContext";
 import { formatDateTime } from "../../utils/format";
 import { normalizeArabicText } from "../../utils/text";
 import DashboardShell from "../dashboard/components/DashboardShell";
@@ -30,6 +31,7 @@ const OrderTrackingScreen: React.FC = () => {
   const { t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { user } = useAuth();
+  const { addItem, clearCart } = useCart();
   const labels = useMemo(
     () => ({
       trackTitle: t("orders.trackTitle", "تتبع الطلب"),
@@ -103,6 +105,7 @@ const OrderTrackingScreen: React.FC = () => {
 
   const [myOrders, setMyOrders] = useState<OrderSummary[]>([]);
   const [myOrdersLoading, setMyOrdersLoading] = useState(false);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
   const fetchOrder = async (id: string) => {
     const trimmed = id.trim();
@@ -207,6 +210,94 @@ const OrderTrackingScreen: React.FC = () => {
     </View>
   );
 
+  const handleReorder = async (targetOrderId: number) => {
+    try {
+      const res = await api.get(`orders/${targetOrderId}/`);
+      const orderItems = Array.isArray(res.data?.items) ? res.data.items : [];
+      if (!orderItems.length) {
+        setError(t("orders.reorderNoItems", "لا توجد عناصر متاحة لإعادة الطلب."));
+        return;
+      }
+
+      clearCart();
+      for (const item of orderItems) {
+        const quantity = Number(item?.quantity) || 1;
+        const unitPrice = Number(item?.price) || 0;
+        const product = item?.product || {};
+        const addons = Array.isArray(item?.addons)
+          ? item.addons.map((addon: any) => ({
+              id: Number(addon?.addon_id || addon?.id),
+              name: String(addon?.name || ""),
+              price_delta: Number(addon?.price_delta) || 0,
+            }))
+          : [];
+
+        addItem(
+          {
+            id: Number(product?.id),
+            name: String(product?.name || t("orders.reorderItemFallback", "منتج")),
+            price: unitPrice,
+            image: product?.image || undefined,
+            addons,
+            quantity,
+          },
+          quantity
+        );
+      }
+
+      navigation.navigate("Cart");
+    } catch (error) {
+      setError(parseApiError(error, t("orders.reorderFailed", "تعذر إعادة نفس الطلب.")));
+    }
+  };
+
+  const renderOrderDetails = () => {
+    if (!order) {
+      return <Text style={[styles.muted, { color: theme.palette.muted }]}>{labels.enterToSee}</Text>;
+    }
+
+    return (
+      <View style={styles.detailsWrap}>
+        <View style={styles.summaryGrid}>
+          <InfoCard icon="receipt-outline" label={labels.orderNumber} value={`#${order.id}`} />
+          <InfoCard icon="pulse-outline" label={labels.status} value={statusLabel || DASH} />
+          <InfoCard icon="calendar-outline" label={labels.date} value={formatDateTime((order as any).created_at)} />
+          <InfoCard
+            icon="pricetag-outline"
+            label={labels.total}
+            value={<CurrencyAmount value={(order as any).total} color={theme.palette.text} symbolSize={12} textStyle={styles.amountBig} />}
+          />
+        </View>
+
+        <View style={[styles.stageCard, { borderColor: theme.palette.border, backgroundColor: theme.palette.surfaceAlt }]}> 
+          <View style={styles.stageHeader}>
+            <View style={[styles.stageIcon, { backgroundColor: `${theme.palette.accent}14`, borderColor: `${theme.palette.accent}33` }]}>
+              <Ionicons name="git-branch-outline" size={18} color={theme.palette.accent} />
+            </View>
+            <View style={styles.stageText}>
+              <Text style={[styles.stageTitle, { color: theme.palette.text }]}>{labels.stagesTitle}</Text>
+              <Text style={[styles.stageSub, { color: theme.palette.muted }]}>{labels.stagesSub}</Text>
+            </View>
+          </View>
+
+          <OrderTimeline status={(order as any).status} />
+        </View>
+
+        <Button
+          title={t("orders.reorder", "إعادة الطلب")}
+          variant="secondary"
+          onPress={() => handleReorder(order.id)}
+        />
+
+        {invoiceUrl ? (
+          <Button title={labels.invoice} variant="secondary" onPress={() => Linking.openURL(invoiceUrl)} />
+        ) : (
+          <Text style={[styles.muted, { color: theme.palette.muted }]}>{labels.noInvoice}</Text>
+        )}
+      </View>
+    );
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <DashboardShell title={screenTitle} subtitle={screenSubtitle}>
@@ -218,7 +309,16 @@ const OrderTrackingScreen: React.FC = () => {
           keyboardType="number-pad"
           placeholder={labels.orderIdPlaceholder}
         />
-        <Button title={labels.trackBtn} loading={loading} onPress={() => fetchOrder(orderId)} disabled={loading} style={styles.primaryBtn} />
+        <Button
+          title={labels.trackBtn}
+          loading={loading}
+          onPress={() => {
+            setExpandedOrderId(null);
+            fetchOrder(orderId);
+          }}
+          disabled={loading}
+          style={styles.primaryBtn}
+        />
         {error ? <Text style={[styles.error, { color: theme.palette.danger }]}>{error}</Text> : null}
       </DashboardSection>
 
@@ -255,61 +355,33 @@ const OrderTrackingScreen: React.FC = () => {
           ) : (
             <View style={styles.listGap}>
               {myOrders.slice(0, 15).map((o) => (
-                <DashboardListItem
-                  key={o.id}
-                  title={`${labels.orderLabel} #${o.id}`}
-                  subtitle={`${normalizeArabicText((o as any).status || "")} ${DOT} ${formatDateTime((o as any).created_at)}`}
-                  icon="receipt-outline"
-                  onPress={() => {
-                    setOrderId(String(o.id));
-                    fetchOrder(String(o.id));
-                  }}
-                  right={<CurrencyAmount value={(o as any).total} color={theme.palette.text} symbolSize={12} textStyle={styles.amount} />}
-                />
+                <View key={o.id}>
+                  <DashboardListItem
+                    title={`${labels.orderLabel} #${o.id}`}
+                    subtitle={`${normalizeArabicText((o as any).status || "")} ${DOT} ${formatDateTime((o as any).created_at)}`}
+                    icon="receipt-outline"
+                    onPress={() => {
+                      setOrderId(String(o.id));
+                      setExpandedOrderId(o.id);
+                      fetchOrder(String(o.id));
+                    }}
+                    right={<CurrencyAmount value={(o as any).total} color={theme.palette.text} symbolSize={12} textStyle={styles.amount} />}
+                  />
+                  {expandedOrderId === o.id && order?.id === o.id ? (
+                    <View style={styles.inlineDetailsCard}>{renderOrderDetails()}</View>
+                  ) : null}
+                </View>
               ))}
             </View>
           )}
         </DashboardSection>
       )}
 
-      <DashboardSection title={labels.detailsTitle} subtitle={order ? labels.detailsFound : labels.detailsNone}>
-        {order ? (
-          <View style={styles.detailsWrap}>
-            <View style={styles.summaryGrid}>
-              <InfoCard icon="receipt-outline" label={labels.orderNumber} value={`#${order.id}`} />
-              <InfoCard icon="pulse-outline" label={labels.status} value={statusLabel || DASH} />
-              <InfoCard icon="calendar-outline" label={labels.date} value={formatDateTime((order as any).created_at)} />
-              <InfoCard
-                icon="pricetag-outline"
-                label={labels.total}
-                value={<CurrencyAmount value={(order as any).total} color={theme.palette.text} symbolSize={12} textStyle={styles.amountBig} />}
-              />
-            </View>
-
-            <View style={[styles.stageCard, { borderColor: theme.palette.border, backgroundColor: theme.palette.surfaceAlt }]}>
-              <View style={styles.stageHeader}>
-                <View style={[styles.stageIcon, { backgroundColor: `${theme.palette.accent}14`, borderColor: `${theme.palette.accent}33` }]}>
-                  <Ionicons name="git-branch-outline" size={18} color={theme.palette.accent} />
-                </View>
-                <View style={styles.stageText}>
-                  <Text style={[styles.stageTitle, { color: theme.palette.text }]}>{labels.stagesTitle}</Text>
-                  <Text style={[styles.stageSub, { color: theme.palette.muted }]}>{labels.stagesSub}</Text>
-                </View>
-              </View>
-
-              <OrderTimeline status={(order as any).status} />
-            </View>
-
-            {invoiceUrl ? (
-              <Button title={labels.invoice} variant="secondary" onPress={() => Linking.openURL(invoiceUrl)} />
-            ) : (
-              <Text style={[styles.muted, { color: theme.palette.muted }]}>{labels.noInvoice}</Text>
-            )}
-          </View>
-        ) : (
-          <Text style={[styles.muted, { color: theme.palette.muted }]}>{labels.enterToSee}</Text>
-        )}
-      </DashboardSection>
+      {!(expandedOrderId && order && expandedOrderId === order.id) ? (
+        <DashboardSection title={labels.detailsTitle} subtitle={order ? labels.detailsFound : labels.detailsNone}>
+          {renderOrderDetails()}
+        </DashboardSection>
+      ) : null}
 
     </DashboardShell>
       <FloatingCart />
@@ -349,6 +421,15 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     detailsWrap: {
       gap: 12,
     },
+    inlineDetailsCard: {
+      marginTop: -4,
+      marginBottom: 6,
+      borderWidth: 1,
+      borderColor: theme.palette.border,
+      borderRadius: 14,
+      padding: 10,
+      backgroundColor: theme.palette.surface,
+    },
     summaryGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
@@ -375,7 +456,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     infoBody: {
       flex: 1,
-      alignItems: "flex-start",
+      alignItems: isRTL ? "flex-end" : "flex-start",
       gap: 4,
     },
     infoLabel: {
@@ -402,7 +483,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     stageText: {
       flex: 1,
-      alignItems: "flex-start",
+      alignItems: isRTL ? "flex-end" : "flex-start",
       gap: 2,
     },
     stageIcon: {

@@ -4,7 +4,6 @@ import { useCart } from "../context/CartContext";
 import { api } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { TrashIcon } from "@heroicons/react/16/solid";
-import { loadStripe } from "@stripe/stripe-js";
 import CurrencyAmount from "../components/common/CurrencyAmount";
 import { useAuth } from "../context/AuthContext";
 
@@ -21,7 +20,6 @@ type OrderSuccessState = {
 };
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
-const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 const Checkout: React.FC = () => {
   const { items, total, clearCart, removeItem } = useCart();
@@ -216,47 +214,46 @@ const Checkout: React.FC = () => {
         })),
       };
 
-      const res = await api.post("orders/", payload);
-      const createdOrder = res.data;
-
       if (normalizedPaymentMethod === "online") {
         const frontendBase = (
           import.meta.env.VITE_FRONTEND_URL || window.location.origin
         ).replace(/\/$/, "");
 
         const sessionRes = await api.post("orders/stripe/checkout-session/", {
-          order_id: createdOrder.id,
-          success_url: `${frontendBase}/checkout/success?order=${createdOrder.id}`,
-          cancel_url: `${frontendBase}/checkout/cancel?order=${createdOrder.id}`,
+          order_payload: payload,
+          order_type: payload.order_type,
+          delivery_address: payload.delivery_address,
+          customer_name: payload.customer_name,
+          items: payload.items,
+          embedded: true,
+          success_url: `${frontendBase}/checkout/success`,
+          cancel_url: `${frontendBase}/checkout/cancel`,
         });
 
-        const sessionId = sessionRes.data?.id as string | undefined;
-        const checkoutUrl = sessionRes.data?.url as string | undefined;
-
-        if (stripePromise && sessionId) {
-          const stripe = await stripePromise;
-          if (stripe) {
+        const clientSecret = sessionRes.data?.client_secret as string | undefined;
+        if (!clientSecret) {
+          const checkoutUrl = sessionRes.data?.url as string | undefined;
+          if (checkoutUrl) {
             clearCart();
-            const { error: redirectError } = await stripe.redirectToCheckout({
-              sessionId,
-            });
-            if (redirectError) {
-              throw new Error(
-                redirectError.message || "تعذر التحويل إلى بوابة الدفع."
-              );
-            }
+            window.location.assign(checkoutUrl);
             return;
           }
+          throw new Error("تعذر تجهيز شاشة الدفع داخل الموقع.");
         }
 
-        if (checkoutUrl) {
-          clearCart();
-          window.location.assign(checkoutUrl);
-          return;
+        try {
+          sessionStorage.setItem("checkout_embedded_client_secret", clientSecret);
+        } catch {
+          // ignore
         }
 
-        throw new Error("تعذر إنشاء جلسة الدفع عبر Stripe.");
+        clearCart();
+        nav("/checkout/payment", { state: { clientSecret } });
+        return;
       }
+
+      const res = await api.post("orders/", payload);
+      const createdOrder = res.data;
 
       const successPayload: OrderSuccessState = {
         orderId: createdOrder.id,

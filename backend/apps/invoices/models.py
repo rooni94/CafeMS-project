@@ -81,7 +81,10 @@ class Invoice(models.Model):
 
         # عرض الإيصال 80mm وطول ديناميكي بسيط
         width = 80 * mm
-        items_count = self.order.items.count() or 1
+        items_count = 1
+        for _item in self.order.items.prefetch_related("addons"):
+            addon_count = _item.addons.count() if hasattr(_item, "addons") else 0
+            items_count += 1 + addon_count
         base_height = 120 * mm
         line_height = 6 * mm
         height = base_height + items_count * line_height
@@ -144,7 +147,7 @@ class Invoice(models.Model):
 
         # بنود الطلب
         c.setFont(font_name, 7)
-        for item in order.items.all():
+        for item in order.items.prefetch_related("addons"):
             if y < 25 * mm:
                 c.showPage()
                 y = height - 10 * mm
@@ -168,6 +171,18 @@ class Invoice(models.Model):
                 ar(f"{item.quantity} × {item.price:.2f} ريال"),
             )
             y -= 5 * mm
+
+            addons = list(item.addons.all()) if hasattr(item, "addons") else []
+            for addon in addons:
+                if y < 25 * mm:
+                    c.showPage()
+                    y = height - 10 * mm
+                    c.setFont(font_name, 7)
+
+                addon_price = float(getattr(addon, "price_delta", 0) or 0)
+                c.drawString(7 * mm, y, ar(f"+ {addon.name}"))
+                c.drawRightString(width - 5 * mm, y, ar(f"{addon_price:.2f} ريال"))
+                y -= 4 * mm
 
         # خط قبل الإجمالي
         y -= 2 * mm

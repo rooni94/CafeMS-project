@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@stripe/react-stripe-js": "^2.8.0",
     "@stripe/stripe-js": "^1.54.0",
     "aws-amplify": "^6.15.8",
     "axios": "^1.6.0",
