@@ -442,7 +442,7 @@ const ProfileScreen: React.FC = () => {
       {!isEmployee ? (
         <DashboardSection title={t("profile.linksTitle", "روابط")} subtitle={t("profile.linksSubtitle", "معلومات وبيانات المتجر.")}>
           <View style={{ gap: 10 }}>
-            <DashboardListItem title={t("profile.aboutTitle", "من نحن")} subtitle={t("profile.aboutSubtitle", "تعرف على لاڤـا كافيـه")} icon="business-outline" onPress={() => navigation.navigate("About")} />
+            <DashboardListItem title={t("profile.aboutTitle", "من نحن")} subtitle={t("profile.aboutSubtitle", "تعرف على CafeMS Demo")} icon="business-outline" onPress={() => navigation.navigate("About")} />
             <DashboardListItem title={t("profile.termsTitle", "الشروط والأحكام")} subtitle={t("profile.termsSubtitle", "سياسات الاستخدام")} icon="document-text-outline" onPress={() => navigation.navigate("Terms")} />
             <DashboardListItem title={t("profile.privacyTitle", "سياسة الخصوصية")} subtitle={t("profile.privacySubtitle", "حماية البيانات والخصوصية")} icon="shield-checkmark-outline" onPress={() => navigation.navigate("Privacy")} />
             <DashboardListItem title={t("profile.contactTitle", "تواصل معنا")} subtitle={t("profile.contactSubtitle", "دعم وخدمة العملاء")} icon="call-outline" onPress={() => navigation.navigate("Contact")} />
