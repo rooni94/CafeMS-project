@@ -37,7 +37,7 @@ class MyLoyaltyProfileView(APIView):
 
     def get(self, request):
         profile = get_or_create_profile(request.user)
-        serializer = LoyaltyProfileSerializer(profile)
+        serializer = LoyaltyProfileSerializer(profile, context={"request": request})
         settings_serializer = LoyaltySettingsSerializer(LoyaltySettings.load())
         return Response({"profile": serializer.data, "settings": settings_serializer.data})
 
@@ -101,7 +101,7 @@ class LoyaltyScanView(APIView):
             profile, txn = result
             return Response(
                 {
-                    "profile": LoyaltyProfileSerializer(profile).data,
+                    "profile": LoyaltyProfileSerializer(profile, context={"request": request}).data,
                     "transaction": LoyaltyTransactionSerializer(txn).data,
                 }
             )
@@ -122,8 +122,9 @@ class LoyaltyPassView(APIView):
             return Response({"detail": "منصة غير مدعومة."}, status=status.HTTP_400_BAD_REQUEST)
 
         settings_obj, _ = StoreSettings.objects.get_or_create(id=1)
-        base_url = settings_obj.wallet_pass_base_url or "https://example.invalid"
-        base_url = base_url.rstrip("/")
+        scheme = getattr(request, "scheme", "https") or "https"
+        host = request.get_host()
+        base_url = f"{scheme}://{host}".rstrip("/")
 
         pass_url = f"{base_url}/passes/{platform}/{profile.membership_id}.pkpass"
 

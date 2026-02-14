@@ -79,6 +79,13 @@ class LoyaltyProfileSerializer(serializers.ModelSerializer):
 
     def _wallet_base_url(self):
         if not hasattr(self, "_wallet_base_cache"):
+            request = self.context.get("request") if hasattr(self, "context") else None
+            if request is not None:
+                scheme = getattr(request, "scheme", "https") or "https"
+                host = request.get_host()
+                self._wallet_base_cache = f"{scheme}://{host}".rstrip("/")
+                return self._wallet_base_cache
+
             settings = StoreSettings.objects.first()
             base = (
                 settings.wallet_pass_base_url

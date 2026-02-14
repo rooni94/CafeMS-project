@@ -386,10 +386,15 @@ def build_pass_payload(profile: LoyaltyProfile) -> Dict:
 
     payload.setdefault("formatVersion", 1)
     payload.setdefault("organizationName", settings_obj.store_name)
-    payload.setdefault("description", "Loyalty Card")
+    payload.setdefault("description", "بطاقة الولاء")
+    payload.setdefault("logoText", "")
 
-    # ✅ لأننا نعرض اللوغو في strip وليس الهيدر
-    payload["logoText"] = ""
+    customer_name = (
+        getattr(profile.user, "full_name", "")
+        or getattr(profile.user, "first_name", "")
+        or getattr(profile.user, "username", "")
+        or "عميلنا العزيز"
+    )
 
     payload.setdefault("suppressStripShine", True)
 
@@ -397,9 +402,9 @@ def build_pass_payload(profile: LoyaltyProfile) -> Dict:
     payload["authenticationToken"] = _ensure_auth_token(profile)
     payload["webServiceURL"] = _web_service_url(settings_obj)
 
-    payload.setdefault("backgroundColor", loyalty_settings.pass_primary_color or "#0b0f19")
-    payload.setdefault("foregroundColor", loyalty_settings.pass_secondary_color or "#f8fafc")
-    payload.setdefault("labelColor", loyalty_settings.pass_label_color or "#f59e0b")
+    payload["backgroundColor"] = loyalty_settings.pass_primary_color or "#0b0f19"
+    payload["foregroundColor"] = loyalty_settings.pass_secondary_color or "#f8fafc"
+    payload["labelColor"] = loyalty_settings.pass_label_color or "#f59e0b"
 
     pass_type_identifier = payload.get("passTypeIdentifier")
     team_identifier = payload.get("teamIdentifier")
@@ -415,17 +420,56 @@ def build_pass_payload(profile: LoyaltyProfile) -> Dict:
         payload["storeCard"] = {}
         section = payload["storeCard"]
 
-    primary_fields = section.setdefault("primaryFields", [])
-    secondary_fields = section.setdefault("secondaryFields", [])
-
-    _upsert_field(primary_fields, "points", "Points", profile.points_balance or 0)
-    _upsert_field(secondary_fields, "membership", "Member ID", profile.membership_id)
+    section["headerFields"] = []
+    section["primaryFields"] = [
+        {
+            "key": "customer_name",
+            "label": "اسم العميل",
+            "value": customer_name,
+            "textAlignment": "PKTextAlignmentRight",
+        }
+    ]
+    section["secondaryFields"] = [
+        {
+            "key": "membership",
+            "label": "رقم العضوية",
+            "value": profile.membership_id,
+            "textAlignment": "PKTextAlignmentRight",
+        },
+        {
+            "key": "points",
+            "label": "رصيد النقاط",
+            "value": int(profile.points_balance or 0),
+            "textAlignment": "PKTextAlignmentRight",
+        },
+    ]
+    section["auxiliaryFields"] = [
+        {
+            "key": "membership_tier",
+            "label": "الفئة",
+            "value": "بطاقة الولاء",
+            "textAlignment": "PKTextAlignmentRight",
+        }
+    ]
+    section["backFields"] = [
+        {
+            "key": "store_name",
+            "label": "المتجر",
+            "value": settings_obj.store_name,
+        },
+        {
+            "key": "support",
+            "label": "الدعم",
+            "value": settings_obj.support_email or settings_obj.contact_email or "",
+        },
+    ]
 
     barcode_message = profile.membership_id
     barcode = {
         "format": "PKBarcodeFormatQR",
         "message": barcode_message,
         "messageEncoding": "iso-8859-1",
+        "altText": profile.membership_id,
     }
     if isinstance(payload.get("barcodes"), list):
         for entry in payload["barcodes"]:
@@ -460,7 +504,7 @@ def build_pkpass(profile: LoyaltyProfile) -> Tuple[bytes, datetime]:
         zf.writestr("manifest.json", manifest_json)
         zf.writestr("signature", signature)
 
-    last_modified = profile.updated_at or timezone.now()
+    last_modified = timezone.now()
     return buffer.getvalue(), last_modified
 
 

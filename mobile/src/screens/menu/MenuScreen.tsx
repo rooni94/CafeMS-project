@@ -1,5 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, FlatList, ToastAndroid, Platform, useWindowDimensions, DimensionValue } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  FlatList,
+  ToastAndroid,
+  Platform,
+  useWindowDimensions,
+  DimensionValue,
+} from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { useQuery } from "@tanstack/react-query";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -24,6 +36,11 @@ type MenuCategory = {
   id: number;
   name: string;
   image?: string | null;
+};
+
+type CategoryOption = {
+  id: number | null;
+  name: string;
 };
 
 const MenuScreen: React.FC = () => {
@@ -86,6 +103,13 @@ const MenuScreen: React.FC = () => {
     if (activeCategory == null) return copy.menu.allCategories;
     return decoratedCategories.find((cat) => cat.id === activeCategory)?.name || copy.menu.allCategories;
   }, [activeCategory, decoratedCategories, copy]);
+
+  const categoryOptions = useMemo<CategoryOption[]>(() => {
+    return [
+      { id: null, name: copy.menu.filterAll },
+      ...decoratedCategories.map((cat) => ({ id: cat.id, name: cat.name })),
+    ];
+  }, [copy.menu.filterAll, decoratedCategories]);
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -178,19 +202,29 @@ const MenuScreen: React.FC = () => {
             )}
 
             <Card style={styles.sectionCard}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
-                <Pressable onPress={() => setActiveCategory(null)} style={styles.categoryPill}>
-                  <Text style={[styles.categoryText, activeCategory == null && styles.categoryTextActive]}>{copy.menu.filterAll}</Text>
-                </Pressable>
-                {decoratedCategories.map((cat) => {
-                  const isActive = activeCategory === cat.id;
+              <FlatList
+                data={categoryOptions}
+                horizontal
+                nestedScrollEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => (item.id == null ? "all" : String(item.id))}
+                contentContainerStyle={styles.categoryRow}
+                keyboardShouldPersistTaps="always"
+                renderItem={({ item }) => {
+                  const isActive = activeCategory === item.id;
                   return (
-                    <Pressable key={cat.id} onPress={() => setActiveCategory(cat.id)} style={styles.categoryPill}>
-                      <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>{cat.name}</Text>
+                    <Pressable
+                      onPress={() => setActiveCategory(item.id)}
+                      style={[styles.categoryPill, isActive && styles.categoryPillActive]}
+                      hitSlop={8}
+                    >
+                      <Text style={[styles.categoryText, isActive && styles.categoryTextActive]}>
+                        {item.name}
+                      </Text>
                     </Pressable>
                   );
-                })}
-              </ScrollView>
+                }}
+              />
             </Card>
 
             {filteredProducts.length === 0 ? (
@@ -227,7 +261,14 @@ const MenuScreen: React.FC = () => {
             onClose={() => setAddonProduct(null)}
             onConfirm={handleConfirmAddons}
           />
-          <FloatingCart style={styles.menuCartFab} />
+          <FloatingCart
+            style={[
+              styles.menuCartFab,
+              {
+                top: showSearch ? 206 : 165,
+              },
+            ]}
+          />
         </Screen>
       </View>
   );
@@ -276,17 +317,29 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
       writingDirection: isRTL ? "rtl" : "ltr",
     },
     categoryRow: {
-      flexDirection: "row",
-      gap: 12,
       paddingHorizontal: 2,
+      gap: 10,
+      alignItems: "center",
+      minHeight: 56,
     },
     categoryPill: {
-      paddingVertical: 6,
+      minHeight: 38,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.palette.border,
+      backgroundColor: theme.palette.surfaceAlt,
+      paddingHorizontal: 14,
+      justifyContent: "center",
+    },
+    categoryPillActive: {
+      borderColor: theme.palette.accent,
+      backgroundColor: `${theme.palette.accent}18`,
     },
     categoryText: {
       color: theme.palette.muted,
       fontWeight: "700",
       fontSize: 14,
+      textAlign: isRTL ? "right" : "left",
     },
     categoryTextActive: {
       color: theme.palette.text,
@@ -305,7 +358,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, isRTL: boolean) =>
     },
     productCard: {},
     menuCartFab: {
-      top: 220,
+      top: 196,
       bottom: undefined,
       end: 14,
     },
