@@ -7,6 +7,7 @@ from pathlib import Path
 from django.core.files import File
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.core.files.storage import default_storage
 
 from apps.products.models import Category, Product, ProductAddon
 
@@ -38,10 +39,10 @@ class Command(BaseCommand):
         manifest_path = Path(options["manifest"]).expanduser().resolve()
         images_root = Path(options["images_dir"]).expanduser().resolve()
         manifest = self._load_manifest(manifest_path)
-        entries = self._validate_manifest(manifest, images_root)
+        entries, category_specs, asset_specs = self._validate_manifest(manifest, images_root)
 
         if dry_run:
-            self._report_dry_run(entries, manifest)
+            self._report_dry_run(entries, category_specs, asset_specs, manifest)
             return
 
         created = 0
@@ -49,12 +50,27 @@ class Command(BaseCommand):
         created_categories = 0
         addon_count = 0
         archived = 0
+        category_images_attached = 0
+        assets_saved = 0
         managed_ids = set()
         newly_saved_media = []
 
         try:
             with transaction.atomic():
                 category_cache = {}
+                for category_spec in category_specs:
+                    category_name = category_spec["name"]
+                    category = Category.objects.filter(name=category_name).first()
+                    if category is None:
+                        category = Category(name=category_name)
+                        category.save()
+                        created_categories += 1
+                    category.description = category_spec["description"]
+                    category.save(update_fields=["description"])
+                    self._attach_category_image(category, category_spec, newly_saved_media)
+                    category_images_attached += 1
+                    category_cache[category_name] = category
+
                 for entry in entries:
                     category_name = entry["category_name"]
                     category = category_cache.get(category_name)
@@ -104,6 +120,11 @@ class Command(BaseCommand):
                     # stale add-ons from an older version of this managed item.
                     product.addons.exclude(name__in=wanted_addons).update(is_active=False)
 
+                for asset_spec in asset_specs:
+                    if self._save_asset(asset_spec):
+                        assets_saved += 1
+                        newly_saved_media.append((default_storage, asset_spec["storage_name"]))
+
                 if archive_existing:
                     archived = (
                         Product.objects.filter(available=True)
@@ -111,9 +132,9 @@ class Command(BaseCommand):
                         .update(available=False)
                     )
         except Exception:
-            for storage_name in newly_saved_media:
+            for storage, storage_name in newly_saved_media:
                 try:
-                    Product._meta.get_field("image").storage.delete(storage_name)
+                    storage.delete(storage_name)
                 except Exception:
                     pass
             raise
@@ -130,6 +151,8 @@ class Command(BaseCommand):
                         "product_addons_upserted": addon_count,
                         "products_managed": len(managed_ids),
                         "images_attached": len(entries),
+                        "category_images_attached": category_images_attached,
+                        "assets_saved": assets_saved,
                         "currency": manifest.get("currency", "SAR"),
                     },
                     ensure_ascii=True,
@@ -155,14 +178,39 @@ class Command(BaseCommand):
             raise CommandError(f"Images directory not found: {images_root}")
 
         entries = []
+        category_specs = []
+        asset_specs = []
         seen_keys = set()
         seen_ids = set()
+        seen_category_names = set()
         for category in manifest["categories"]:
             if not isinstance(category, dict):
                 raise CommandError("Each manifest category must be an object.")
             category_name = str(category.get("name", "")).strip()
             if not category_name:
                 raise CommandError("Manifest category name cannot be empty.")
+            if category_name in seen_category_names:
+                raise CommandError(f"Duplicate manifest category: {category_name}")
+            seen_category_names.add(category_name)
+            category_image_path = None
+            category_image_name = str(category.get("image", "")).strip()
+            if category_image_name:
+                category_image_path = self._resolve_image_path(
+                    images_root,
+                    category_image_name,
+                    f"category {category_name!r}",
+                )
+            category_specs.append(
+                {
+                    "name": category_name,
+                    "description": str(category.get("description", "")).strip(),
+                    "source_category_id": str(
+                        category.get("source_category_id", category_name)
+                    ).strip(),
+                    "image_name": category_image_name,
+                    "image_path": category_image_path,
+                }
+            )
             items = category.get("items")
             if not isinstance(items, list) or not items:
                 raise CommandError(f"Category {category_name!r} has no items.")
@@ -191,15 +239,7 @@ class Command(BaseCommand):
                 if price < 0:
                     raise CommandError(f"Price cannot be negative for {name!r}.")
 
-                relative_image = image_name.replace("\\", "/")
-                relative_path = Path(relative_image)
-                if relative_path.is_absolute() or ".." in relative_path.parts or ":" in relative_image:
-                    raise CommandError(f"Unsafe image path for {name!r}: {image_name}")
-                image_path = (images_root / relative_path).resolve()
-                if os.path.commonpath([str(images_root), str(image_path)]) != str(images_root):
-                    raise CommandError(f"Image path escapes images directory: {image_name}")
-                if not image_path.is_file():
-                    raise CommandError(f"Image not found for {name!r}: {image_path}")
+                image_path = self._resolve_image_path(images_root, image_name, f"item {name!r}")
 
                 addons = []
                 for addon in item.get("addons", []):
@@ -228,9 +268,38 @@ class Command(BaseCommand):
                         "minimum_stock": int(item.get("minimum_stock", 0)),
                     }
                 )
+        for asset in manifest.get("assets", []):
+            if not isinstance(asset, dict):
+                raise CommandError("Each manifest asset must be an object.")
+            source_asset_id = str(asset.get("source_asset_id", "")).strip()
+            image_name = str(asset.get("image", "")).strip()
+            if not source_asset_id or not image_name:
+                raise CommandError("Each manifest asset needs source_asset_id and image.")
+            image_path = self._resolve_image_path(images_root, image_name, f"asset {source_asset_id!r}")
+            stable_id = re.sub(r"[^A-Za-z0-9_-]+", "-", source_asset_id).strip("-") or "asset"
+            suffix = image_path.suffix.lower() or ".jpg"
+            asset_specs.append(
+                {
+                    "source_asset_id": source_asset_id,
+                    "image_path": image_path,
+                    "storage_name": f"products/lk_menu/assets/{stable_id}{suffix}",
+                }
+            )
         if not entries:
             raise CommandError("Manifest has no products.")
-        return entries
+        return entries, category_specs, asset_specs
+
+    def _resolve_image_path(self, images_root, image_name, label):
+        relative_image = image_name.replace("\\", "/")
+        relative_path = Path(relative_image)
+        if relative_path.is_absolute() or ".." in relative_path.parts or ":" in relative_image:
+            raise CommandError(f"Unsafe image path for {label}: {image_name}")
+        image_path = (images_root / relative_path).resolve()
+        if os.path.commonpath([str(images_root), str(image_path)]) != str(images_root):
+            raise CommandError(f"Image path escapes images directory: {image_name}")
+        if not image_path.is_file():
+            raise CommandError(f"Image not found for {label}: {image_path}")
+        return image_path
 
     def _attach_image(self, product, entry, newly_saved_media):
         suffix = entry["image_path"].suffix.lower() or ".jpg"
@@ -245,9 +314,37 @@ class Command(BaseCommand):
             return
         with entry["image_path"].open("rb") as handle:
             product.image.save(relative_target, File(handle), save=False)
-        newly_saved_media.append(product.image.name)
+        newly_saved_media.append((image_field.storage, product.image.name))
 
-    def _report_dry_run(self, entries, manifest):
+    def _attach_category_image(self, category, spec, newly_saved_media):
+        image_path = spec.get("image_path")
+        if not image_path:
+            return
+        suffix = image_path.suffix.lower() or ".jpg"
+        stable_id = re.sub(r"[^A-Za-z0-9_-]+", "-", spec["source_category_id"]).strip("-") or "category"
+        relative_target = f"lk_menu/{stable_id}{suffix}"
+        storage_name = f"categories/{relative_target}"
+        image_field = Category._meta.get_field("image")
+        if category.image.name == storage_name and image_field.storage.exists(storage_name):
+            return
+        if image_field.storage.exists(storage_name):
+            category.image.name = storage_name
+            category.save(update_fields=["image"])
+            return
+        with image_path.open("rb") as handle:
+            category.image.save(relative_target, File(handle), save=True)
+        newly_saved_media.append((image_field.storage, category.image.name))
+
+    def _save_asset(self, asset_spec):
+        storage = default_storage
+        storage_name = asset_spec["storage_name"]
+        if storage.exists(storage_name):
+            return False
+        with asset_spec["image_path"].open("rb") as handle:
+            storage.save(storage_name, File(handle))
+        return True
+
+    def _report_dry_run(self, entries, category_specs, asset_specs, manifest):
         existing_by_key = {
             (product.category.name, product.name): product
             for product in Product.objects.select_related("category").all()
@@ -263,6 +360,10 @@ class Command(BaseCommand):
                     "currency": manifest.get("currency", "SAR"),
                     "products_in_manifest": len(entries),
                     "images_validated": len(entries),
+                    "category_images_validated": sum(
+                        1 for spec in category_specs if spec["image_path"]
+                    ),
+                    "assets_validated": len(asset_specs),
                     "add-ons_in_manifest": addon_count,
                     "existing_products_to_update": matched,
                     "new_products_to_create": len(entries) - matched,

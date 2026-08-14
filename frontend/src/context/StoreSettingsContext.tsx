@@ -61,27 +61,27 @@ const StoreSettingsContext = createContext<StoreSettingsContextValue | undefined
 
 const HERO_CARDS_FALLBACK = [
   {
-    image: "/media/products/lk_menu/latte.jpg",
-    title: "قهوة ومشروبات ساخنة",
+    image: "/media/products/lk_menu/v60.jpg",
+    title: "قهوة مختصة تُحضّر بهدوء",
     description:
-      "إسبريسو، لاتيه، كابتشينو وأكثر… نُحضّر كل كوب بعناية ليبدأ يومك بمذاق يليق بك.",
-    button_text: "تصفّح الساخن",
+      "قهوة V60 مقطرة يدوياً، مع عناية بالتفاصيل في كل رشفة.",
+    button_text: "اكتشف القهوة المختصة",
     button_link: "/menu",
   },
   {
-    image: "/media/products/lk_menu/iced_latte.jpg",
-    title: "مشروبات باردة ومنعشة",
+    image: "/media/products/lk_menu/mango_orange_smoothie.jpg",
+    title: "انتعاش بطعم الفاكهة",
     description:
-      "آيس لاتيه، سبانش لاتيه، كولد برو وعصائر منعشة تُضيف لوقتك نكهة مختلفة.",
-    button_text: "تصفّح البارد",
+      "سموثي مانجو وتوت ومشروبات باردة بطعم طبيعي منعش.",
+    button_text: "تصفّح المنعشات",
     button_link: "/menu",
   },
   {
-    image: "/media/products/lk_menu/cheesecake.jpg",
-    title: "حلويات ومخبوزات طازجة",
+    image: "/media/products/lk_menu/fruit_danish.jpg",
+    title: "مخبوزات وحلويات يومية",
     description:
-      "كوكيز، كيك، كرواسون ومخبوزات تُخبز وتُقدّم لترافق قهوتك بأفضل شكل.",
-    button_text: "استكشف الحلى",
+      "دانش فواكه وحلويات طازجة ترافق قهوتك بلقمة حلوة.",
+    button_text: "استكشف المخبوزات",
     button_link: "/menu",
   },
 ];

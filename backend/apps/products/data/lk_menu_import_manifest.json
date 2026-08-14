@@ -6,6 +6,8 @@
     {
       "source_category_id": "hot_drinks",
       "name": "المشروبات الساخنة",
+      "description": "قهوة ومشروبات دافئة تُحضّر بعناية لتبدأ يومك بمذاق متوازن.",
+      "image": "HD-wallpaper-a-hot-coffee-table-beans-abstract-coffee-beans-graphy-coffee-cup-hot-drink-skyphoenixx1.jpg",
       "items": [
         {
           "source_item_id": "espresso",
@@ -61,12 +63,27 @@
             {"name": "مارشميلو", "price_delta": "4.00"},
             {"name": "شوكولاتة إضافية", "price_delta": "4.00"}
           ]
+        },
+        {
+          "source_item_id": "americano",
+          "name": "أمريكانو",
+          "price": "14.00",
+          "description": "إسبريسو ممزوج بالماء الساخن بطعم خفيف ومتوازن.",
+          "image": "images.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "حليب", "price_delta": "2.00"},
+            {"name": "فانيلا", "price_delta": "3.00"}
+          ]
         }
       ]
     },
     {
       "source_category_id": "cold_drinks",
       "name": "المشروبات الباردة",
+      "description": "مشروبات باردة منعشة تجمع بين القهوة والنكهات الخفيفة.",
+      "image": "How-to-Make-Cold-Brew-Coffee-b4af3ec355b642e78bb79e18991a0da0.jpg",
       "items": [
         {
           "source_item_id": "iced_latte",
@@ -106,12 +123,40 @@
             {"name": "فانيلا", "price_delta": "3.00"},
             {"name": "كراميل", "price_delta": "3.00"}
           ]
+        },
+        {
+          "source_item_id": "caramel_iced_latte",
+          "name": "كراميل آيس لاتيه",
+          "price": "23.00",
+          "description": "آيس لاتيه بارد مع صوص كراميل ولمسة حلوة متوازنة.",
+          "image": "dewW7crrSOT39b0-qtHzGO3jl9BaJgCbAzHT32WdtUNYLCk2O_ot9WMgo5gqe1tr0ooGc_3ugDZTU75SXU8KjN4wxrHUYVG28Sm32eu7GZ0.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "كراميل إضافي", "price_delta": "4.00"},
+            {"name": "كريمة مخفوقة", "price_delta": "4.00"}
+          ]
+        },
+        {
+          "source_item_id": "iced_white_mocha",
+          "name": "آيس وايت موكا",
+          "price": "24.00",
+          "description": "قهوة باردة مع شوكولاتة بيضاء وحليب ورغوة كريمية.",
+          "image": "طريقة-عمل-آيس-وايت-موكا.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "كريمة مخفوقة", "price_delta": "4.00"},
+            {"name": "شوكولاتة إضافية", "price_delta": "4.00"}
+          ]
         }
       ]
     },
     {
       "source_category_id": "bakery",
       "name": "المخبوزات",
+      "description": "مخبوزات طازجة بطبقات هشة ولمسات حلوة مناسبة مع القهوة.",
+      "image": "Holiday_Cinnamon-Rolls_1376x774.jpg",
       "items": [
         {
           "source_item_id": "butter_croissant",
@@ -150,12 +195,27 @@
             {"name": "مكسرات", "price_delta": "4.00"},
             {"name": "خط كراميل", "price_delta": "3.00"}
           ]
+        },
+        {
+          "source_item_id": "fruit_danish",
+          "name": "دانش فواكه",
+          "price": "16.00",
+          "description": "دانش مقرمش مزين بالفواكه والتوت بطعم خفيف ومنعش.",
+          "image": "750ae3a299362bc00a21a53712d4271c_w750_h500.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "توت إضافي", "price_delta": "3.00"},
+            {"name": "صوص فانيلا", "price_delta": "3.00"},
+            {"name": "كريمة إضافية", "price_delta": "4.00"}
+          ]
         }
       ]
     },
     {
       "source_category_id": "desserts",
       "name": "الحلويات",
+      "description": "حلويات كريمية وكيك يومي بطعم غني ومكونات مختارة.",
+      "image": "red flfit.jpg",
       "items": [
         {
           "source_item_id": "cheesecake",
@@ -203,12 +263,39 @@
           "addons": [
             {"name": "كاكاو إضافي", "price_delta": "2.00"}
           ]
+        },
+        {
+          "source_item_id": "pumpkin_cheesecake",
+          "name": "تشيزكيك اليقطين",
+          "price": "24.00",
+          "description": "تشيزكيك كريمي بنكهة اليقطين والقرفة مع لمسة مخملية.",
+          "image": "81EW4YXBEUL.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "كريمة مخفوقة", "price_delta": "4.00"},
+            {"name": "صوص كراميل", "price_delta": "4.00"},
+            {"name": "قرفة إضافية", "price_delta": "2.00"}
+          ]
+        },
+        {
+          "source_item_id": "red_velvet_cake",
+          "name": "كيكة ريد فلفت",
+          "price": "24.00",
+          "description": "شريحة ريد فلفت طرية بطبقات كريمة الجبن الناعمة.",
+          "image": "red flfit.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "صوص كريمة الجبن", "price_delta": "4.00"},
+            {"name": "سكوب آيس كريم", "price_delta": "6.00"}
+          ]
         }
       ]
     },
     {
       "source_category_id": "breakfast",
       "name": "فطور خفيف",
+      "description": "خيارات فطور مشبعة وخفيفة تُحضّر عند الطلب.",
+      "image": "Screenshot 2026-01-30 011445.png",
       "items": [
         {
           "source_item_id": "avocado_toast",
@@ -235,12 +322,27 @@
             {"name": "جبن إضافي", "price_delta": "4.00"},
             {"name": "هالبينو", "price_delta": "2.00"}
           ]
+        },
+        {
+          "source_item_id": "breakfast_burger",
+          "name": "برجر فطور",
+          "price": "26.00",
+          "description": "ساندويتش فطور دافئ بالبيض والجبن داخل خبز طري.",
+          "image": "Screenshot 2026-01-30 011445.png",
+          "track_inventory": false,
+          "addons": [
+            {"name": "بيضة إضافية", "price_delta": "5.00"},
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "شرائح ديك رومي", "price_delta": "6.00"}
+          ]
         }
       ]
     },
     {
       "source_category_id": "refreshers",
       "name": "عصائر ومشروبات منعشة",
+      "description": "عصائر وسموثي ومشروبات منعشة بطعم الفاكهة والحمضيات.",
+      "image": "35e35439-6bf2-4840-9c46-971393239c29.jpg",
       "items": [
         {
           "source_item_id": "orange_juice",
@@ -264,8 +366,171 @@
             {"name": "نعناع إضافي", "price_delta": "2.00"},
             {"name": "ثلج إضافي", "price_delta": "0.00"}
           ]
+        },
+        {
+          "source_item_id": "honey_lemon_green_tea",
+          "name": "شاي أخضر بالعسل والليمون",
+          "price": "18.00",
+          "description": "شاي أخضر بارد مع عسل ولمسة ليمون منعشة.",
+          "image": "Iced Honey lemon green tea.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "عسل إضافي", "price_delta": "3.00"},
+            {"name": "ليمون إضافي", "price_delta": "2.00"},
+            {"name": "ثلج إضافي", "price_delta": "0.00"}
+          ]
+        },
+        {
+          "source_item_id": "mango_smoothie",
+          "name": "سموثي مانجو",
+          "price": "22.00",
+          "description": "سموثي مانجو بارد بقوام ناعم ولمسة نعناع.",
+          "image": "mango-smoothie-recipe-a_aam_mango_smoothie_feature_4.jpeg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "زبادي", "price_delta": "4.00"},
+            {"name": "عسل", "price_delta": "3.00"},
+            {"name": "ثلج إضافي", "price_delta": "0.00"}
+          ]
+        },
+        {
+          "source_item_id": "mango_orange_smoothie",
+          "name": "سموثي مانجو وبرتقال",
+          "price": "23.00",
+          "description": "مزيج فاكهي من المانجو والبرتقال بطعم مشرق ومنعش.",
+          "image": "35e35439-6bf2-4840-9c46-971393239c29.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "زنجبيل", "price_delta": "2.00"},
+            {"name": "عسل", "price_delta": "3.00"},
+            {"name": "ثلج إضافي", "price_delta": "0.00"}
+          ]
+        },
+        {
+          "source_item_id": "berry_smoothie",
+          "name": "سموثي توت",
+          "price": "22.00",
+          "description": "سموثي توت بارد مع لمسة نعناع وقوام كريمي.",
+          "image": "3f2b2bb464bdf1fa45a6b50c07e7fb3f_w361_h361.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "زبادي", "price_delta": "4.00"},
+            {"name": "عسل", "price_delta": "3.00"},
+            {"name": "توت إضافي", "price_delta": "4.00"}
+          ]
+        }
+      ]
+    },
+    {
+      "source_category_id": "specialty_coffee",
+      "name": "القهوة المختصة",
+      "description": "قهوة مقطرة تُحضّر يدوياً لاستخراج النكهات بهدوء ودقة.",
+      "image": "دريب v60.jpg",
+      "items": [
+        {
+          "source_item_id": "v60",
+          "name": "قهوة V60",
+          "price": "24.00",
+          "description": "قهوة مقطرة يدوياً بنكهة واضحة وقوام خفيف.",
+          "image": "v60 2.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "ثلج", "price_delta": "2.00"},
+            {"name": "حليب شوفان", "price_delta": "4.00"}
+          ]
+        }
+      ]
+    },
+    {
+      "source_category_id": "sandwiches",
+      "name": "ساندويتشات خفيفة",
+      "description": "ساندويتشات ساخنة وخفيفة مناسبة للفطور أو استراحة القهوة.",
+      "image": "Screenshot 2026-01-30 011251.png",
+      "items": [
+        {
+          "source_item_id": "croissant_sandwich",
+          "name": "ساندويتش كرواسون",
+          "price": "29.00",
+          "description": "كرواسون طازج محشو بحشوة مالحة مع خضار مقرمشة.",
+          "image": "croissant sandwich.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "أفوكادو", "price_delta": "6.00"},
+            {"name": "شرائح دجاج", "price_delta": "7.00"}
+          ]
+        },
+        {
+          "source_item_id": "turkey_croissant",
+          "name": "كرواسون ديك رومي",
+          "price": "30.00",
+          "description": "كرواسون محمّص مع شرائح ديك رومي وجبن وخضار طازجة.",
+          "image": "Screenshot 2026-01-30 011251.png",
+          "track_inventory": false,
+          "addons": [
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "أفوكادو", "price_delta": "6.00"},
+            {"name": "هالبينو", "price_delta": "2.00"}
+          ]
+        },
+        {
+          "source_item_id": "grilled_cheese",
+          "name": "ساندويتش جبن مشوي",
+          "price": "22.00",
+          "description": "خبز محمّص بحشوة جبن ذائب ومذاق مشوي دافئ.",
+          "image": "grill cheese.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "طماطم", "price_delta": "2.00"},
+            {"name": "هالبينو", "price_delta": "2.00"}
+          ]
+        },
+        {
+          "source_item_id": "grilled_chicken_sandwich",
+          "name": "ساندويتش دجاج مشوي",
+          "price": "28.00",
+          "description": "ساندويتش دجاج مشوي مع خضار وتتبيلة خفيفة داخل خبز طري.",
+          "image": "ساندويتش دجاج مشوي.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "أفوكادو", "price_delta": "6.00"},
+            {"name": "هالبينو", "price_delta": "2.00"}
+          ]
         }
       ]
     }
+  ],
+  "assets": [
+    {"source_asset_id": "latte_art_1", "image": "cafe-latte1-recipe_resized.jpg"},
+    {"source_asset_id": "latte_art_2", "image": "Caffe_Latte_at_Pulse_Cafe.jpg"},
+    {"source_asset_id": "cinnamon_rolls_alt", "image": "cinnamonrolls9.jpg"},
+    {"source_asset_id": "espresso_guide", "image": "How-to-Make-Better-Espresso-Drinks-at-Home-FT-BLOG0625-02-9b5566c8584e4e9f97bd460d92cb4ab6.jpg"},
+    {"source_asset_id": "cold_brew_alt", "image": "How-to-Make-Cold-Brew-Coffee.jpg"},
+    {"source_asset_id": "chocolate_croissant_alt", "image": "hq720.jpg"},
+    {"source_asset_id": "black_coffee_alt", "image": "istockphoto-1467199060-612x612.jpg"},
+    {"source_asset_id": "latte_art_3", "image": "Partners-Latte-FT-BLOG0523-09569880de524fe487831d95184495cc.jpg"},
+    {"source_asset_id": "cinnamon_rolls_feature", "image": "Holiday_Cinnamon-Rolls_1376x774.jpg"},
+    {"source_asset_id": "cold_brew_feature", "image": "How-to-Make-Cold-Brew-Coffee-b4af3ec355b642e78bb79e18991a0da0.jpg"},
+    {"source_asset_id": "hot_coffee_feature", "image": "HD-wallpaper-a-hot-coffee-table-beans-abstract-coffee-beans-graphy-coffee-cup-hot-drink-skyphoenixx1.jpg"},
+    {"source_asset_id": "danish_feature", "image": "750ae3a299362bc00a21a53712d4271c_w750_h500.jpg"},
+    {"source_asset_id": "pumpkin_cheesecake_feature", "image": "81EW4YXBEUL.jpg"},
+    {"source_asset_id": "berry_smoothie_feature", "image": "3f2b2bb464bdf1fa45a6b50c07e7fb3f_w361_h361.jpg"},
+    {"source_asset_id": "mango_smoothie_feature", "image": "mango-smoothie-recipe-a_aam_mango_smoothie_feature_4.jpeg"},
+    {"source_asset_id": "mango_orange_feature", "image": "35e35439-6bf2-4840-9c46-971393239c29.jpg"},
+    {"source_asset_id": "red_velvet_feature", "image": "red flfit.jpg"},
+    {"source_asset_id": "breakfast_feature", "image": "Screenshot 2026-01-30 011445.png"},
+    {"source_asset_id": "croissant_sandwich_feature", "image": "croissant sandwich.jpg"},
+    {"source_asset_id": "turkey_croissant_feature", "image": "Screenshot 2026-01-30 011251.png"},
+    {"source_asset_id": "grilled_cheese_feature", "image": "grill cheese.jpg"},
+    {"source_asset_id": "grilled_chicken_feature", "image": "ساندويتش دجاج مشوي.jpg"},
+    {"source_asset_id": "v60_feature", "image": "v60 2.jpg"},
+    {"source_asset_id": "v60_drip_feature", "image": "دريب v60.jpg"},
+    {"source_asset_id": "white_mocha_feature", "image": "طريقة-عمل-آيس-وايت-موكا.jpg"},
+    {"source_asset_id": "honey_lemon_feature", "image": "Iced Honey lemon green tea.jpg"},
+    {"source_asset_id": "caramel_iced_latte_feature", "image": "dewW7crrSOT39b0-qtHzGO3jl9BaJgCbAzHT32WdtUNYLCk2O_ot9WMgo5gqe1tr0ooGc_3ugDZTU75SXU8KjN4wxrHUYVG28Sm32eu7GZ0.jpg"},
+    {"source_asset_id": "americano_feature", "image": "images.jpg"}
   ]
 }

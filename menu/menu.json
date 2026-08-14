@@ -1,0 +1,639 @@
+{
+  "currency": "SAR",
+  "categories": [
+    {
+      "id": "hot_drinks",
+      "name_ar": "المشروبات الساخنة",
+      "items": [
+        {
+          "id": "espresso",
+          "name_ar": "إسبريسو",
+          "price": 12,
+          "desc_ar": "جرعة مركّزة من الإسبريسو بنكهة قوية.",
+          "image": "espresso.png",
+          "options": {
+            "milk": {
+              "enabled": false
+            },
+            "addons": [
+              "extra_shot",
+              "vanilla",
+              "caramel",
+              "hazelnut"
+            ]
+          }
+        },
+        {
+          "id": "double_espresso",
+          "name_ar": "دبل إسبريسو",
+          "price": 15,
+          "desc_ar": "دبل شوت لعشّاق القهوة الثقيلة.",
+          "image": "double_espresso.png",
+          "options": {
+            "milk": {
+              "enabled": false
+            },
+            "addons": [
+              "vanilla",
+              "caramel",
+              "hazelnut"
+            ]
+          }
+        },
+        {
+          "id": "americano",
+          "name_ar": "أمريكانو",
+          "price": 14,
+          "desc_ar": "إسبريسو مع ماء ساخن بطعم خفيف ومتوازن.",
+          "image": "americano.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "بدون",
+                "حليب عادي",
+                "قليل الدسم",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "extra_shot",
+              "vanilla",
+              "caramel",
+              "hazelnut"
+            ]
+          }
+        },
+        {
+          "id": "cappuccino",
+          "name_ar": "كابتشينو",
+          "price": 18,
+          "desc_ar": "إسبريسو مع رغوة حليب كثيفة ولمسة مخملية.",
+          "image": "cappuccino.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "حليب عادي",
+                "قليل الدسم",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "extra_shot",
+              "cinnamon",
+              "vanilla",
+              "caramel"
+            ]
+          }
+        },
+        {
+          "id": "latte",
+          "name_ar": "لاتيه",
+          "price": 19,
+          "desc_ar": "لاتيه ناعم بحليب مبخر ومتوازن.",
+          "image": "latte.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "حليب عادي",
+                "قليل الدسم",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "extra_shot",
+              "vanilla",
+              "caramel",
+              "hazelnut"
+            ]
+          }
+        },
+        {
+          "id": "flat_white",
+          "name_ar": "فلات وايت",
+          "price": 19,
+          "desc_ar": "إسبريسو غني مع ميكروفوم ناعم.",
+          "image": "flat_white.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "حليب عادي",
+                "قليل الدسم",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "extra_shot",
+              "vanilla",
+              "caramel"
+            ]
+          }
+        },
+        {
+          "id": "hot_chocolate",
+          "name_ar": "هوت شوكليت",
+          "price": 18,
+          "desc_ar": "شوكليت ساخن كريمي بنكهة غنية.",
+          "image": "hot_chocolate.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "حليب عادي",
+                "خالي اللاكتوز",
+                "شوفان"
+              ]
+            },
+            "addons": [
+              "whipped_cream",
+              "marshmallow",
+              "extra_chocolate"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "cold_drinks",
+      "name_ar": "المشروبات الباردة",
+      "items": [
+        {
+          "id": "iced_americano",
+          "name_ar": "آيس أمريكانو",
+          "price": 16,
+          "desc_ar": "قهوة باردة منعشة وخفيفة.",
+          "image": "iced_americano.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "بدون",
+                "حليب عادي",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "extra_shot",
+              "vanilla",
+              "caramel"
+            ]
+          }
+        },
+        {
+          "id": "iced_latte",
+          "name_ar": "آيس لاتيه",
+          "price": 20,
+          "desc_ar": "لاتيه بارد بحليب وثلج.",
+          "image": "iced_latte.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "حليب عادي",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "extra_shot",
+              "vanilla",
+              "caramel",
+              "hazelnut"
+            ]
+          }
+        },
+        {
+          "id": "spanish_latte",
+          "name_ar": "سبانش لاتيه",
+          "price": 22,
+          "desc_ar": "لاتيه بارد بحليب محلى ولمسة فانيلا.",
+          "image": "spanish_latte.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "حليب عادي",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "extra_shot",
+              "vanilla",
+              "caramel"
+            ]
+          }
+        },
+        {
+          "id": "cold_brew",
+          "name_ar": "كولد برو",
+          "price": 20,
+          "desc_ar": "قهوة منقوعة على البارد بطعم سلس.",
+          "image": "cold_brew.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "بدون",
+                "حليب عادي",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "vanilla",
+              "caramel"
+            ]
+          }
+        },
+        {
+          "id": "iced_mocha",
+          "name_ar": "آيس موكا",
+          "price": 23,
+          "desc_ar": "قهوة باردة مع شوكليت وحليب.",
+          "image": "iced_mocha.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "حليب عادي",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "whipped_cream",
+              "extra_chocolate",
+              "extra_shot"
+            ]
+          }
+        },
+        {
+          "id": "iced_coffee",
+          "name_ar": "آيس كوفي",
+          "price": 18,
+          "desc_ar": "قهوة مثلجة بسيطة ومنعشة.",
+          "image": "iced_coffee.png",
+          "options": {
+            "milk": {
+              "enabled": true,
+              "choices": [
+                "بدون",
+                "حليب عادي",
+                "خالي اللاكتوز",
+                "شوفان",
+                "لوز"
+              ]
+            },
+            "addons": [
+              "vanilla",
+              "caramel",
+              "extra_shot"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "bakery",
+      "name_ar": "البيكري",
+      "items": [
+        {
+          "id": "butter_croissant",
+          "name_ar": "كرواسون زبدة",
+          "price": 12,
+          "desc_ar": "كرواسون طازج بطبقات هشة وزبدة فرنسية.",
+          "image": "butter_croissant.png",
+          "options": {
+            "addons": [
+              "extra_butter",
+              "honey",
+              "jam"
+            ]
+          }
+        },
+        {
+          "id": "chocolate_croissant",
+          "name_ar": "كرواسون شوكليت",
+          "price": 14,
+          "desc_ar": "كرواسون محشو شوكليت غنية.",
+          "image": "chocolate_croissant.png",
+          "options": {
+            "addons": [
+              "extra_chocolate",
+              "honey"
+            ]
+          }
+        },
+        {
+          "id": "cinnamon_roll",
+          "name_ar": "سينابون رول",
+          "price": 16,
+          "desc_ar": "رول قرفة مع صوص كريمي.",
+          "image": "cinnamon_roll.png",
+          "options": {
+            "addons": [
+              "extra_icing",
+              "nuts",
+              "caramel_drizzle"
+            ]
+          }
+        },
+        {
+          "id": "danish_vanilla",
+          "name_ar": "دانش فانيلا",
+          "price": 15,
+          "desc_ar": "دانش مقرمش بحشوة فانيلا ناعمة.",
+          "image": "danish_vanilla.png",
+          "options": {
+            "addons": [
+              "berries",
+              "extra_cream"
+            ]
+          }
+        },
+        {
+          "id": "pain_au_chocolat",
+          "name_ar": "بان أو شوكولا",
+          "price": 14,
+          "desc_ar": "عجينة هشة محشوة شوكليت.",
+          "image": "pain_au_chocolat.png",
+          "options": {
+            "addons": [
+              "extra_chocolate"
+            ]
+          }
+        },
+        {
+          "id": "cookies_box",
+          "name_ar": "كوكيز (3 قطع)",
+          "price": 15,
+          "desc_ar": "كوكيز طريّة بنكهة الشوكليت.",
+          "image": "cookies_box.png",
+          "options": {
+            "addons": [
+              "extra_choc_chips"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "desserts",
+      "name_ar": "الحلى",
+      "items": [
+        {
+          "id": "cheesecake",
+          "name_ar": "تشيزكيك",
+          "price": 22,
+          "desc_ar": "تشيزكيك كريمي بقاعدة بسكويت.",
+          "image": "cheesecake.png",
+          "options": {
+            "addons": [
+              "berry_sauce",
+              "caramel_sauce"
+            ]
+          }
+        },
+        {
+          "id": "chocolate_cake",
+          "name_ar": "كيكة شوكليت",
+          "price": 24,
+          "desc_ar": "كيكة شوكليت غنية بطبقات طرية.",
+          "image": "chocolate_cake.png",
+          "options": {
+            "addons": [
+              "ice_cream",
+              "extra_chocolate"
+            ]
+          }
+        },
+        {
+          "id": "brownies",
+          "name_ar": "براونيز",
+          "price": 18,
+          "desc_ar": "براونيز فادج كثيف مع قطع شوكليت.",
+          "image": "brownies.png",
+          "options": {
+            "addons": [
+              "ice_cream",
+              "nuts"
+            ]
+          }
+        },
+        {
+          "id": "tiramisu",
+          "name_ar": "تيراميسو",
+          "price": 26,
+          "desc_ar": "طبقات قهوة وكريمة بلمسة كاكاو.",
+          "image": "tiramisu.png",
+          "options": {
+            "addons": [
+              "extra_cocoa"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "breakfast",
+      "name_ar": "فطور وسندويتشات",
+      "items": [
+        {
+          "id": "avocado_toast",
+          "name_ar": "توست أفوكادو",
+          "price": 26,
+          "desc_ar": "توست محمّص مع أفوكادو وتوابل خفيفة.",
+          "image": "avocado_toast.png",
+          "options": {
+            "addons": [
+              "poached_egg",
+              "extra_avocado",
+              "feta"
+            ]
+          }
+        },
+        {
+          "id": "egg_cheese",
+          "name_ar": "ساندويتش بيض وجبن",
+          "price": 22,
+          "desc_ar": "بيض طازج مع جبن ذائب داخل خبز طري.",
+          "image": "egg_cheese.png",
+          "options": {
+            "addons": [
+              "turkey",
+              "extra_cheese",
+              "jalapeno"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "refreshers",
+      "name_ar": "عصائر ومشروبات منعشة",
+      "items": [
+        {
+          "id": "orange_juice",
+          "name_ar": "عصير برتقال",
+          "price": 16,
+          "desc_ar": "عصير برتقال طبيعي 100%.",
+          "image": "orange_juice.png",
+          "options": {
+            "addons": [
+              "ice"
+            ]
+          }
+        },
+        {
+          "id": "lemon_mint",
+          "name_ar": "ليمون نعناع",
+          "price": 17,
+          "desc_ar": "ليمون طازج مع نعناع منعش.",
+          "image": "lemon_mint.png",
+          "options": {
+            "addons": [
+              "extra_mint",
+              "ice"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "addons_catalog": {
+    "extra_shot": {
+      "name_ar": "شوت إضافي",
+      "price": 5
+    },
+    "vanilla": {
+      "name_ar": "فانيلا",
+      "price": 3
+    },
+    "caramel": {
+      "name_ar": "كراميل",
+      "price": 3
+    },
+    "hazelnut": {
+      "name_ar": "بندق",
+      "price": 3
+    },
+    "cinnamon": {
+      "name_ar": "قرفة",
+      "price": 2
+    },
+    "whipped_cream": {
+      "name_ar": "كريمة مخفوقة",
+      "price": 4
+    },
+    "marshmallow": {
+      "name_ar": "مارشميلو",
+      "price": 4
+    },
+    "extra_chocolate": {
+      "name_ar": "شوكليت إضافية",
+      "price": 4
+    },
+    "extra_butter": {
+      "name_ar": "زبدة إضافية",
+      "price": 2
+    },
+    "honey": {
+      "name_ar": "عسل",
+      "price": 3
+    },
+    "jam": {
+      "name_ar": "مربى",
+      "price": 3
+    },
+    "extra_icing": {
+      "name_ar": "صوص إضافي",
+      "price": 3
+    },
+    "nuts": {
+      "name_ar": "مكسرات",
+      "price": 4
+    },
+    "caramel_drizzle": {
+      "name_ar": "خط كراميل",
+      "price": 3
+    },
+    "berries": {
+      "name_ar": "توت",
+      "price": 5
+    },
+    "extra_cream": {
+      "name_ar": "كريمة إضافية",
+      "price": 4
+    },
+    "extra_choc_chips": {
+      "name_ar": "شوكليت شيبس إضافي",
+      "price": 3
+    },
+    "berry_sauce": {
+      "name_ar": "صوص توت",
+      "price": 4
+    },
+    "caramel_sauce": {
+      "name_ar": "صوص كراميل",
+      "price": 4
+    },
+    "ice_cream": {
+      "name_ar": "سكوب آيس كريم",
+      "price": 6
+    },
+    "extra_cocoa": {
+      "name_ar": "كاكاو إضافي",
+      "price": 2
+    },
+    "poached_egg": {
+      "name_ar": "بيضة مسلوقة (بوشيه)",
+      "price": 5
+    },
+    "extra_avocado": {
+      "name_ar": "أفوكادو إضافي",
+      "price": 6
+    },
+    "feta": {
+      "name_ar": "جبن فيتا",
+      "price": 4
+    },
+    "turkey": {
+      "name_ar": "شرائح ديك رومي",
+      "price": 6
+    },
+    "extra_cheese": {
+      "name_ar": "جبن إضافي",
+      "price": 4
+    },
+    "jalapeno": {
+      "name_ar": "هالبينو",
+      "price": 2
+    },
+    "ice": {
+      "name_ar": "ثلج إضافي",
+      "price": 0
+    },
+    "extra_mint": {
+      "name_ar": "نعناع إضافي",
+      "price": 2
+    }
+  }
+}

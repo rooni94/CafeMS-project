@@ -4,24 +4,24 @@ from django.db import models
 def default_hero_cards():
     return [
         {
-            "image": "/media/products/lk_menu/latte.jpg",
-            "title": "قهوة ومشروبات ساخنة",
-            "description": "إسبريسو، لاتيه وكابتشينو ومشروبات دافئة تُحضّر بعناية.",
-            "button_text": "تصفّح الساخن",
+            "image": "/media/products/lk_menu/v60.jpg",
+            "title": "قهوة مختصة تُحضّر بهدوء",
+            "description": "قهوة V60 مقطرة يدوياً، مع عناية بالتفاصيل في كل رشفة.",
+            "button_text": "اكتشف القهوة المختصة",
             "button_link": "/menu",
         },
         {
-            "image": "/media/products/lk_menu/iced_latte.jpg",
-            "title": "مشروبات باردة ومنعشة",
-            "description": "آيس لاتيه، سبانش لاتيه، كولد برو وعصائر منعشة.",
-            "button_text": "تصفّح البارد",
+            "image": "/media/products/lk_menu/mango_orange_smoothie.jpg",
+            "title": "انتعاش بطعم الفاكهة",
+            "description": "سموثي مانجو وتوت ومشروبات باردة بطعم طبيعي منعش.",
+            "button_text": "تصفّح المنعشات",
             "button_link": "/menu",
         },
         {
-            "image": "/media/products/lk_menu/cheesecake.jpg",
-            "title": "حلويات ومخبوزات طازجة",
-            "description": "تشيزكيك، كيك، كرواسون وسينابون لترافق قهوتك.",
-            "button_text": "استكشف الحلى",
+            "image": "/media/products/lk_menu/fruit_danish.jpg",
+            "title": "مخبوزات وحلويات يومية",
+            "description": "دانش فواكه وحلويات طازجة ترافق قهوتك بلقمة حلوة.",
+            "button_text": "استكشف المخبوزات",
             "button_link": "/menu",
         },
     ]

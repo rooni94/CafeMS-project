@@ -24,11 +24,20 @@ type Product = {
   addons?: ProductAddon[];
 };
 
-const CATEGORY_FALLBACKS = [
-  "/media/products/lk_menu/latte.jpg",
-  "/media/products/lk_menu/iced_latte.jpg",
-  "/media/products/lk_menu/cheesecake.jpg",
-];
+const CATEGORY_FALLBACKS: Record<string, string> = {
+  "المشروبات الساخنة": "/media/products/lk_menu/americano.jpg",
+  "المشروبات الباردة": "/media/products/lk_menu/caramel_iced_latte.jpg",
+  "المخبوزات": "/media/products/lk_menu/fruit_danish.jpg",
+  "الحلويات": "/media/products/lk_menu/red_velvet_cake.jpg",
+  "فطور خفيف": "/media/products/lk_menu/breakfast_burger.png",
+  "عصائر ومشروبات منعشة": "/media/products/lk_menu/mango_orange_smoothie.jpg",
+  "القهوة المختصة": "/media/products/lk_menu/v60.jpg",
+  "ساندويتشات خفيفة": "/media/products/lk_menu/grilled_chicken_sandwich.jpg",
+};
+
+const getCategoryFallback = (category: Category) =>
+  CATEGORY_FALLBACKS[category.name] ||
+  "/media/products/lk_menu/assets/latte_art_1.jpg";
 
 const Menu: React.FC = () => {
   const navigate = useNavigate();
@@ -184,9 +193,8 @@ const Menu: React.FC = () => {
         </section>
 
         <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {categories.map((cat, idx) => {
-            const image =
-              cat.image || CATEGORY_FALLBACKS[idx % CATEGORY_FALLBACKS.length];
+          {categories.map((cat) => {
+            const image = cat.image || getCategoryFallback(cat);
             const isActive = activeCategory === cat.id;
             return (
               <motion.button
