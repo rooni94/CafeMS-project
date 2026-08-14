@@ -88,15 +88,15 @@ const HERO_CARDS_TEMPLATE: HeroCard[] = [
       "إسبريسو، لاتيه، كابتشينو وأكثر… نُحضّر كل كوب بعناية ليبدأ يومك بمذاق يليق بك.",
     button_text: "تصفّح الساخن",
     button_link: "/menu",
-    image: "/Hero1.jpg",
+    image: "/media/products/lk_menu/latte.jpg",
   },
   {
     title: "مشروبات باردة ومنعشة",
     description:
-      "فرابيه، آيس لاتيه، عصائر ومشروبات منعشة تُضيف لوقتك نكهة مختلفة.",
+      "آيس لاتيه، سبانش لاتيه، كولد برو وعصائر منعشة تُضيف لوقتك نكهة مختلفة.",
     button_text: "تصفّح البارد",
     button_link: "/menu",
-    image: "/Hero2.jpg",
+    image: "/media/products/lk_menu/iced_latte.jpg",
   },
   {
     title: "حلويات ومخبوزات طازجة",
@@ -104,7 +104,7 @@ const HERO_CARDS_TEMPLATE: HeroCard[] = [
       "كوكيز، كيك، كرواسون ومخبوزات تُخبز وتُقدّم لترافق قهوتك بأفضل شكل.",
     button_text: "استكشف الحلى",
     button_link: "/menu",
-    image: "/Hero3.jpg",
+    image: "/media/products/lk_menu/cheesecake.jpg",
   },
 ];
 const defaultHeroCard: HeroCard = {

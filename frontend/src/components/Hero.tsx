@@ -19,7 +19,7 @@ type Slide = {
 
 const FALLBACK_SLIDES: Slide[] = [
   {
-    image: "/Hero1.jpg",
+    image: "/media/products/lk_menu/latte.jpg",
     title: "قهوة ومشروبات ساخنة",
     description:
       "إسبريسو، لاتيه، كابتشينو وأكثر… نُحضّر كل كوب بعناية ليبدأ يومك بمذاق يليق بك.",
@@ -27,15 +27,15 @@ const FALLBACK_SLIDES: Slide[] = [
     ctaLink: "/menu",
   },
   {
-    image: "/Hero2.jpg",
+    image: "/media/products/lk_menu/iced_latte.jpg",
     title: "مشروبات باردة ومنعشة",
     description:
-      "فرابيه، آيس لاتيه، عصائر ومشروبات منعشة تُضيف لوقتك نكهة مختلفة.",
+      "آيس لاتيه، سبانش لاتيه، كولد برو وعصائر منعشة تُضيف لوقتك نكهة مختلفة.",
     ctaText: "تصفّح البارد",
     ctaLink: "/menu",
   },
   {
-    image: "/Hero3.jpg",
+    image: "/media/products/lk_menu/cheesecake.jpg",
     title: "حلويات ومخبوزات طازجة",
     description:
       "كوكيز، كيك، كرواسون ومخبوزات تُخبز وتُقدّم لترافق قهوتك بأفضل شكل.",

@@ -61,7 +61,7 @@ const StoreSettingsContext = createContext<StoreSettingsContextValue | undefined
 
 const HERO_CARDS_FALLBACK = [
   {
-    image: "/Hero1.jpg",
+    image: "/media/products/lk_menu/latte.jpg",
     title: "قهوة ومشروبات ساخنة",
     description:
       "إسبريسو، لاتيه، كابتشينو وأكثر… نُحضّر كل كوب بعناية ليبدأ يومك بمذاق يليق بك.",
@@ -69,15 +69,15 @@ const HERO_CARDS_FALLBACK = [
     button_link: "/menu",
   },
   {
-    image: "/Hero2.jpg",
+    image: "/media/products/lk_menu/iced_latte.jpg",
     title: "مشروبات باردة ومنعشة",
     description:
-      "فرابيه، آيس لاتيه، عصائر ومشروبات منعشة تُضيف لوقتك نكهة مختلفة.",
+      "آيس لاتيه، سبانش لاتيه، كولد برو وعصائر منعشة تُضيف لوقتك نكهة مختلفة.",
     button_text: "تصفّح البارد",
     button_link: "/menu",
   },
   {
-    image: "/Hero3.jpg",
+    image: "/media/products/lk_menu/cheesecake.jpg",
     title: "حلويات ومخبوزات طازجة",
     description:
       "كوكيز، كيك، كرواسون ومخبوزات تُخبز وتُقدّم لترافق قهوتك بأفضل شكل.",

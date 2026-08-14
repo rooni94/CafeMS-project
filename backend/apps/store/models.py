@@ -4,23 +4,23 @@ from django.db import models
 def default_hero_cards():
     return [
         {
-            "image": "/Hero1.jpg",
+            "image": "/media/products/lk_menu/latte.jpg",
             "title": "قهوة ومشروبات ساخنة",
-            "description": "إسبريسو، لاتيه، كابتشينو وأكثر… نُحضّر كل كوب بعناية ليبدأ يومك بمذاق يليق بك.",
+            "description": "إسبريسو، لاتيه وكابتشينو ومشروبات دافئة تُحضّر بعناية.",
             "button_text": "تصفّح الساخن",
             "button_link": "/menu",
         },
         {
-            "image": "/Hero2.jpg",
+            "image": "/media/products/lk_menu/iced_latte.jpg",
             "title": "مشروبات باردة ومنعشة",
-            "description": "فرابيه، آيس لاتيه، عصائر ومشروبات منعشة تُضيف لوقتك نكهة مختلفة.",
+            "description": "آيس لاتيه، سبانش لاتيه، كولد برو وعصائر منعشة.",
             "button_text": "تصفّح البارد",
             "button_link": "/menu",
         },
         {
-            "image": "/Hero3.jpg",
+            "image": "/media/products/lk_menu/cheesecake.jpg",
             "title": "حلويات ومخبوزات طازجة",
-            "description": "كوكيز، كيك، كرواسون ومخبوزات تُخبز وتُقدّم لترافق قهوتك بأفضل شكل.",
+            "description": "تشيزكيك، كيك، كرواسون وسينابون لترافق قهوتك.",
             "button_text": "استكشف الحلى",
             "button_link": "/menu",
         },

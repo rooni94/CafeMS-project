@@ -27,7 +27,11 @@ type Product = {
   addons?: ProductAddon[];
 };
 
-const CATEGORY_FALLBACKS = ["/Hero1.jpg", "/Hero2.jpg", "/Hero3.jpg"];
+const CATEGORY_FALLBACKS = [
+  "/media/products/lk_menu/latte.jpg",
+  "/media/products/lk_menu/iced_latte.jpg",
+  "/media/products/lk_menu/cheesecake.jpg",
+];
 
 const FALLBACK_SOCIAL_LINKS: Record<string, string> = {
   instagram: "https://instagram.com/cafems-demo",

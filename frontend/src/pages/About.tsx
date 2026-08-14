@@ -32,7 +32,9 @@ const About: React.FC = () => {
     : [];
 
   const aboutImage =
-    settings?.about_image_url || settings?.hero_image_url || "/Hero1.jpg";
+    settings?.about_image_url ||
+    settings?.hero_image_url ||
+    "/media/products/lk_menu/latte.jpg";
   const mapEmbed =
     (settings?.contact_map_embed && settings.contact_map_embed.trim()) ||
     DEFAULT_MAP_EMBED;
