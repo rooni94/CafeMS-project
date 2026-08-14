@@ -94,7 +94,7 @@ const DEFAULT_SOCIAL_LINKS: Record<string, string> = {
 };
 
 const fallbackSettings: StoreBranding = {
-  store_name: "لاڤـا كافيـه",
+  store_name: "CafeMS Demo",
   tagline: "قهوة ومشروبات ساخنة وباردة وحلويات ومخبوزات… اطلبها بسهولة.",
   primary_color: "#f59e0b",
   secondary_color: "#4c1d95",
@@ -120,10 +120,10 @@ const fallbackSettings: StoreBranding = {
   hero_button_text: "",
   hero_button_link: "",
   hero_cards: HERO_CARDS_FALLBACK,
-  about_title: "من نحن – لاڤـا كافيـه",
+  about_title: "من نحن – CafeMS Demo",
   about_subtitle: "نكهة قهوة دافئة… وتجربة لطيفة في كل زيارة.",
   about_description:
-    "لاڤـا كافيـه وجهتكم اليومية للقهوة والمشروبات الساخنة والباردة المنعشة، مع تشكيلة من الحلويات والمخبوزات التي تُقدَّم بطزاجة. نحرص على أن تكون تجربتكم سهلة ولطيفة من أول اختيار حتى الاستلام.",
+    "CafeMS Demo وجهتكم اليومية للقهوة والمشروبات الساخنة والباردة المنعشة، مع تشكيلة من الحلويات والمخبوزات التي تُقدَّم بطزاجة. نحرص على أن تكون تجربتكم سهلة ولطيفة من أول اختيار حتى الاستلام.",
   about_highlights: [
     "حبوب قهوة مختارة وتحضير متقن لكل كوب.",
     "مشروبات باردة ومنعشة تناسب كل الأوقات.",

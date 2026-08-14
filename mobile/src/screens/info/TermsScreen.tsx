@@ -12,7 +12,7 @@ const TermsScreen: React.FC = () => {
   const { t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { settings } = useStoreSettings();
-  const storeName = normalizeBrandName((settings as any)?.store_name, "لاڤـا كافيـه");
+  const storeName = normalizeBrandName((settings as any)?.store_name, "CafeMS Demo");
 
   const Bullet = ({ children }: { children: string }) => (
     <View style={styles.bulletRow}>

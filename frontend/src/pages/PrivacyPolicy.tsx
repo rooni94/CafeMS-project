@@ -4,7 +4,7 @@ import { useStoreSettings } from "../context/StoreSettingsContext";
 
 const PrivacyPolicy: React.FC = () => {
   const { settings } = useStoreSettings();
-  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
+  const storeName = settings?.store_name?.trim() || "CafeMS Demo";
   return (
     <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6 space-y-4 text-sm leading-relaxed">
       <h1 className="text-xl font-semibold mb-2">سياسة الخصوصية</h1>

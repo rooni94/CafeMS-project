@@ -18,6 +18,21 @@ class ProductViewSet(viewsets.ModelViewSet):
   serializer_class = ProductSerializer
   parser_classes = [JSONParser, MultiPartParser, FormParser]
 
+  def _include_inactive(self):
+      user = self.request.user
+      role = getattr(user, "role", "") if getattr(user, "is_authenticated", False) else ""
+      return (
+          self.request.query_params.get("include_inactive") == "1"
+          and getattr(user, "is_authenticated", False)
+          and (getattr(user, "is_superuser", False) or role in ("manager", "supervisor", "staff"))
+      )
+
+  def get_queryset(self):
+      queryset = super().get_queryset()
+      if not self._include_inactive():
+          queryset = queryset.filter(available=True)
+      return queryset
+
   def _normalize_bool(self, value, default=False):
       if value is None:
           return default
@@ -326,6 +341,19 @@ class CategoryViewSet(viewsets.ModelViewSet):
   serializer_class = CategorySerializer
   parser_classes = [MultiPartParser, FormParser]
 
+  def get_queryset(self):
+      user = self.request.user
+      role = getattr(user, "role", "") if getattr(user, "is_authenticated", False) else ""
+      include_inactive = (
+          self.request.query_params.get("include_inactive") == "1"
+          and getattr(user, "is_authenticated", False)
+          and (getattr(user, "is_superuser", False) or role in ("manager", "supervisor", "staff"))
+      )
+      queryset = super().get_queryset()
+      if not include_inactive:
+          queryset = queryset.filter(products__available=True).distinct()
+      return queryset
+
   def get_permissions(self):
       # قراءة الفئات متاحة للجميع
       if self.request.method in permissions.SAFE_METHODS:
@@ -338,6 +366,19 @@ class SubCategoryViewSet(viewsets.ModelViewSet):
   queryset = SubCategory.objects.select_related("category").all()
   serializer_class = SubCategorySerializer
   parser_classes = [MultiPartParser, FormParser]
+
+  def get_queryset(self):
+      user = self.request.user
+      role = getattr(user, "role", "") if getattr(user, "is_authenticated", False) else ""
+      include_inactive = (
+          self.request.query_params.get("include_inactive") == "1"
+          and getattr(user, "is_authenticated", False)
+          and (getattr(user, "is_superuser", False) or role in ("manager", "supervisor", "staff"))
+      )
+      queryset = super().get_queryset()
+      if not include_inactive:
+          queryset = queryset.filter(products__available=True).distinct()
+      return queryset
 
   def get_permissions(self):
       if self.request.method in permissions.SAFE_METHODS:
@@ -353,6 +394,15 @@ class ProductAddonViewSet(viewsets.ModelViewSet):
       product_id = self.request.query_params.get("product")
       if product_id:
           qs = qs.filter(product_id=product_id)
+      user = self.request.user
+      role = getattr(user, "role", "") if getattr(user, "is_authenticated", False) else ""
+      include_inactive = (
+          self.request.query_params.get("include_inactive") == "1"
+          and getattr(user, "is_authenticated", False)
+          and (getattr(user, "is_superuser", False) or role in ("manager", "supervisor", "staff"))
+      )
+      if not include_inactive:
+          qs = qs.filter(is_active=True, product__available=True)
       return qs
 
   def get_permissions(self):

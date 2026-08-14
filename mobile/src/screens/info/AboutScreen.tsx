@@ -36,7 +36,7 @@ const AboutScreen: React.FC = () => {
   const { t, isRTL } = useI18n();
   const styles = useMemo(() => createStyles(theme, isRTL), [theme, isRTL]);
   const { settings } = useStoreSettings();
-  const brandName = normalizeBrandName((settings as any)?.store_name, "لاڤـا كافيـه");
+  const brandName = normalizeBrandName((settings as any)?.store_name, "CafeMS Demo");
 
   const aboutTitle =
     normalizeArabicText((settings as any)?.about_title) ||
@@ -52,10 +52,10 @@ const AboutScreen: React.FC = () => {
     );
 
   const defaultHighlights = [
-    t("about.highlight1", "خبز طازج وصلصات منزلية نحضّرها بشكل يومي لترافق كل لقمة."),
+    t("about.highlight1", "حلويات ومخبوزات طازجة ترافق قهوتك بشكل يومي."),
     t("about.highlight2", "محطة قهوة مختصة ومشروبات موسمية تكتمل بها استراحتك."),
-    t("about.highlight3", "قائمة جانبية متوازنة بين الخفايف والسندويتشات السريعة."),
-    t("about.highlight4", "طاقم بخبرة محلية يقدم الضيافة الخليجية بابتسامة دائمة."),
+    t("about.highlight3", "مشروبات باردة ومنعشة تناسب كل أوقات اليوم."),
+    t("about.highlight4", "تجربة جلوس هادئة وطلب واستلام بسهولة."),
   ];
 
   const aboutImageUrl = (settings as any)?.about_image_url || (settings as any)?.hero_image_url || null;

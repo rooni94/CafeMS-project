@@ -378,7 +378,7 @@ const CashierPage: React.FC = () => {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <input
               className="w-full md:w-1/2 border rounded-full px-4 py-2 text-sm bg-amber-50/40"
-              placeholder="ابحث عن طبق..."
+              placeholder="ابحث عن منتج..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />

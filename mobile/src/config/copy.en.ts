@@ -1,12 +1,12 @@
 export const copyEn = {
   brandFallback: "CafeMS Demo",
   taglineFallback:
-    "Enjoy a premium experience of sandwiches, drinks, and desserts. Order now and enjoy high quality and fast service.",
+    "Enjoy carefully prepared coffee, hot and cold drinks, desserts, and bakery favorites at CafeMS Demo.",
   heroFallback: [
     {
       title: "Welcome to CafeMS Demo",
       description:
-        "Discover a diverse menu of sandwiches, drinks, and desserts. Order easily and get it fast.",
+        "Discover specialty coffee, hot and cold drinks, desserts, and bakery favorites. Order with ease.",
       image:
         "https://images.unsplash.com/photo-1459257868276-5e65389e2722?auto=format&fit=crop&w=1200&q=80",
       button_text: "Go to the menu",
@@ -40,9 +40,9 @@ export const copyEn = {
   },
   categoryFallbacks: [
     {
-      title: "Sandwiches",
+      title: "Hot coffee",
       image:
-        "https://res.cloudinary.com/dnsx3jzec/image/upload/v1707474032/cafems/sandwiches.jpg",
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80",
     },
     {
       title: "Drinks",
@@ -68,12 +68,12 @@ export const copyEn = {
   },
   home: {
     headerTagline:
-      "CafeMS Demo — sandwiches, drinks, and desserts with high quality and fast service.",
+      "CafeMS Demo — specialty coffee, hot and cold drinks, desserts, and bakery favorites.",
     heroSecondaryCta: "Track order",
     heroExploreCta: "Go to the menu",
     shortcutsTitle: "Shortcuts",
-    quickIntro: "Get quick access to the most used sections and start your order fast.",
-    infoTags: ["Fresh daily", "High quality", "Fast service"],
+    quickIntro: "Get quick access to the sections you use most and start your order with ease.",
+    infoTags: ["Fresh daily", "High quality", "Made with care"],
     quickActions: [
       {
         icon: "grid-outline",

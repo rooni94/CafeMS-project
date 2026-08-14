@@ -348,11 +348,11 @@ const DashboardProducts: React.FC = () => {
     );
   };
 
-  // عمليات جماعية على الأطباق
+  // عمليات جماعية على المنتجات
   const handleBulkDeleteProducts = async () => {
     if (!selectedProductIds.length) return;
     const ok = window.confirm(
-      `سيتم حذف ${selectedProductIds.length} طبق/أطباق، هل أنت متأكد؟`
+      `سيتم حذف ${selectedProductIds.length} منتج/منتجات، هل أنت متأكد؟`
     );
     if (!ok) return;
 
@@ -738,11 +738,11 @@ const DashboardProducts: React.FC = () => {
         </form>
       </div>
 
-      {/* شريط العمليات الجماعية للأطباق المحددة */}
+      {/* شريط العمليات الجماعية للمنتجات المحددة */}
       {selectedProductIds.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs flex flex-wrap items-center gap-3">
           <span className="font-semibold">
-            تم تحديد {selectedProductIds.length} طبق/أطباق
+            تم تحديد {selectedProductIds.length} منتج/منتجات
           </span>
 
           {/* تغيير التصنيف جماعياً */}

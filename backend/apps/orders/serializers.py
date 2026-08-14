@@ -62,6 +62,11 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = ["id", "product", "product_id", "quantity", "price", "addon_ids", "addons"]
         read_only_fields = ["id", "product", "price"]
 
+    def validate_product(self, value):
+        if not value.available:
+            raise serializers.ValidationError("Product is unavailable.")
+        return value
+
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
@@ -236,7 +241,7 @@ class OrderSerializer(serializers.ModelSerializer):
             subtotal += (price * quantity).quantize(Decimal("0.01"))
 
             # اختياري: إنقاص المخزون لو عندك حقل stock
-            if hasattr(product, "stock"):
+            if getattr(product, "track_inventory", True):
                 product.stock = max(0, product.stock - quantity)
                 product.save()
                 InventoryAdjustment.objects.create(

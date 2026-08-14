@@ -53,7 +53,7 @@ const b64ToUrl = (b64: string, mime = "audio/mpeg") => {
 const SupportChatWidget: React.FC = () => {
   const { user, accessToken } = useAuth();
   const { settings } = useStoreSettings();
-  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
+  const storeName = settings?.store_name?.trim() || "CafeMS Demo";
   const isGuest = !user;
 
   const [open, setOpen] = useState(false);

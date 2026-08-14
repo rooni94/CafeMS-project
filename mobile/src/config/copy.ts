@@ -1,10 +1,10 @@
 ﻿export const copy = {
-  brandFallback: "لاڤـا كافيـه",
+  brandFallback: "CafeMS Demo",
   taglineFallback:
     "قهوة ومشروبات ساخنة وباردة وحلويات ومخبوزات… اطلب الآن واستمتع بتجربة لطيفة وجودة عالية.",
   heroFallback: [
     {
-      title: "مرحباً بك في لاڤـا كافيـه",
+      title: "مرحباً بك في CafeMS Demo",
       description:
         "اكتشف قائمة متنوعة من القهوة والمشروبات الساخنة والباردة المنعشة، مع الحلويات والمخبوزات. اطلب بسهولة واستلم بسرعة.",
       image:
@@ -32,7 +32,7 @@
     },
   ],
   contactFallback: {
-    address: "المملكة العربية السعودية - لاڤـا كافيـه",
+    address: "المملكة العربية السعودية - CafeMS Demo",
     hours: "يومياً من 6 صباحاً إلى 1 صباحاً",
     phone: "+10000000000",
     email: "contact@example.invalid",
@@ -40,9 +40,9 @@
   },
   categoryFallbacks: [
     {
-      title: "ساندوتشات",
+      title: "قهوة ساخنة",
       image:
-        "https://res.cloudinary.com/dnsx3jzec/image/upload/v1707474032/cafems/sandwiches.jpg",
+        "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=1200&q=80",
     },
     {
       title: "مشروبات",
@@ -69,7 +69,7 @@
   },
   home: {
     headerTagline:
-      "لاڤـا كافيـه — قهوة ومشروبات ساخنة وباردة وحلويات ومخبوزات بجودة عالية وخدمة سريعة.",
+      "CafeMS Demo — قهوة ومشروبات ساخنة وباردة وحلويات ومخبوزات بجودة عالية.",
     heroSecondaryCta: "تتبّع الطلب",
     heroExploreCta: "اذهب إلى القائمة",
     shortcutsTitle: "الاختصارات",

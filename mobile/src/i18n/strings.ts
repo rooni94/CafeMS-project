@@ -504,19 +504,19 @@ export const strings = {
     },
     about: {
       title: "About CafeMS Demo",
-      subtitle: "A warm place that celebrates food and authentic flavors.",
+      subtitle: "A warm place built around coffee and thoughtful hospitality.",
       description:
-        "At CafeMS Demo, we believe every meal tells a story, so we deliver a complete experience that blends great taste, fast service, and authentic Gulf hospitality.",
-      highlight1: "Fresh bread and house-made sauces prepared daily for every bite.",
+        "At CafeMS Demo, we believe every cup creates a moment, so we bring together carefully prepared coffee, welcoming service, and a calm cafe experience.",
+      highlight1: "Fresh bakery favorites and desserts made to accompany your coffee.",
       highlight2: "Specialty coffee station and seasonal drinks to complete your break.",
-      highlight3: "Balanced sides alongside light bites and quick sandwiches.",
-      highlight4: "A local, experienced team serving Gulf hospitality with a constant smile.",
+      highlight3: "Refreshing cold drinks for every time of day.",
+      highlight4: "A welcoming team and easy pickup experience.",
       screenTitle: "About us",
       sectionSubtitle: "A quick overview of the store",
       storyParagraph1:
-        "Our story starts in the kitchen: we rise early to bake bread, chop vegetables, and prepare our signature mixes before opening the doors. Every dish goes through a team that sets the quality bar and delivers food quickly without sacrificing taste.",
+        "Our story starts with the details: selecting coffee beans, calibrating the brew, and preparing drinks and desserts before opening the doors. Every cup is checked by a team that cares about consistency and warmth.",
       storyParagraph2:
-        "Our vision is for CafeMS Demo to be a stop where guests feel they have known us for years: authentic recipes with a modern touch, speedy service, and attention to the small details from spice selection to the warm greeting. We continually refresh our menu and listen to customer feedback to keep the balance between tradition and a modern experience.",
+        "Our vision is for CafeMS Demo to be a familiar daily stop: a well-made cup, balanced hot and cold choices, and desserts that complete the experience. We refresh our menu and listen to feedback so every visit stays easy and enjoyable.",
       menuButton: "Go to menu",
       highlightsTitle: "Why us?",
       highlightsSubtitle: "What makes us stand out",
@@ -531,11 +531,11 @@ export const strings = {
       aboutTitle: "About",
       aboutSubtitle: "A story that began with a simple idea",
       aboutBody:
-        "CafeMS Demo started as a simple idea: a place where friends gather to enjoy tasty sandwiches, fresh drinks, and quick, friendly service. Over time, that idea became a trusted neighborhood brand offering a different experience from traditional cafes.",
+        "CafeMS Demo started as a simple idea: a place where friends gather over carefully prepared coffee, refreshing drinks, and desserts in a welcoming space. It grew into a neighborhood cafe focused on consistency, comfort, and easy ordering.",
       visionTitle: "Our vision",
-      visionSubtitle: "The first choice for fast meals",
+      visionSubtitle: "A favorite daily coffee stop",
       visionBody:
-        "To be the first choice for anyone looking for a fast, fresh meal at a fair price, whether for pickup from the branch or delivery to home or work.",
+        "To be a trusted choice for anyone looking for a balanced cup, a refreshing drink, or a sweet pause, whether they visit us or order for pickup.",
       highlightsTitle: "What sets us apart?",
       highlightsSubtitle: "Points we are proud of",
       highlight1: "• Orders prepared on demand using carefully selected ingredients.",

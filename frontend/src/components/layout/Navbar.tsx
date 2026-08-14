@@ -150,7 +150,7 @@ export const Navbar: React.FC = () => {
       });
   }, [user]);
 
-  const storeName = settings?.store_name || "لاڤـا كافيـه";
+  const storeName = settings?.store_name || "CafeMS Demo";
   const brandPrimary = settings?.primary_color || "#f59e0b";
   const brandSecondary = settings?.secondary_color || "#4c1d95";
   const [brandFirst, ...brandRest] = storeName.trim().split(/\s+/);

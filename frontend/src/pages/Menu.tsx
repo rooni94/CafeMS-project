@@ -234,14 +234,14 @@ const Menu: React.FC = () => {
         <section ref={productsSectionRef} className="space-y-2 text-right">
           <h2 className="text-xl font-semibold">
             {selectedCategory
-              ? `أطباق ${selectedCategory.name}`
-              : "كل أطباقنا"}
+              ? `منتجات ${selectedCategory.name}`
+              : "كل منتجاتنا"}
           </h2>
           <p className="text-xs text-gray-500">
             {selectedCategory
               ? selectedCategory.description ||
                 "اكتشف تفاصيل هذا التصنيف واضف ما يعجبك إلى السلة."
-              : "ابدأ من هنا لاختيار طبقك المفضل."}
+              : "ابدأ من هنا لاختيار مشروبك أو حلاك المفضل."}
           </p>
 
           {error && (
@@ -252,11 +252,11 @@ const Menu: React.FC = () => {
 
           {loading ? (
             <p className="text-xs text-gray-500 text-center">
-              جارٍ تحميل الأطباق...
+              جارٍ تحميل المنتجات...
             </p>
           ) : visibleProducts.length === 0 ? (
             <p className="text-sm text-gray-500 text-center">
-              لا توجد أطباق في هذا التصنيف حاليًا.
+              لا توجد منتجات في هذا التصنيف حاليًا.
             </p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -293,7 +293,7 @@ const Menu: React.FC = () => {
                     <p className="text-sm font-semibold mb-1">{product.name}</p>
                     <p className="text-[11px] text-gray-500 line-clamp-2 mb-2">
                       {product.description ||
-                        "وجبة مختارة من قائمتنا اليومية."}
+                        "اختيار مميز من قائمتنا اليومية."}
                     </p>
                     <div className="mt-auto flex items-center justify-between gap-2">
                       <span className="text-sm font-bold text-amber-700">

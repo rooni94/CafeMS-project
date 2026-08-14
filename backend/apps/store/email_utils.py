@@ -153,4 +153,3 @@ def send_store_email(
             raise
         print("send_store_email error:", exc)
         return False
-

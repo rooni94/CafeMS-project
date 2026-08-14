@@ -1,0 +1,271 @@
+{
+  "brand": "CafeMS Demo",
+  "currency": "SAR",
+  "source": "menu/menu.json with visually verified local images",
+  "categories": [
+    {
+      "source_category_id": "hot_drinks",
+      "name": "المشروبات الساخنة",
+      "items": [
+        {
+          "source_item_id": "espresso",
+          "name": "إسبريسو",
+          "price": "12.00",
+          "description": "جرعة مركّزة من الإسبريسو بنكهة قوية.",
+          "image": "Espresso.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "فانيلا", "price_delta": "3.00"},
+            {"name": "كراميل", "price_delta": "3.00"},
+            {"name": "بندق", "price_delta": "3.00"}
+          ]
+        },
+        {
+          "source_item_id": "cappuccino",
+          "name": "كابتشينو",
+          "price": "18.00",
+          "description": "إسبريسو مع رغوة حليب كثيفة ولمسة مخملية.",
+          "image": "cappuccino.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "قرفة", "price_delta": "2.00"},
+            {"name": "فانيلا", "price_delta": "3.00"},
+            {"name": "كراميل", "price_delta": "3.00"}
+          ]
+        },
+        {
+          "source_item_id": "latte",
+          "name": "لاتيه",
+          "price": "19.00",
+          "description": "لاتيه ناعم بحليب مبخر ومتوازن.",
+          "image": "latte-small.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "فانيلا", "price_delta": "3.00"},
+            {"name": "كراميل", "price_delta": "3.00"},
+            {"name": "بندق", "price_delta": "3.00"}
+          ]
+        },
+        {
+          "source_item_id": "hot_chocolate",
+          "name": "هوت شوكليت",
+          "price": "18.00",
+          "description": "شوكولاتة ساخنة كريمية بنكهة غنية.",
+          "image": "hot chocolate.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "كريمة مخفوقة", "price_delta": "4.00"},
+            {"name": "مارشميلو", "price_delta": "4.00"},
+            {"name": "شوكولاتة إضافية", "price_delta": "4.00"}
+          ]
+        }
+      ]
+    },
+    {
+      "source_category_id": "cold_drinks",
+      "name": "المشروبات الباردة",
+      "items": [
+        {
+          "source_item_id": "iced_latte",
+          "name": "آيس لاتيه",
+          "price": "20.00",
+          "description": "لاتيه بارد بحليب وثلج.",
+          "image": "Iced Coffe Latte.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "فانيلا", "price_delta": "3.00"},
+            {"name": "كراميل", "price_delta": "3.00"},
+            {"name": "بندق", "price_delta": "3.00"}
+          ]
+        },
+        {
+          "source_item_id": "spanish_latte",
+          "name": "سبانش لاتيه",
+          "price": "22.00",
+          "description": "لاتيه بارد بحليب محلّى ولمسة فانيلا.",
+          "image": "Iced Spanish Latte.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "فانيلا", "price_delta": "3.00"},
+            {"name": "كراميل", "price_delta": "3.00"}
+          ]
+        },
+        {
+          "source_item_id": "cold_brew",
+          "name": "كولد برو",
+          "price": "20.00",
+          "description": "قهوة منقوعة على البارد بطعم سلس.",
+          "image": "Cold Brew.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "فانيلا", "price_delta": "3.00"},
+            {"name": "كراميل", "price_delta": "3.00"}
+          ]
+        }
+      ]
+    },
+    {
+      "source_category_id": "bakery",
+      "name": "المخبوزات",
+      "items": [
+        {
+          "source_item_id": "butter_croissant",
+          "name": "كرواسون زبدة",
+          "price": "12.00",
+          "description": "كرواسون طازج بطبقات هشة وزبدة فرنسية.",
+          "image": "كورواسان زبدة.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "زبدة إضافية", "price_delta": "2.00"},
+            {"name": "عسل", "price_delta": "3.00"},
+            {"name": "مربى", "price_delta": "3.00"}
+          ]
+        },
+        {
+          "source_item_id": "chocolate_croissant",
+          "name": "كرواسون شوكولاتة",
+          "price": "14.00",
+          "description": "كرواسون محشو شوكولاتة غنية.",
+          "image": "croissant chocolate.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوكولاتة إضافية", "price_delta": "4.00"},
+            {"name": "عسل", "price_delta": "3.00"}
+          ]
+        },
+        {
+          "source_item_id": "cinnamon_roll",
+          "name": "سينابون رول",
+          "price": "16.00",
+          "description": "رول قرفة مع صوص كريمي.",
+          "image": "275744-homemade-cinnamon-rolls-.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "صوص إضافي", "price_delta": "3.00"},
+            {"name": "مكسرات", "price_delta": "4.00"},
+            {"name": "خط كراميل", "price_delta": "3.00"}
+          ]
+        }
+      ]
+    },
+    {
+      "source_category_id": "desserts",
+      "name": "الحلويات",
+      "items": [
+        {
+          "source_item_id": "cheesecake",
+          "name": "تشيزكيك",
+          "price": "22.00",
+          "description": "تشيـزكيك كريمي بقاعدة بسكويت.",
+          "image": "ya-raspberry-swirled-cheesecake-threeByTwoLargeAt2X.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "صوص توت", "price_delta": "4.00"},
+            {"name": "صوص كراميل", "price_delta": "4.00"}
+          ]
+        },
+        {
+          "source_item_id": "chocolate_cake",
+          "name": "كيكة شوكولاتة",
+          "price": "24.00",
+          "description": "كيكة شوكولاتة غنية بطبقات طرية.",
+          "image": "chocolate cake.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "سكوب آيس كريم", "price_delta": "6.00"},
+            {"name": "شوكولاتة إضافية", "price_delta": "4.00"}
+          ]
+        },
+        {
+          "source_item_id": "brownies",
+          "name": "براونيز",
+          "price": "18.00",
+          "description": "براونيز فادج كثيف مع قطع شوكولاتة.",
+          "image": "1-fudge-nut-brownie-andee-photography.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "سكوب آيس كريم", "price_delta": "6.00"},
+            {"name": "مكسرات", "price_delta": "4.00"}
+          ]
+        },
+        {
+          "source_item_id": "tiramisu",
+          "name": "تيراميسو",
+          "price": "26.00",
+          "description": "طبقات قهوة وكريمة بلمسة كاكاو.",
+          "image": "Italian Tiramisu.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "كاكاو إضافي", "price_delta": "2.00"}
+          ]
+        }
+      ]
+    },
+    {
+      "source_category_id": "breakfast",
+      "name": "فطور خفيف",
+      "items": [
+        {
+          "source_item_id": "avocado_toast",
+          "name": "توست أفوكادو",
+          "price": "26.00",
+          "description": "توست محمّص مع أفوكادو وتوابل خفيفة.",
+          "image": "AvocadoToastwithEggFranceC4x3-bb87e3bbf1944657b7db35f1383fabdb.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "بيضة مسلوقة (بوشيه)", "price_delta": "5.00"},
+            {"name": "أفوكادو إضافي", "price_delta": "6.00"},
+            {"name": "جبن فيتا", "price_delta": "4.00"}
+          ]
+        },
+        {
+          "source_item_id": "egg_cheese",
+          "name": "توست بيض وجبن",
+          "price": "22.00",
+          "description": "بيض طازج مع جبن ذائب داخل خبز طري.",
+          "image": "توست بيض وجبن.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شرائح ديك رومي", "price_delta": "6.00"},
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "هالبينو", "price_delta": "2.00"}
+          ]
+        }
+      ]
+    },
+    {
+      "source_category_id": "refreshers",
+      "name": "عصائر ومشروبات منعشة",
+      "items": [
+        {
+          "source_item_id": "orange_juice",
+          "name": "عصير برتقال",
+          "price": "16.00",
+          "description": "عصير برتقال طبيعي 100%.",
+          "image": "Orangejuice.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "ثلج إضافي", "price_delta": "0.00"}
+          ]
+        },
+        {
+          "source_item_id": "lemon_mint",
+          "name": "ليمون نعناع",
+          "price": "17.00",
+          "description": "ليمون طازج مع نعناع منعش.",
+          "image": "ليمون نعناع.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "نعناع إضافي", "price_delta": "2.00"},
+            {"name": "ثلج إضافي", "price_delta": "0.00"}
+          ]
+        }
+      ]
+    }
+  ]
+}

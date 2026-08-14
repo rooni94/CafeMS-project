@@ -156,7 +156,7 @@ def _best_product(query: str) -> Optional[Product]:
     if not query_norm:
         return None
 
-    products = list(Product.objects.all())
+    products = list(Product.objects.filter(available=True))
     if not products:
         return None
     names_lower = [p.name.lower() for p in products]
@@ -178,7 +178,7 @@ def _best_product(query: str) -> Optional[Product]:
 
 
 def _recommend_by_budget(budget: Optional[int], hot: bool = False) -> Optional[Product]:
-    products = list(Product.objects.all())
+    products = list(Product.objects.filter(available=True))
     if not products:
         return None
     filtered = [p for p in products if getattr(p, "price", None) is not None]
@@ -193,7 +193,7 @@ def _recommend_by_budget(budget: Optional[int], hot: bool = False) -> Optional[P
 
 
 def _top_sellers(limit: int = 3) -> List[str]:
-    products = list(Product.objects.all())
+    products = list(Product.objects.filter(available=True))
     products.sort(key=lambda p: Decimal(str(getattr(p, "price", 0) or 0)))
     return [p.name for p in products[:limit]]
 
@@ -292,7 +292,7 @@ def _default_reply() -> str:
     top = ", ".join(_top_sellers())
     return (
         "هلا! أقدر أساعدك في الطلبات، الأسعار، والتوصيل. "
-        "تقدر تقول: «ابغى اطلب برجر»، «اقترح لي وجبة ب١٠ ريال»، أو «وين وصل طلبي؟». "
+        "تقدر تقول: «ابغى اطلب آيس لاتيه»، «اقترح لي قهوة ب٢٠ ريال»، أو «وين وصل طلبي؟». "
         f"الأكثر مبيعاً عندنا: {top}."
     )
 
@@ -420,7 +420,7 @@ def generate_bot_reply(user: Optional[User], content: str, conversation: Optiona
             if not payment:
                 return _mark_reply("حدد الدفع: كاش، شبكة، أو أونلاين (Apple Pay / STC Pay).", "ASK_PAY", pid=pid, qty=qty, order_type=dine_type, address=address)
             try:
-                product = Product.objects.get(id=pid)
+                product = Product.objects.get(id=pid, available=True)
             except Product.DoesNotExist:
                 return _mark_reply("ما لقيت المنتج، عطنا اسمه من جديد.", "ASK_PRODUCT")
 

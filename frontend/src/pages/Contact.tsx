@@ -94,7 +94,7 @@ const Contact: React.FC = () => {
           >
             <p className="text-gray-700 leading-relaxed">
             {settings?.contact_description?.trim() ||
-                "للاستفسارات حول الطلبات، القهوة والمشروبات، الحلويات والمخبوزات، أو لأي ملاحظة لتحسين تجربتك في لاڤـا كافيـه—اترك رسالتك وسنرد عليك في أقرب وقت ممكن."}
+                "للاستفسارات حول الطلبات، القهوة والمشروبات، الحلويات والمخبوزات، أو لأي ملاحظة لتحسين تجربتك في CafeMS Demo—اترك رسالتك وسنرد عليك في أقرب وقت ممكن."}
             </p>
             <div className="space-y-2 text-gray-700 text-right">
               {fallbackPhone && (

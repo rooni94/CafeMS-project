@@ -14,7 +14,7 @@ const DEFAULT_HIGHLIGHTS = [
 
 const About: React.FC = () => {
   const { settings } = useStoreSettings();
-  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
+  const storeName = settings?.store_name?.trim() || "CafeMS Demo";
   const aboutTitle =
     settings?.about_title?.trim() || `من نحن – ${storeName}`;
   const aboutSubtitle =

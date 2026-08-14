@@ -72,7 +72,7 @@ const extractCategoryId = (link?: string | null): number | null => {
 const Hero: React.FC<HeroProps> = ({ onCategorySelect }) => {
   const { settings } = useStoreSettings();
   const [index, setIndex] = useState(0);
-  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
+  const storeName = settings?.store_name?.trim() || "CafeMS Demo";
   const brandPrimary = settings?.primary_color || "#f59e0b";
   const brandSecondary = settings?.secondary_color || "#4c1d95";
   const [brandFirst, ...brandRest] = storeName.split(/\s+/);

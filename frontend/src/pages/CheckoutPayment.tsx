@@ -12,7 +12,7 @@ const CheckoutPayment: React.FC = () => {
   const location = useLocation();
   const { settings } = useStoreSettings();
 
-  const storeName = settings?.store_name || "لاڤـا كافيـه";
+  const storeName = settings?.store_name || "CafeMS Demo";
   const supportEmail = settings?.support_email || settings?.contact_email || "";
   const primaryColor = settings?.primary_color || "#f59e0b";
   const accentColor = settings?.accent_color || "#111827";

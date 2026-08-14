@@ -4,7 +4,7 @@ from typing import Final
 
 from .models import StoreSettings
 
-DEFAULT_STORE_NAME: Final[str] = "لاڤـا كافيـه"
+DEFAULT_STORE_NAME: Final[str] = "CafeMS Demo"
 
 
 def get_store_name(default: str = DEFAULT_STORE_NAME) -> str:
@@ -14,4 +14,3 @@ def get_store_name(default: str = DEFAULT_STORE_NAME) -> str:
         return name or default
     except Exception:
         return default
-

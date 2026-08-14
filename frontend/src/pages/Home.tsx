@@ -137,7 +137,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { settings } = useStoreSettings();
-  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
+  const storeName = settings?.store_name?.trim() || "CafeMS Demo";
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

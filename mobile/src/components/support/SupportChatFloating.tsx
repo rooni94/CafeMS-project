@@ -75,7 +75,7 @@ const SupportChatFloating: React.FC = () => {
   const { user, accessToken } = useAuth();
   const { t, isRTL } = useI18n();
   const { settings } = useStoreSettings();
-  const storeName = normalizeBrandName((settings as any)?.store_name, "لاڤـا كافيـه");
+  const storeName = normalizeBrandName((settings as any)?.store_name, "CafeMS Demo");
   const isGuest = !user;
 
   const [open, setOpen] = useState(false);

@@ -87,7 +87,7 @@ export const decodeUnicodeEscapes = (value?: string | null) => {
   return normalizeArabicText(decoded);
 };
 
-const DEFAULT_BRAND_NAME = "لاڤـا كافيـه";
+const DEFAULT_BRAND_NAME = "CafeMS Demo";
 
 export const normalizeBrandName = (
   value?: string | null,
@@ -95,7 +95,8 @@ export const normalizeBrandName = (
 ) => {
   const normalized = normalizeArabicText(value) || "";
   const cleaned = normalized
-    .replace(/CafeMS Demo/gu, "CafeMS Demo")
+    .replace(/CafeMS Demo|CafeMS Demo|CafeMS Demo/gu, "CafeMS Demo")
+    .replace(/CafeMS Demo|CafeMS Demo|CafeMS Demo/giu, "CafeMS Demo")
     .replace(/كافتيريا/gu, "كافيه");
   const safeFallback = normalizeArabicText(fallback) || DEFAULT_BRAND_NAME;
   const safe = cleaned.trim() || safeFallback;

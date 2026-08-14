@@ -322,7 +322,7 @@ const DashboardProducts: React.FC = () => {
       <DashboardSection title={editingId ? "تعديل منتج" : "إضافة منتج"} subtitle="املأ البيانات ثم احفظ.">
         <View style={styles.formGrid}>
           <View style={[styles.field, fieldSize]}>
-            <Input label="اسم المنتج" value={name} onChangeText={setName} placeholder="مثال: ساندوتش دجاج" />
+            <Input label="اسم المنتج" value={name} onChangeText={setName} placeholder="مثال: آيس لاتيه" />
           </View>
           <View style={[styles.field, fieldSize]}>
             <Input label="السعر" value={price} onChangeText={setPrice} keyboardType="decimal-pad" placeholder="مثال: 12" />

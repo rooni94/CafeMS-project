@@ -4,7 +4,7 @@ import { useStoreSettings } from "../context/StoreSettingsContext";
 
 const AboutFull: React.FC = () => {
   const { settings } = useStoreSettings();
-  const storeName = settings?.store_name?.trim() || "لاڤـا كافيـه";
+  const storeName = settings?.store_name?.trim() || "CafeMS Demo";
   return (
     <div className="max-w-4xl mx-auto bg-white rounded-xl shadow p-6 space-y-5 text-sm leading-relaxed">
       <h1 className="text-2xl font-bold text-amber-600 mb-2">

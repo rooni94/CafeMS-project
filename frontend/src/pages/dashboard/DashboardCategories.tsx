@@ -214,7 +214,7 @@ const DashboardCategories: React.FC = () => {
               value={form.name}
               onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
               className="w-full border rounded-lg px-3 py-2 text-sm"
-              placeholder="مثال: الساندوتشات"
+              placeholder="مثال: المشروبات الساخنة"
               required
             />
           </div>

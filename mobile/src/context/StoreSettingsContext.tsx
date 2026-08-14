@@ -35,7 +35,7 @@ export const StoreSettingsProvider: React.FC<{
       hero_title: t("store.heroTitle", "تجربة قهوة دافئة في كل كوب."),
       hero_subtitle: t("store.heroSubtitle", "اكتشف نكهات قهوتنا المختارة بعناية، وجودة تليق بذوقك في كل وقت."),
       hero_button_text: t("store.heroButton", "اطلب الآن"),
-      about_title: t("store.aboutTitle", "عن مقهى الخليج"),
+      about_title: t("store.aboutTitle", "عن CafeMS Demo"),
       about_subtitle: t("store.aboutSubtitle", "نصنع القهوة بحب ونقدم تجربة تليق بك."),
       about_description: t(
         "store.aboutDescription",
