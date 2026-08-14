@@ -184,7 +184,7 @@ const App: React.FC = () => {
       </footer>
       <footer className="border-t text-center text-xs text-gray-500 py-3">
         <SupportChatWidget />
-        © {year} RonniDev.com. جميع الحقوق محفوظة.
+        © {year} {storeName}. جميع الحقوق محفوظة.
       </footer>
     </div>
   );
