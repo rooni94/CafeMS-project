@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from apps.orders.models import Order, OrderItem
-from apps.products.models import Product
+from apps.products.models import Category, Product
 from apps.support.models import Conversation
 from .dialogue import DialogueResult, detect_intent, handle_no_ctx, handle_yes_like, SMALL_TALK, COMPLAINTS
 
@@ -28,12 +28,40 @@ ADDON_HINT = ["زيادة", "اضافة", "إضافة", "بدون", "شيل", "�
 ORDER_TRIGGERS = ["اطلب", "طلب", "ابغى اطلب", "أبغى اطلب", "ابغى اضيف طلب", "أبغى أضيف طلب", "طلب جديد", "سوي طلب", "أريد طلب", "اضافة طلب"]
 
 PRODUCT_ALIASES: Dict[str, List[str]] = {
-    "?????": ["?????", "?????", "????? ????", "?????", "???"],
-    "????": ["????", "??????", "????", "????", "???? ????", "???? ???"],
-    "??????": ["??????", "??????", "?????? ????", "?????? ???"],
-    "????": ["????", "?????", "????????", "??????", "latte", "coffee"],
-    "???": ["????", "?????", "???", "???", "????", "??? ????"],
-    "?????": ["?????", "???????? ?????", "??????? ?????", "??????? ?????", "??? ?????"],
+    "إسبريسو": ["إسبريسو", "اسبريسو", "espresso"],
+    "كابتشينو": ["كابتشينو", "cappuccino"],
+    "لاتيه": ["لاتيه", "لاتي", "latte"],
+    "هوت شوكليت": ["هوت شوكليت", "شوكولاتة ساخنة", "hot chocolate"],
+    "أمريكانو": ["أمريكانو", "امريكانو", "americano"],
+    "آيس لاتيه": ["آيس لاتيه", "ايس لاتيه", "iced latte"],
+    "سبانش لاتيه": ["سبانش لاتيه", "اسبنش لاتيه", "spanish latte"],
+    "كولد برو": ["كولد برو", "cold brew"],
+    "كراميل آيس لاتيه": ["كراميل آيس لاتيه", "ايس لاتيه كراميل", "caramel iced latte"],
+    "آيس وايت موكا": ["آيس وايت موكا", "ايس وايت موكا", "white mocha"],
+    "كرواسون زبدة": ["كرواسون زبدة", "كرواسون سادة", "butter croissant"],
+    "كرواسون شوكولاتة": ["كرواسون شوكولاتة", "كرواسون شوكليت", "pain au chocolat"],
+    "سينابون رول": ["سينابون", "سينابون رول", "cinnamon roll"],
+    "دانش فواكه": ["دانش فواكه", "دانش", "fruit danish"],
+    "تشيزكيك": ["تشيزكيك", "تشيز كيك", "cheesecake"],
+    "تشيزكيك اليقطين": ["تشيزكيك اليقطين", "تشيز كيك اليقطين", "pumpkin cheesecake"],
+    "كيكة شوكولاتة": ["كيكة شوكولاتة", "كيكة شوكليت", "chocolate cake"],
+    "براونيز": ["براونيز", "brownies"],
+    "تيراميسو": ["تيراميسو", "tiramisu"],
+    "كيكة ريد فلفت": ["ريد فلفت", "كيكة ريد فلفت", "red velvet"],
+    "توست أفوكادو": ["توست أفوكادو", "افوكادو توست", "avocado toast"],
+    "توست بيض وجبن": ["توست بيض وجبن", "بيض وجبن", "egg cheese"],
+    "برجر فطور": ["برجر فطور", "برغر فطور", "breakfast burger"],
+    "ساندويتش كرواسون": ["ساندويتش كرواسون", "كرواسون ساندويتش", "croissant sandwich"],
+    "كرواسون ديك رومي": ["كرواسون ديك رومي", "turkey croissant"],
+    "ساندويتش جبن مشوي": ["ساندويتش جبن مشوي", "جبن مشوي", "grilled cheese"],
+    "ساندويتش دجاج مشوي": ["ساندويتش دجاج مشوي", "دجاج مشوي", "grilled chicken sandwich"],
+    "عصير برتقال": ["عصير برتقال", "برتقال", "orange juice"],
+    "ليمون نعناع": ["ليمون نعناع", "ليمون ونعناع", "lemon mint"],
+    "شاي أخضر بالعسل والليمون": ["شاي أخضر", "شاي بالعسل والليمون", "honey lemon green tea"],
+    "سموثي مانجو": ["سموثي مانجو", "مانجو سموثي", "mango smoothie"],
+    "سموثي مانجو وبرتقال": ["سموثي مانجو وبرتقال", "مانجو وبرتقال", "mango orange smoothie"],
+    "سموثي توت": ["سموثي توت", "توت سموثي", "berry smoothie"],
+    "قهوة V60": ["v60", "في ستين", "قهوة مقطرة", "قهوة مختصة"],
 }
 # ========= ترميز/فك سياق =========
 def _encode_ctx(stage: str, data: dict) -> str:
@@ -162,9 +190,10 @@ def _best_product(query: str) -> Optional[Product]:
     names_lower = [p.name.lower() for p in products]
 
     for target, words in PRODUCT_ALIASES.items():
-        if any(w in query_norm for w in words):
+        if any(w.lower() in query_norm for w in words):
+            target_norm = target.lower()
             for idx, name in enumerate(names_lower):
-                if target in name or any(word in name for word in words):
+                if target_norm in name or any(word.lower() in name for word in words):
                     return products[idx]
 
     for idx, name in enumerate(names_lower):
@@ -196,6 +225,27 @@ def _top_sellers(limit: int = 3) -> List[str]:
     products = list(Product.objects.filter(available=True))
     products.sort(key=lambda p: Decimal(str(getattr(p, "price", 0) or 0)))
     return [p.name for p in products[:limit]]
+
+
+def _menu_reply() -> str:
+    categories = list(
+        Category.objects.filter(products__available=True)
+        .distinct()
+        .order_by("id")
+    )
+    products = list(
+        Product.objects.filter(available=True)
+        .order_by("price", "id")
+        .values_list("name", flat=True)[:6]
+    )
+    if not categories:
+        return "القائمة غير متاحة مؤقتاً. اكتب اسم الصنف الذي تريده وسأساعدك."
+    category_text = "، ".join(category.name for category in categories)
+    product_text = "، ".join(products)
+    return (
+        f"القائمة الحالية تشمل {len(categories)} تصنيفات: {category_text}. "
+        f"ومن الخيارات المتاحة: {product_text}. اكتب اسم الصنف والكمية وسأكمل معك الطلب."
+    )
 
 
 # ========= إنشاء طلبات =========
@@ -292,8 +342,8 @@ def _default_reply() -> str:
     top = ", ".join(_top_sellers())
     return (
         "هلا! أقدر أساعدك في الطلبات، الأسعار، والتوصيل. "
-        "تقدر تقول: «ابغى اطلب آيس لاتيه»، «اقترح لي قهوة ب٢٠ ريال»، أو «وين وصل طلبي؟». "
-        f"الأكثر مبيعاً عندنا: {top}."
+        "تقدر تقول: «ابغى اطلب قهوة V60»، «اقترح لي مشروب ب٢٠ ريال»، أو «وين وصل طلبي؟». "
+        f"ومن الخيارات الحالية: {top}."
     )
 
 
@@ -381,7 +431,7 @@ def generate_bot_reply(user: Optional[User], content: str, conversation: Optiona
             product = _best_product(text)
             qty = _extract_int(text) or int(data.get("qty", 1))
             if not product:
-                return _mark_reply("ما عرفت المنتج. اكتب اسمه بوضوح والكمية (مثال: صحن بطاطس 2).", "ASK_PRODUCT")
+                return _mark_reply("ما عرفت المنتج. اكتب اسمه بوضوح والكمية (مثال: قهوة V60 1).", "ASK_PRODUCT")
             return _mark_reply(
                 f"حددت {qty} × {product.name}. تبيها سفري، محلي، أو توصيل؟",
                 "ASK_TYPE",
@@ -516,7 +566,12 @@ def generate_bot_reply(user: Optional[User], content: str, conversation: Optiona
         top = ", ".join(_top_sellers())
         return f"ما لقيت شيء بالسعر المذكور، لكن أفضل الخيارات عندنا: {top}. حاب تختار واحد؟"
 
-    dialogue_result: Optional[DialogueResult] = handle_no_ctx(text, budget_reply, _default_reply())
+    dialogue_result: Optional[DialogueResult] = handle_no_ctx(
+        text,
+        budget_reply,
+        _default_reply(),
+        menu_reply_fn=_menu_reply,
+    )
     if dialogue_result:
         if dialogue_result.stage:
             return _mark_reply(dialogue_result.reply, dialogue_result.stage, **(dialogue_result.data or {}))
@@ -531,7 +586,7 @@ def generate_bot_reply(user: Optional[User], content: str, conversation: Optiona
         return "بخدمتك، لكن ما لقيت طلب سابق. تبي أسوي طلب جديد لك؟"
 
     if any(k in lower for k in ORDER_TRIGGERS):
-        return _mark_reply("تمام، وش اسم المنتج والكمية اللي تبيها؟ مثال: «صحن بطاطس 1»", "ASK_PRODUCT")
+        return _mark_reply("تمام، وش اسم المنتج والكمية اللي تبيها؟ مثال: «قهوة V60 1»", "ASK_PRODUCT")
 
     if "اقترح" in lower or "ميزانية" in lower or "بسعر" in lower:
         return _mark_reply(budget_reply(), "ASK_NEXT", order_id="")

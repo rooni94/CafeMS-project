@@ -31,8 +31,6 @@ const CATEGORY_FALLBACKS: Record<string, string> = {
   "الحلويات": "/media/products/lk_menu/red_velvet_cake.jpg",
   "فطور خفيف": "/media/products/lk_menu/breakfast_burger.png",
   "عصائر ومشروبات منعشة": "/media/products/lk_menu/mango_orange_smoothie.jpg",
-  "القهوة المختصة": "/media/products/lk_menu/v60.jpg",
-  "ساندويتشات خفيفة": "/media/products/lk_menu/grilled_chicken_sandwich.jpg",
 };
 
 const getCategoryFallback = (category: Category) =>

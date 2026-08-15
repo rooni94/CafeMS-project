@@ -62,25 +62,25 @@ const StoreSettingsContext = createContext<StoreSettingsContextValue | undefined
 const HERO_CARDS_FALLBACK = [
   {
     image: "/media/products/lk_menu/v60.jpg",
-    title: "قهوة مختصة تُحضّر بهدوء",
+    title: "قهوة V60 المقطرة",
     description:
-      "قهوة V60 مقطرة يدوياً، مع عناية بالتفاصيل في كل رشفة.",
-    button_text: "اكتشف القهوة المختصة",
+      "تحضير يدوي هادئ يبرز نكهات القهوة بوضوح وقوام خفيف ومتوازن.",
+    button_text: "اطلب V60",
     button_link: "/menu",
   },
   {
     image: "/media/products/lk_menu/mango_orange_smoothie.jpg",
-    title: "انتعاش بطعم الفاكهة",
+    title: "سموثي مانجو وبرتقال",
     description:
-      "سموثي مانجو وتوت ومشروبات باردة بطعم طبيعي منعش.",
+      "مزيج فاكهي بارد من المانجو والبرتقال لانتعاش طبيعي في كل وقت.",
     button_text: "تصفّح المنعشات",
     button_link: "/menu",
   },
   {
     image: "/media/products/lk_menu/fruit_danish.jpg",
-    title: "مخبوزات وحلويات يومية",
+    title: "دانش فواكه طازج",
     description:
-      "دانش فواكه وحلويات طازجة ترافق قهوتك بلقمة حلوة.",
+      "مخبوز هش مزين بالفواكه والتوت، مناسب لمرافقة كوب القهوة.",
     button_text: "استكشف المخبوزات",
     button_link: "/menu",
   },

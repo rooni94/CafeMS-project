@@ -1,11 +1,5 @@
-﻿// src/components/Hero.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  motion,
-  AnimatePresence,
-  useScroll,
-  useTransform,
-} from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useStoreSettings } from "../context/StoreSettingsContext";
 
@@ -20,25 +14,25 @@ type Slide = {
 const FALLBACK_SLIDES: Slide[] = [
   {
     image: "/media/products/lk_menu/v60.jpg",
-    title: "قهوة مختصة تُحضّر بهدوء",
+    title: "قهوة V60 المقطرة",
     description:
-      "قهوة V60 مقطرة يدوياً، مع عناية بالتفاصيل في كل رشفة.",
-    ctaText: "اكتشف القهوة المختصة",
+      "تحضير يدوي هادئ يبرز نكهات القهوة بوضوح وقوام خفيف ومتوازن.",
+    ctaText: "اطلب V60",
     ctaLink: "/menu",
   },
   {
     image: "/media/products/lk_menu/mango_orange_smoothie.jpg",
-    title: "انتعاش بطعم الفاكهة",
+    title: "سموثي مانجو وبرتقال",
     description:
-      "سموثي مانجو وتوت ومشروبات باردة بطعم طبيعي منعش.",
+      "مزيج فاكهي بارد من المانجو والبرتقال لانتعاش طبيعي في كل وقت.",
     ctaText: "تصفّح المنعشات",
     ctaLink: "/menu",
   },
   {
     image: "/media/products/lk_menu/fruit_danish.jpg",
-    title: "مخبوزات وحلويات يومية",
+    title: "دانش فواكه طازج",
     description:
-      "دانش فواكه وحلويات طازجة ترافق قهوتك بلقمة حلوة.",
+      "مخبوز هش مزين بالفواكه والتوت، مناسب لمرافقة كوب القهوة.",
     ctaText: "استكشف المخبوزات",
     ctaLink: "/menu",
   },
@@ -60,12 +54,7 @@ const extractCategoryId = (link?: string | null): number | null => {
     const numeric = Number(categoryParam);
     return Number.isFinite(numeric) ? numeric : null;
   } catch {
-    const queryIndex = link.indexOf("?");
-    if (queryIndex === -1) return null;
-    const query = new URLSearchParams(link.slice(queryIndex));
-    const categoryParam = query.get("category");
-    const numeric = categoryParam ? Number(categoryParam) : null;
-    return numeric && Number.isFinite(numeric) ? numeric : null;
+    return null;
   }
 };
 
@@ -74,9 +63,6 @@ const Hero: React.FC<HeroProps> = ({ onCategorySelect }) => {
   const [index, setIndex] = useState(0);
   const storeName = settings?.store_name?.trim() || "CafeMS Demo";
   const brandPrimary = settings?.primary_color || "#f59e0b";
-  const brandSecondary = settings?.secondary_color || "#4c1d95";
-  const [brandFirst, ...brandRest] = storeName.split(/\s+/);
-  const brandSecond = brandRest.join(" ");
 
   const slides = useMemo(() => {
     if (settings?.hero_cards && settings.hero_cards.length > 0) {
@@ -101,140 +87,116 @@ const Hero: React.FC<HeroProps> = ({ onCategorySelect }) => {
   useEffect(() => {
     const interval = setInterval(
       () => setIndex((prev) => (prev + 1) % slides.length),
-      5000
+      6000
     );
     return () => clearInterval(interval);
   }, [slides.length]);
 
-  const { scrollY } = useScroll();
-  const parallaxY = useTransform(scrollY, [0, 300], [0, 80]);
   const activeSlide = slides[index % slides.length];
+  const slideKey = `${index}-${activeSlide.title}-${activeSlide.image}`;
+  const categoryId = extractCategoryId(activeSlide.ctaLink);
+
+  const primaryAction = categoryId && onCategorySelect ? (
+    <button
+      type="button"
+      onClick={() => onCategorySelect(categoryId)}
+      className="rounded-full bg-amber-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-amber-950/20 transition hover:-translate-y-0.5 hover:bg-amber-400"
+    >
+      {activeSlide.ctaText}
+    </button>
+  ) : (
+    <Link
+      to={activeSlide.ctaLink || "/menu"}
+      className="rounded-full bg-amber-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-amber-950/20 transition hover:-translate-y-0.5 hover:bg-amber-400"
+    >
+      {activeSlide.ctaText || "تصفّح القائمة"}
+    </Link>
+  );
 
   return (
     <section
       dir="rtl"
-      className="relative h-[75vh] md:h-[80vh] w-full overflow-hidden rounded-b-[48px] md:rounded-b-[88px]"
+      className="relative w-full overflow-hidden rounded-b-[42px] bg-[#211714] text-white shadow-[0_18px_45px_rgba(70,36,21,0.18)] md:rounded-b-[64px]"
     >
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={index}
-          className="absolute inset-0 bg-cover bg-center"
-          style={{
-            backgroundImage: `url('${activeSlide.image}')`,
-            y: parallaxY,
-          }}
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 1.05 }}
-          transition={{ duration: 1.2, ease: "easeInOut" }}
-        />
-      </AnimatePresence>
+      <div className="mx-auto grid min-h-[540px] max-w-7xl md:min-h-[575px] md:grid-cols-[0.95fr_1.05fr]">
+        <div className="relative order-1 min-h-[270px] overflow-hidden md:order-2 md:min-h-[575px]">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.img
+              key={slideKey}
+              src={activeSlide.image}
+              alt={activeSlide.title}
+              className="absolute inset-0 h-full w-full object-cover object-center"
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              transition={{ duration: 0.65, ease: "easeOut" }}
+            />
+          </AnimatePresence>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#211714]/70 via-transparent to-[#211714]/10" />
+          <div className="absolute bottom-5 right-5 rounded-full border border-white/20 bg-black/20 px-3 py-1 text-xs text-amber-100 backdrop-blur-md">
+            من قائمة {storeName}
+          </div>
+        </div>
 
-      <div className="absolute inset-0 bg-black/45" />
+        <div className="relative order-2 flex items-center overflow-hidden px-6 py-10 md:order-1 md:px-12 lg:px-16">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-amber-500/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-rose-900/30 blur-3xl" />
 
-      <div className="relative z-10 h-full flex items-center">
-        <div className="max-w-6xl mx-auto w-full px-4 md:px-6 flex justify-center">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="bg-black/35 backdrop-blur-[2px] rounded-3xl px-4 py-5 md:px-6 md:py-6 shadow-lg max-w-xl border border-white/10 text-center"
-          >
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-xs md:text-sm bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm text-amber-100 border border-white/20 inline-block"
-            >
-              {settings?.tagline && settings.tagline.trim().length
-                ? settings.tagline
-                : `${storeName} – قهوة ومشروبات وحلويات تُحضّر بذوق.`}
-            </motion.p>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
-              className="text-2xl md:text-4xl font-extrabold leading-tight text-white drop-shadow-lg text-center mt-4 mb-3"
-            >
-              {settings?.hero_title && settings.hero_title.trim().length ? (
-                <span>{settings.hero_title}</span>
-              ) : (
-                <>
-                  أهلاً بكم في{" "}
-                  <span style={{ color: brandPrimary }}>
-                    {brandFirst || storeName}{" "}
-                  </span>
-                  <span style={{ color: brandSecondary }}>{brandSecond}</span>
-                </>
-              )}
-              <span className="block text-base md:text-xl font-normal mt-3 text-amber-100">
-              {settings?.hero_subtitle && settings.hero_subtitle.trim().length
-                ? settings.hero_subtitle
-                : activeSlide.title}
-            </span>
-          </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="text-sm md:text-base leading-relaxed text-gray-100 text-center mb-4"
-            >
-              {activeSlide.description}
-            </motion.p>
-
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
+              key={slideKey}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.65 }}
-              className="flex flex-wrap gap-3 pt-2 justify-center"
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="relative z-10 w-full max-w-xl"
             >
-              <Link
-                to={settings?.hero_button_link || "/menu"}
-                className="px-5 py-2.5 rounded-full bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 shadow-md"
+              <p
+                className="mb-4 inline-flex rounded-full border px-3 py-1 text-xs font-semibold tracking-wide text-amber-100"
+                style={{ borderColor: `${brandPrimary}66`, backgroundColor: `${brandPrimary}18` }}
               >
-                {settings?.hero_button_text && settings.hero_button_text.trim()
-                  ? settings.hero_button_text
-                  : "ابدأ الطلب الآن"}
-              </Link>
+                {settings?.tagline?.trim() || `${storeName} — قهوة تُحضّر بذوق`}
+              </p>
 
-              <Link
-                to="/order-tracking"
-                className="px-5 py-2.5 rounded-full bg-white/15 border border-white/30 text-white text-sm font-semibold backdrop-blur hover:bg-white/25"
-              >
-                تتبع الطلب
-              </Link>
+              <p className="mb-3 text-sm font-bold uppercase tracking-[0.22em]" style={{ color: brandPrimary }}>
+                {storeName}
+              </p>
 
-              {activeSlide.ctaText && (
-                (() => {
-                  const categoryId = extractCategoryId(activeSlide.ctaLink);
-                  if (categoryId && onCategorySelect) {
-                    return (
-                      <button
-                        type="button"
-                        onClick={() => onCategorySelect(categoryId)}
-                        className="px-5 py-2.5 rounded-full bg-white text-amber-700 text-sm font-semibold border border-amber-300 hover:bg-amber-50"
-                      >
-                        {activeSlide.ctaText}
-                      </button>
-                    );
-                  }
-                  if (activeSlide.ctaLink) {
-                    return (
-                      <Link
-                        to={activeSlide.ctaLink}
-                        className="px-5 py-2.5 rounded-full bg-white text-amber-700 text-sm font-semibold border border-amber-300 hover:bg-amber-50"
-                      >
-                        {activeSlide.ctaText}
-                      </Link>
-                    );
-                  }
-                  return null;
-                })()
-              )}
+              <h1 className="max-w-lg text-3xl font-black leading-[1.18] text-white md:text-5xl">
+                {activeSlide.title}
+              </h1>
+
+              <p className="mt-5 max-w-lg text-base leading-8 text-stone-200 md:text-lg">
+                {activeSlide.description}
+              </p>
+
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                {primaryAction}
+                <Link
+                  to="/order-tracking"
+                  className="rounded-full border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-stone-100 backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/15"
+                >
+                  تتبع الطلب
+                </Link>
+              </div>
+
+              <div className="mt-8 flex items-center gap-2" aria-label="شرائح الهيرو">
+                {slides.map((slide, slideIndex) => (
+                  <button
+                    key={`${slide.title}-${slideIndex}`}
+                    type="button"
+                    aria-label={`عرض ${slide.title}`}
+                    onClick={() => setIndex(slideIndex)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      slideIndex === index % slides.length
+                        ? "w-10 bg-amber-400"
+                        : "w-5 bg-white/30 hover:bg-white/60"
+                    }`}
+                  />
+                ))}
+              </div>
             </motion.div>
-          </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </section>
@@ -242,4 +204,3 @@ const Hero: React.FC<HeroProps> = ({ onCategorySelect }) => {
 };
 
 export default Hero;
-

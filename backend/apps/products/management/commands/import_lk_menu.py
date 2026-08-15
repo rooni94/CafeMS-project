@@ -25,11 +25,17 @@ class Command(BaseCommand):
             action="store_true",
             help="Disable every currently available product not present in the manifest.",
         )
+        parser.add_argument(
+            "--prune-unmanaged-categories",
+            action="store_true",
+            help="Delete categories outside the manifest after their products are no longer available.",
+        )
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
         apply_changes = options["apply"]
         archive_existing = options["archive_existing"]
+        prune_unmanaged_categories = options["prune_unmanaged_categories"]
 
         if dry_run == apply_changes:
             raise CommandError("Choose exactly one of --dry-run or --apply.")
@@ -50,6 +56,7 @@ class Command(BaseCommand):
         created_categories = 0
         addon_count = 0
         archived = 0
+        pruned_categories = 0
         category_images_attached = 0
         assets_saved = 0
         managed_ids = set()
@@ -85,6 +92,16 @@ class Command(BaseCommand):
                         .order_by("id")
                         .first()
                     )
+                    if product is None:
+                        # Keep the existing product/order history when a menu item
+                        # is reorganized into one of the managed categories.
+                        product = (
+                            Product.objects.filter(name=entry["name"], available=True)
+                            .order_by("id")
+                            .first()
+                        )
+                        if product is not None:
+                            product.category = category
                     if product is None:
                         product = Product(category=category, name=entry["name"])
                         created += 1
@@ -131,6 +148,14 @@ class Command(BaseCommand):
                         .exclude(pk__in=managed_ids)
                         .update(available=False)
                     )
+                if prune_unmanaged_categories:
+                    managed_category_ids = [category.pk for category in category_cache.values()]
+                    deleted_categories, _ = (
+                        Category.objects.exclude(pk__in=managed_category_ids)
+                        .exclude(products__available=True)
+                        .delete()
+                    )
+                    pruned_categories = deleted_categories
         except Exception:
             for storage, storage_name in newly_saved_media:
                 try:
@@ -148,6 +173,7 @@ class Command(BaseCommand):
                         "products_created": created,
                         "products_updated": updated,
                         "products_archived": archived,
+                        "categories_pruned": pruned_categories,
                         "product_addons_upserted": addon_count,
                         "products_managed": len(managed_ids),
                         "images_attached": len(entries),
@@ -350,8 +376,15 @@ class Command(BaseCommand):
             for product in Product.objects.select_related("category").all()
             if product.category_id
         }
+        existing_available_names = set(
+            Product.objects.filter(available=True).values_list("name", flat=True)
+        )
         active_products = Product.objects.filter(available=True).count()
-        matched = sum((entry["category_name"], entry["name"]) in existing_by_key for entry in entries)
+        matched = sum(
+            (entry["category_name"], entry["name"]) in existing_by_key
+            or entry["name"] in existing_available_names
+            for entry in entries
+        )
         addon_count = sum(len(entry["addons"]) for entry in entries)
         self.stdout.write(
             json.dumps(

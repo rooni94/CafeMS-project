@@ -76,6 +76,19 @@
             {"name": "حليب", "price_delta": "2.00"},
             {"name": "فانيلا", "price_delta": "3.00"}
           ]
+        },
+        {
+          "source_item_id": "v60",
+          "name": "قهوة V60",
+          "price": "24.00",
+          "description": "قهوة مقطرة يدوياً بنكهة واضحة وقوام خفيف.",
+          "image": "v60 2.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "شوت إضافي", "price_delta": "5.00"},
+            {"name": "ثلج", "price_delta": "2.00"},
+            {"name": "حليب شوفان", "price_delta": "4.00"}
+          ]
         }
       ]
     },
@@ -294,7 +307,7 @@
     {
       "source_category_id": "breakfast",
       "name": "فطور خفيف",
-      "description": "خيارات فطور مشبعة وخفيفة تُحضّر عند الطلب.",
+      "description": "فطور وسندويتشات خفيفة تُحضّر عند الطلب لتناسب بداية اليوم واستراحة القهوة.",
       "image": "Screenshot 2026-01-30 011445.png",
       "items": [
         {
@@ -334,6 +347,58 @@
             {"name": "بيضة إضافية", "price_delta": "5.00"},
             {"name": "جبن إضافي", "price_delta": "4.00"},
             {"name": "شرائح ديك رومي", "price_delta": "6.00"}
+          ]
+        },
+        {
+          "source_item_id": "croissant_sandwich",
+          "name": "ساندويتش كرواسون",
+          "price": "29.00",
+          "description": "كرواسون طازج محشو بحشوة مالحة مع خضار مقرمشة.",
+          "image": "croissant sandwich.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "أفوكادو", "price_delta": "6.00"},
+            {"name": "شرائح دجاج", "price_delta": "7.00"}
+          ]
+        },
+        {
+          "source_item_id": "turkey_croissant",
+          "name": "كرواسون ديك رومي",
+          "price": "30.00",
+          "description": "كرواسون محمّص مع شرائح ديك رومي وجبن وخضار طازجة.",
+          "image": "Screenshot 2026-01-30 011251.png",
+          "track_inventory": false,
+          "addons": [
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "أفوكادو", "price_delta": "6.00"},
+            {"name": "هالبينو", "price_delta": "2.00"}
+          ]
+        },
+        {
+          "source_item_id": "grilled_cheese",
+          "name": "ساندويتش جبن مشوي",
+          "price": "22.00",
+          "description": "خبز محمّص بحشوة جبن ذائب ومذاق مشوي دافئ.",
+          "image": "grill cheese.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "طماطم", "price_delta": "2.00"},
+            {"name": "هالبينو", "price_delta": "2.00"}
+          ]
+        },
+        {
+          "source_item_id": "grilled_chicken_sandwich",
+          "name": "ساندويتش دجاج مشوي",
+          "price": "28.00",
+          "description": "ساندويتش دجاج مشوي مع خضار وتتبيلة خفيفة داخل خبز طري.",
+          "image": "ساندويتش دجاج مشوي.jpg",
+          "track_inventory": false,
+          "addons": [
+            {"name": "جبن إضافي", "price_delta": "4.00"},
+            {"name": "أفوكادو", "price_delta": "6.00"},
+            {"name": "هالبينو", "price_delta": "2.00"}
           ]
         }
       ]
@@ -417,87 +482,6 @@
             {"name": "زبادي", "price_delta": "4.00"},
             {"name": "عسل", "price_delta": "3.00"},
             {"name": "توت إضافي", "price_delta": "4.00"}
-          ]
-        }
-      ]
-    },
-    {
-      "source_category_id": "specialty_coffee",
-      "name": "القهوة المختصة",
-      "description": "قهوة مقطرة تُحضّر يدوياً لاستخراج النكهات بهدوء ودقة.",
-      "image": "دريب v60.jpg",
-      "items": [
-        {
-          "source_item_id": "v60",
-          "name": "قهوة V60",
-          "price": "24.00",
-          "description": "قهوة مقطرة يدوياً بنكهة واضحة وقوام خفيف.",
-          "image": "v60 2.jpg",
-          "track_inventory": false,
-          "addons": [
-            {"name": "شوت إضافي", "price_delta": "5.00"},
-            {"name": "ثلج", "price_delta": "2.00"},
-            {"name": "حليب شوفان", "price_delta": "4.00"}
-          ]
-        }
-      ]
-    },
-    {
-      "source_category_id": "sandwiches",
-      "name": "ساندويتشات خفيفة",
-      "description": "ساندويتشات ساخنة وخفيفة مناسبة للفطور أو استراحة القهوة.",
-      "image": "Screenshot 2026-01-30 011251.png",
-      "items": [
-        {
-          "source_item_id": "croissant_sandwich",
-          "name": "ساندويتش كرواسون",
-          "price": "29.00",
-          "description": "كرواسون طازج محشو بحشوة مالحة مع خضار مقرمشة.",
-          "image": "croissant sandwich.jpg",
-          "track_inventory": false,
-          "addons": [
-            {"name": "جبن إضافي", "price_delta": "4.00"},
-            {"name": "أفوكادو", "price_delta": "6.00"},
-            {"name": "شرائح دجاج", "price_delta": "7.00"}
-          ]
-        },
-        {
-          "source_item_id": "turkey_croissant",
-          "name": "كرواسون ديك رومي",
-          "price": "30.00",
-          "description": "كرواسون محمّص مع شرائح ديك رومي وجبن وخضار طازجة.",
-          "image": "Screenshot 2026-01-30 011251.png",
-          "track_inventory": false,
-          "addons": [
-            {"name": "جبن إضافي", "price_delta": "4.00"},
-            {"name": "أفوكادو", "price_delta": "6.00"},
-            {"name": "هالبينو", "price_delta": "2.00"}
-          ]
-        },
-        {
-          "source_item_id": "grilled_cheese",
-          "name": "ساندويتش جبن مشوي",
-          "price": "22.00",
-          "description": "خبز محمّص بحشوة جبن ذائب ومذاق مشوي دافئ.",
-          "image": "grill cheese.jpg",
-          "track_inventory": false,
-          "addons": [
-            {"name": "جبن إضافي", "price_delta": "4.00"},
-            {"name": "طماطم", "price_delta": "2.00"},
-            {"name": "هالبينو", "price_delta": "2.00"}
-          ]
-        },
-        {
-          "source_item_id": "grilled_chicken_sandwich",
-          "name": "ساندويتش دجاج مشوي",
-          "price": "28.00",
-          "description": "ساندويتش دجاج مشوي مع خضار وتتبيلة خفيفة داخل خبز طري.",
-          "image": "ساندويتش دجاج مشوي.jpg",
-          "track_inventory": false,
-          "addons": [
-            {"name": "جبن إضافي", "price_delta": "4.00"},
-            {"name": "أفوكادو", "price_delta": "6.00"},
-            {"name": "هالبينو", "price_delta": "2.00"}
           ]
         }
       ]

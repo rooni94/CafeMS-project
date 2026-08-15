@@ -73,7 +73,12 @@ def detect_intent(text: str) -> Optional[str]:
     return None
 
 
-def handle_no_ctx(text: str, budget_reply_fn: Callable[[], str], fallback_reply: str) -> Optional[DialogueResult]:
+def handle_no_ctx(
+    text: str,
+    budget_reply_fn: Callable[[], str],
+    fallback_reply: str,
+    menu_reply_fn: Optional[Callable[[], str]] = None,
+) -> Optional[DialogueResult]:
     """
     يحدد النية ويعطي رد سريع إذا لا يوجد سياق سابق.
     budget_reply_fn: دالة تُرجع اقتراح بناءً على الميزانية (يربطها generate_bot_reply بالمنتجات).
@@ -82,11 +87,16 @@ def handle_no_ctx(text: str, budget_reply_fn: Callable[[], str], fallback_reply:
     if intent in ("greeting", "smalltalk_howareyou", "smalltalk_joke", "smalltalk_weather", "smalltalk_time", "smalltalk_meaning", "smalltalk_personal"):
         return DialogueResult(SMALL_TALK.get(intent, SMALL_TALK["greeting"]), stage="ASK_PRODUCT", data={})
     if intent == "menu_request":
-        return DialogueResult("عندنا خيارات سريعة ولذيذة 😋 تبغى شي خفيف ولا مشبع؟ وكم ميزانيتك تقريباً؟", stage="ASK_NEXT", data={"order_id": ""})
+        reply = (
+            menu_reply_fn()
+            if menu_reply_fn
+            else "عندنا خيارات قهوة ومشروبات وحلويات وفطور. اكتب اسم الصنف الذي تريده."
+        )
+        return DialogueResult(reply, stage="ASK_NEXT", data={"order_id": ""})
     if intent in ("recommendation", "budget_request"):
         return DialogueResult(budget_reply_fn(), stage="ASK_NEXT", data={"order_id": ""})
     if intent == "order_start":
-        return DialogueResult("تم، وش تبي تطلب؟ اكتب اسم المنتج والكمية (مثال: آيس لاتيه 2).", stage="ASK_PRODUCT", data={})
+        return DialogueResult("تم، وش تبي تطلب؟ اكتب اسم المنتج والكمية (مثال: قهوة V60 1).", stage="ASK_PRODUCT", data={})
     if intent == "complaint_delay":
         return DialogueResult(COMPLAINTS["delay"], stage="COMPLAINT", data={"issue": "delay"})
     if intent == "complaint_wrong":
@@ -116,7 +126,7 @@ def handle_yes_like(last_stage: Optional[str]) -> Optional[DialogueResult]:
     if last_stage == "ASK_NEXT":
         return DialogueResult("تمام، نعم على أي خيار؟ أضيف صنف ثاني ولا أرسل لك الفاتورة؟", stage="ASK_NEXT")
     if last_stage == "ASK_PRODUCT":
-        return DialogueResult("طيب، اكتب اسم المنتج والكمية (مثال: صحن بطاطس 1).", stage="ASK_PRODUCT")
+        return DialogueResult("طيب، اكتب اسم المنتج والكمية (مثال: قهوة V60 1).", stage="ASK_PRODUCT")
     if last_stage == "ASK_TYPE":
         return DialogueResult("تبغى الطلب محلي، سفري، أو توصيل؟", stage="ASK_TYPE")
     if last_stage == "ASK_PAY":
