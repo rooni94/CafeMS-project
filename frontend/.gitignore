@@ -19,3 +19,12 @@ amplifytools.xcconfig
 .secret-*
 **.sample
 #amplify-do-not-edit-end
+
+# Local environment and generated frontend files
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+coverage/
+*.log

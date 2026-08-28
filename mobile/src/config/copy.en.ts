@@ -32,11 +32,11 @@ export const copyEn = {
     },
   ],
   contactFallback: {
-    address: "Kingdom of Saudi Arabia - CafeMS Demo",
+    address: "",
     hours: "Daily from 6 AM to 1 AM",
-    phone: "+10000000000",
-    email: "contact@example.invalid",
-    whatsapp: "+10000000000",
+    phone: "",
+    email: "",
+    whatsapp: "",
   },
   categoryFallbacks: [
     {

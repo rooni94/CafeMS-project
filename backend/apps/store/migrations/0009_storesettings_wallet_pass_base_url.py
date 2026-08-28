@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='storesettings',
             name='wallet_pass_base_url',
-            field=models.URLField(blank=True, default='https://example.invalid', help_text='الدومين الأساسي المستخدم في روابط بطاقات الولاء (Apple/Google Wallet).'),
+            field=models.URLField(blank=True, default='', help_text='الدومين الأساسي المستخدم في روابط بطاقات الولاء (Apple/Google Wallet).'),
         ),
     ]

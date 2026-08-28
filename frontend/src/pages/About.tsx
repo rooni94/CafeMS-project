@@ -237,7 +237,7 @@ const About: React.FC = () => {
               <h3 className="text-base font-semibold text-amber-700">موقعنا</h3>
               <p className="text-sm text-gray-700 leading-relaxed">
                 {settings?.contact_address ||
-                  "يمكنك زيارتنا في the demo cafe location، حيث نرحب بك في أي وقت خلال ساعات العمل."}
+                  "يمكنك إضافة عنوان الفرع من إعدادات المتجر عند تشغيل نسخة العرض المحلية."}
               </p>
               <div
                 className="rounded-2xl overflow-hidden border border-amber-100"

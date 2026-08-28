@@ -111,7 +111,7 @@ class StoreSettings(models.Model):
     contact_whatsapp = models.CharField(max_length=50, blank=True, default="")
     wallet_pass_base_url = models.URLField(
         blank=True,
-        default="https://example.invalid",
+        default="",
         help_text="الدومين الأساسي المستخدم في روابط بطاقات الولاء (Apple/Google Wallet).",
     )
     apple_pass_template = models.TextField(

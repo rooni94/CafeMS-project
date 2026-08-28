@@ -277,7 +277,7 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 
 DEFAULT_FROM_EMAIL = env(
     "DEFAULT_FROM_EMAIL",
-    default="CafeMS Demo <noreply@example.invalid>",
+    default="CafeMS <noreply@example.invalid>",
 )
 
 EMAIL_TIMEOUT = env.int("EMAIL_TIMEOUT", default=10)

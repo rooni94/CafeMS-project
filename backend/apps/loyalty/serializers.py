@@ -90,7 +90,7 @@ class LoyaltyProfileSerializer(serializers.ModelSerializer):
             base = (
                 settings.wallet_pass_base_url
                 if settings and settings.wallet_pass_base_url
-                else "https://example.invalid"
+                else ""
             )
             self._wallet_base_cache = base.rstrip("/")
         return self._wallet_base_cache

@@ -105,7 +105,7 @@ const fallbackSettings: StoreBranding = {
   header_subtitle: "",
   footer_text: "",
   contact_email: "",
-  support_email: "contact@example.invalid",
+  support_email: "",
   notification_email: "",
   contact_phone: "",
   logo_url: null,
@@ -133,11 +133,11 @@ const fallbackSettings: StoreBranding = {
   contact_subtitle: "يسعدنا الاستماع إلى رسائلك واقتراحاتك.",
   contact_description:
     "إذا كان لديك استفسار عن الطلبات أو المنتجات أو أي ملاحظة لتحسين تجربتك، اكتب لنا وسنرد عليك في أقرب وقت ممكن.",
-  contact_address: "Demo cafe address",
+  contact_address: "",
   contact_hours: "يومياً من 8:00 صباحاً حتى 12:00 منتصف الليل",
   contact_map_embed: DEFAULT_MAP_EMBED,
   contact_whatsapp: "",
-  wallet_pass_base_url: "https://example.invalid",
+  wallet_pass_base_url: "",
 };
 
 const setCssVar = (name: string, value?: string) => {

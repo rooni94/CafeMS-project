@@ -41,7 +41,7 @@ type CategoryCard = {
 const parseCategoryIdFromLink = (link?: string | null) => {
   if (!link) return null;
   try {
-    const parsed = new URL(link, "https://example.invalid");
+    const parsed = new URL(link, "http://localhost");
     const value = parsed.searchParams.get("category");
     if (!value) return null;
     const asNumber = Number(value);

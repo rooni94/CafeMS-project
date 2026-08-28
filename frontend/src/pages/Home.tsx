@@ -41,10 +41,10 @@ const getCategoryFallback = (category: Category) =>
   "/media/products/lk_menu/assets/latte_art_1.jpg";
 
 const FALLBACK_SOCIAL_LINKS: Record<string, string> = {
-  instagram: "https://instagram.com/cafems-demo",
-  snapchat: "https://www.snapchat.com/add/cafems-demo",
-  twitter: "https://x.com/cafems-demo",
-  facebook: "https://facebook.com/cafems-demo",
+  instagram: "",
+  snapchat: "",
+  twitter: "",
+  facebook: "",
 };
 
 const SOCIAL_PLATFORMS = [
@@ -55,11 +55,11 @@ const SOCIAL_PLATFORMS = [
 ];
 
 const CONTACT_INFO_FALLBACK = {
-  address: "Demo cafe address",
+  address: "",
   hours: "يومياً من 8 صباحاً حتى 12 منتصف الليل",
-  phone: "+10000000000",
-  email: "contact@example.invalid",
-  whatsapp: "+10000000000",
+  phone: "",
+  email: "",
+  whatsapp: "",
 };
 
 const renderSocialIcon = (platform: string) => {

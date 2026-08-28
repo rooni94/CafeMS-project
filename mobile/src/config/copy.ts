@@ -32,11 +32,11 @@
     },
   ],
   contactFallback: {
-    address: "المملكة العربية السعودية - CafeMS Demo",
+    address: "",
     hours: "يومياً من 6 صباحاً إلى 1 صباحاً",
-    phone: "+10000000000",
-    email: "contact@example.invalid",
-    whatsapp: "+10000000000",
+    phone: "",
+    email: "",
+    whatsapp: "",
   },
   categoryFallbacks: [
     {

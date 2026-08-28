@@ -1,4 +1,4 @@
-﻿{
+{
   "expo": {
     "name": "CafeMS Demo",
     "slug": "mobile",
@@ -16,9 +16,6 @@
       "buildNumber": "14",
       "supportsTablet": true,
       "bundleIdentifier": "com.example.cafems",
-      "associatedDomains": [
-        "webcredentials:example.invalid"
-      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSMicrophoneUsageDescription": "نستخدم الميكروفون لتسجيل رسائل الدعم الصوتية.",
@@ -46,16 +43,11 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "eas": {
-        "projectId": "00000000-0000-0000-0000-000000000000"
-      },
-      "apiUrl": "https://example.invalid/api/",
-      "socketUrl": "https://example.invalid/api/",
-      "easProjectId": "00000000-0000-0000-0000-000000000000"
+      "apiUrl": "",
+      "socketUrl": ""
     },
     "plugins": [
       "expo-localization"
-    ],
-    "owner": "rooni"
+    ]
   }
 }

@@ -1,48 +1,72 @@
-# ======================
-# Python / Virtual Env
-# ======================
+# Python / virtual environments
 .venv/
 venv/
 backend/.venv/
+backend/venv/
 __pycache__/
-*.pyc
+*.py[cod]
 
-# ======================
-# AI / Models / Cache
-# ======================
+# Local models, caches, and runtime output
 vosk_models/
 .whisper_cache/
 .huggingface/
 *.onnx
 *.bin
-
-# ======================
-# Django runtime
-# ======================
-db.sqlite3
+*.log
 media/
 staticfiles/
-*.log
+coverage/
+.pytest_cache/
 
-# ======================
-# Frontend
-# ======================
-node_modules/
-dist/
+# Databases, dumps, backups, and generated archives
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+*.dump
+*.bak
+*.rdb
 *.zip
+db.sqlite3*
 
-# ======================
-# Env files
-# ======================
+# Environment and local configuration
 .env
 .env.*
-frontend/.env.local
-frontend/.env.production
-mobile/.env.*
-/ios
+!.env.example
+!**/.env.example
+.continue/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Frontend / Expo dependencies and builds
 node_modules/
+dist/
+build/
+web-build/
+.expo/
+.metro/
+ios/
 android/.gradle/
 android/.cxx/
 android/app/build/
 android/build/
-*.log
+*.tsbuildinfo
+
+# Native signing material
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.mobileprovision
+
+# Temporary/editor artifacts
+*.tmp
+*.temp
+*~
+headfile.tmp
+temp.txt
+tmp.txt
+test_out.txt

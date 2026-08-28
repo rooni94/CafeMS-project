@@ -12,8 +12,8 @@ export default ({ config }) => ({
       process.env.EXPO_PUBLIC_SOCKET_URL ??
       process.env.SOCKET_URL ??
       (config.extra ? config.extra.socketUrl : ""),
-    eas: {
-      projectId: "00000000-0000-0000-0000-000000000000"
-    }
+    ...(process.env.EXPO_PUBLIC_EAS_PROJECT_ID
+      ? { eas: { projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID } }
+      : {}),
   },
 });

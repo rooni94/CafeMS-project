@@ -246,7 +246,7 @@ const StoreSettingsPage: React.FC = () => {
         contact_map_embed: data.contact_map_embed || "",
         contact_whatsapp: data.contact_whatsapp || "",
         wallet_pass_base_url:
-          data.wallet_pass_base_url || "https://example.invalid",
+          data.wallet_pass_base_url || "",
         apple_pass_template: data.apple_pass_template || "",
         google_wallet_jwt_template: data.google_wallet_jwt_template || "",
         header_links: Array.isArray(data.header_links)
@@ -1391,7 +1391,7 @@ const StoreSettingsPage: React.FC = () => {
 
                 }
 
-                placeholder="https://example.invalid"
+                placeholder="https://your-runtime-host.example"
 
               />
 

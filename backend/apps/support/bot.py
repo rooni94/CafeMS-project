@@ -5,6 +5,7 @@ from difflib import get_close_matches
 from typing import Optional, Tuple, List, Dict
 
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db import transaction
 
 from apps.orders.models import Order, OrderItem
@@ -301,9 +302,11 @@ def _add_item_to_order(order: Order, product: Product, qty: int, note: Optional[
 
 
 def _format_invoice_hint(order_id: int) -> str:
+    frontend_url = str(getattr(settings, "FRONTEND_URL", "") or "").rstrip("/")
+    tracking_url = f"{frontend_url}/order-tracking?order={order_id}" if frontend_url else "صفحة تتبع الطلب"
     return (
         f"أرسل لك الفاتورة للطلب #{order_id}. تقدر تتابع الطلب وتشوف الفاتورة من صفحة تتبع الطلب: "
-        f"https://example.invalid/order-tracking?order={order_id} أو من صفحة الطلبات."
+        f"{tracking_url} أو من صفحة الطلبات."
     )
 
 

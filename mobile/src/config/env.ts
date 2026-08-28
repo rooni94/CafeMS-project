@@ -6,7 +6,7 @@ import Constants from 'expo-constants';
  * 1. Constants.expoConfig.extra.apiUrl  (موجود بعد build من EAS أو app.config.js)
  * 2. process.env.EXPO_PUBLIC_API_URL (مفيد للـ dev / local)
  * 3. process.env.API_URL (احتياطي)
- * 4. fallback ثابت (نطاقك)
+ * 4. fallback محلي للتطوير فقط
  */
 
 const getExtra = (key: string) => {
@@ -22,7 +22,7 @@ const getExtra = (key: string) => {
 };
 
 const normalizeBaseUrl = (url?: string | null) => {
-  if (!url) return 'https://example.invalid/api/'; // fallback آمن
+  if (!url) return 'http://localhost:8000/api/'; // fallback محلي آمن
   if (!url.endsWith('/')) {
     return `${url}/`;
   }

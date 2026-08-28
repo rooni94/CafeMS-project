@@ -47,11 +47,11 @@ const Contact: React.FC = () => {
     (settings?.contact_map_embed && settings.contact_map_embed.trim()) ||
     DEFAULT_MAP_EMBED;
 
-  const fallbackPhone = settings?.contact_phone?.trim() || "+10000000000";
+  const fallbackPhone = settings?.contact_phone?.trim() || "";
   const fallbackWhatsapp =
-    settings?.contact_whatsapp?.trim() || "+10000000000";
+    settings?.contact_whatsapp?.trim() || "";
   const supportEmail =
-    settings?.support_email?.trim() || "contact@example.invalid";
+    settings?.support_email?.trim() || "";
 
   const sanitizeTel = (value: string) => {
     const raw = value.replace(/[^0-9+]/g, "");

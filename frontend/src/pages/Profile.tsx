@@ -380,7 +380,7 @@ const Profile: React.FC = () => {
     const base =
       walletBase && walletBase.trim()
         ? walletBase.replace(/\/+$/, "")
-        : "https://example.invalid";
+        : window.location.origin;
     if (url && url.includes("example.com")) {
       return `${base}/passes/${platform}/${membershipId}.pkpass`;
     }
@@ -416,7 +416,7 @@ const Profile: React.FC = () => {
   const walletBase =
     (settings?.wallet_pass_base_url &&
       settings.wallet_pass_base_url.replace(/\/+$/, "")) ||
-    "https://example.invalid";
+    window.location.origin;
 
   // --------- في حالة عدم وجود مستخدم ---------
   if (!user) {

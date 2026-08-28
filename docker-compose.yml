@@ -1,11 +1,10 @@
-version: '3.8'
 services:
   db:
     image: postgres:15
     environment:
       POSTGRES_DB: cafe
       POSTGRES_USER: cafe
-      POSTGRES_PASSWORD: cafe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cafe_dev_only}
     volumes:
       - db_data:/var/lib/postgresql/data
     ports:

@@ -359,7 +359,7 @@ def _ensure_auth_token(profile: LoyaltyProfile) -> str:
 
 
 def _wallet_base_url(settings_obj: StoreSettings) -> str:
-    base = settings_obj.wallet_pass_base_url or "https://example.invalid"
+    base = settings_obj.wallet_pass_base_url or ""
     return base.rstrip("/")
 
 

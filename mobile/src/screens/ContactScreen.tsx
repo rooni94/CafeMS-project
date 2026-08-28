@@ -58,9 +58,9 @@ const ContactScreen: React.FC = () => {
       "رأيك يهمنا. شاركنا رأيك حول الخدمة أو الجودة أو إذا كان عندك أي شكوى حول الخدمة المقدمة وسنقوم بمتابعة ملاحظتك خلال 24 ساعة"
     );
 
-  const fallbackPhone = String((settings as any)?.contact_phone || "+10000000000").trim();
-  const fallbackWhatsapp = String((settings as any)?.contact_whatsapp || "+10000000000").trim();
-  const supportEmail = String((settings as any)?.support_email || "contact@example.invalid").trim();
+  const fallbackPhone = String((settings as any)?.contact_phone || "").trim();
+  const fallbackWhatsapp = String((settings as any)?.contact_whatsapp || "").trim();
+  const supportEmail = String((settings as any)?.support_email || "").trim();
 
   const address = normalizeArabicText((settings as any)?.contact_address) || "";
   const hours = normalizeArabicText((settings as any)?.contact_hours) || "";

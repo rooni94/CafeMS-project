@@ -73,7 +73,7 @@ const CheckoutScreen: React.FC = () => {
   };
 
   const frontendBaseUrl = useMemo(() => {
-    const fallback = "https://example.invalid";
+    const fallback = "http://localhost:5173";
     try {
       const parsed = new URL(ENV.apiUrl);
       const origin = `${parsed.protocol}//${parsed.host}`;
