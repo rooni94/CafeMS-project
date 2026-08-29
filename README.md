@@ -164,7 +164,8 @@ This repository is derived from a private development/production codebase and is
 
 ### Author
 
-Author: Ramazan Alkhalil <contact@ronnidev.com>
+- Name: Ramazan Alkhalil
+- Email: [contact@ronnidev.com](mailto:contact@ronnidev.com)
 
 ## العربية
 
@@ -249,4 +250,5 @@ CafeMS نظام متكامل لإدارة المقهى والطلبات، يجم
 
 ### المطور
 
-المطور: Ramazan Alkhalil <contact@ronnidev.com>
+- الاسم: Ramazan Alkhalil
+- البريد الإلكتروني: [contact@ronnidev.com](mailto:contact@ronnidev.com)
